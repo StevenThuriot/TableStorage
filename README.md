@@ -73,3 +73,7 @@ public class MyService
     }
 }
 ```
+
+# Linq
+
+A few simple Linq extension methods have been provided in the `TableStorage.Linq` namespace.
