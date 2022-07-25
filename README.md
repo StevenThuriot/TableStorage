@@ -74,6 +74,12 @@ public class MyService
 }
 ```
 
+For some special cases, your table name might not be known at compile time. To handle those, an extension method has been added:
+
+```csharp
+var tableSet = context.GetTableSet<Model>("randomname");
+```
+
 # Linq
 
 A few simple Linq extension methods have been provided in the `TableStorage.Linq` namespace.

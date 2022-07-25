@@ -29,9 +29,10 @@ await context.Models1.UpsertEntityAsync(new()
 
 var list1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).ToListAsync(); //Should not contain more than 3 items with all properties filled in
 var list2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).DistinctBy(x => x.MyProperty1).ToListAsync(); //Should contain 1 item with all properties filled in
-var list3 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).DistinctBy(x => x.MyProperty1).Take(3).ToListAsync(); //Should contain 1 item with all properties filled in
+var list3 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).DistinctBy(x => x.MyProperty2, StringComparer.OrdinalIgnoreCase).Take(3).ToListAsync(); //Should contain 1 item with all properties filled in
 var first1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new { x.MyProperty2, x.MyProperty1 }).FirstOrDefaultAsync(); //Should only fill in the selected properties
 var first2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty1).FirstOrDefaultAsync(); //Should only fill in MyProperty1
+var unknown = context.GetTableSet<Model>("randomname") ?? throw new Exception("Should not be null"); //Gives a tableset that wasn't defined on the original DbContext
 var single = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty2).SingleAsync(); //Should throw
 
 #nullable disable
@@ -50,6 +51,7 @@ public class Model : ITableEntity
 public class MyTableContext : TableContext
 {
     public TableSet<Model> Models1 { get; set; }
-    public TableSet<Model> Models2 { get; set; }
+    public TableSet<Model> Models2 { get; private set; }
+    //public TableSet<Model> Models3 { get; } -- This throws because we're unable to set it
+    public TableSet<Model> Models3 { get; init; } // This is fine, though.
 }
-

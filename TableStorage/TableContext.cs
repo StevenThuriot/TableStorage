@@ -4,18 +4,26 @@ namespace TableStorage;
 
 public abstract class TableContext
 {
+    internal TableStorageFactory? Factory { get; private set; }
+    internal TableOptions Options { get; } = new();
+
     internal void Init(TableStorageFactory factory)
     {
-        TableOptions options = new();
-
-        Configure(options);
+        Factory = factory;
+        Configure(Options);
 
         var tableSetProperties = GetType().GetProperties()
-                                 .Where(x => x.CanWrite && x.PropertyType.IsGenericType && x.PropertyType.GetGenericTypeDefinition() == typeof(TableSet<>));
+                                          .Where(x => x.PropertyType.IsGenericType &&
+                                                      x.PropertyType.GetGenericTypeDefinition() == typeof(TableSet<>));
 
         foreach (var property in tableSetProperties)
         {
-            var tableSet = Activator.CreateInstance(property.PropertyType, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { factory, property.Name, options }, System.Globalization.CultureInfo.CurrentCulture);
+            if (!property.CanWrite)
+            {
+                throw new Exception($"Unable to set value for {property.Name} due to missing setter");
+            }
+
+            var tableSet = Activator.CreateInstance(property.PropertyType, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { factory, property.Name, Options }, System.Globalization.CultureInfo.CurrentCulture);
             property.SetValue(this, tableSet);
         }
     }
