@@ -20,7 +20,13 @@ public static class TableQueryHelper
     public static IFilteredTableQueryable<T> Where<T>(this TableSet<T> table, Expression<Func<T, bool>> predicate)
         where T : class, ITableEntity, new()
     {
-         return new TableSetQueryHelper<T>(table).AddFilter(predicate);
+        return new TableSetQueryHelper<T>(table).AddFilter(predicate);
+    }
+
+    public static IFilteredTableQueryable<T> ExistsIn<T, TElement>(this TableSet<T> table, Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).AddExistsInFilter(predicate, elements);
     }
 
     public static IDistinctedTableQueryable<T> DistinctBy<T, TResult>(this TableSet<T> table, Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null)
@@ -211,45 +217,21 @@ public static class TableQueryHelper
             return this;
         }
 
-        ISelectedTableQueryable<T> ISelectedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        ISelectedTableQueryable<T> ISelectedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
-        ITakenTableQueryable<T> ITakenTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        ITakenTableQueryable<T> ITakenTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
-        IFilteredTableQueryable<T> IFilteredTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        IFilteredTableQueryable<T> IFilteredTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
-        ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
-        IDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        IDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
-        ISelectedDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        ISelectedDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
-        ITakenDistinctedTableQueryable<T> ITakenDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        ITakenDistinctedTableQueryable<T> ITakenDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
-        ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
-        {
-            return AddFilter(predicate);
-        }
+        ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
         internal TableSetQueryHelper<T> SetDistinction<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
         {
@@ -283,24 +265,42 @@ public static class TableQueryHelper
             }
         }
 
-        ISelectedDistinctedTableQueryable<T> ISelectedTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
+        ISelectedDistinctedTableQueryable<T> ISelectedTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
+
+        ITakenDistinctedTableQueryable<T> ITakenTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
+
+        IDistinctedTableQueryable<T> IFilteredTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
+
+        ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
+
+        internal TableSetQueryHelper<T> AddExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            return SetDistinction(selector, equalityComparer);
+            ArgumentNullException.ThrowIfNull(elements);
+
+            Expression filter = Expression.Constant(false);
+
+            foreach (var element in elements)
+            {
+                filter = Expression.OrElse(filter, Expression.Equal(predicate.Body, Expression.Constant(element)));
+            }
+
+            var lambda = Expression.Lambda<Func<T, bool>>(filter, predicate.Parameters);
+
+            return AddFilter(lambda);
         }
 
-        ITakenDistinctedTableQueryable<T> ITakenTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
-        {
-            return SetDistinction(selector, equalityComparer);
-        }
+        ISelectedTableQueryable<T> ISelectedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
 
-        IDistinctedTableQueryable<T> IFilteredTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
-        {
-            return SetDistinction(selector, equalityComparer);
-        }
+        ITakenTableQueryable<T> ITakenTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
 
-        ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
-        {
-            return SetDistinction(selector, equalityComparer);
-        }
+        IFilteredTableQueryable<T> IFilteredTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
+
+        ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements); IDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
+
+        ISelectedDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
+
+        ITakenDistinctedTableQueryable<T> ITakenDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
+
+        ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
     }
 }

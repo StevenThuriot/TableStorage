@@ -33,6 +33,7 @@ var list3 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x =
 var first1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new { x.MyProperty2, x.MyProperty1 }).FirstOrDefaultAsync(); //Should only fill in the selected properties
 var first2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty1).FirstOrDefaultAsync(); //Should only fill in MyProperty1
 var unknown = context.GetTableSet<Model>("randomname") ?? throw new Exception("Should not be null"); //Gives a tableset that wasn't defined on the original DbContext
+var exists = await context.Models1.ExistsIn(x => x.MyProperty1, new[] { 1, 2, 3, 4 }).Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 < 3).ToListAsync();
 var single = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty2).SingleAsync(); //Should throw
 
 #nullable disable
