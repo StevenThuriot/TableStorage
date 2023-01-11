@@ -9,8 +9,7 @@ internal sealed class TableStorageFactory
 
     public TableStorageFactory(string connectionString)
     {
-        ArgumentNullException.ThrowIfNull(connectionString);
-        _connectionString = connectionString;
+        _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
     }
 
     public Task<TableClient> GetClient(string tableName)
