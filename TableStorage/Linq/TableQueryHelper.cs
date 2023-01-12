@@ -33,4 +33,40 @@ public static class TableQueryHelper
     {
         return new TableSetQueryHelper<T>(table).SetDistinction(selector, equalityComparer);
     }
+
+    public static Task<T> FirstAsync<T>(this TableSet<T> table, CancellationToken token = default)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).FirstAsync(token);
+    }
+    
+    public static Task<T?> FirstOrDefaultAsync<T>(this TableSet<T> table, CancellationToken token = default)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).FirstOrDefaultAsync(token);
+    }
+    
+    public static Task<T> SingleAsync<T>(this TableSet<T> table, CancellationToken token = default)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).SingleAsync(token);
+    }
+
+    public static Task<T?> SingleOrDefaultAsync<T>(this TableSet<T> table, CancellationToken token = default)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).SingleOrDefaultAsync(token);
+    }
+
+    public static Task<List<T>> ToListAsync<T>(this TableSet<T> table, CancellationToken token = default)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).ToListAsync(token);
+    }
+
+    public static IAsyncEnumerable<T> ToAsyncEnumerableAsync<T>(this TableSet<T> table, CancellationToken token = default)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).ToAsyncEnumerableAsync(token);
+    }
 }
