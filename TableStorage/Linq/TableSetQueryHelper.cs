@@ -257,16 +257,30 @@ internal sealed class TableSetQueryHelper<T> :
             throw new ArgumentNullException(nameof(elements));
         }
 
-        Expression filter = Expression.Constant(false);
-
-        foreach (var element in elements)
-        {
-            filter = Expression.OrElse(filter, Expression.Equal(predicate.Body, Expression.Constant(element)));
-        }
+        Expression filter = BuildFilterExpression();
 
         var lambda = Expression.Lambda<Func<T, bool>>(filter, predicate.Parameters);
-
         return AddFilter(lambda);
+
+        Expression BuildFilterExpression()
+        {
+            using var enumerator = elements.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+            {
+                return Expression.Constant(false);
+            }
+
+            var filter = GetFilterForElement();
+            while (enumerator.MoveNext())
+            {
+                filter = Expression.OrElse(filter, GetFilterForElement());
+            }
+
+            return filter;
+
+            BinaryExpression GetFilterForElement() => Expression.Equal(predicate.Body, Expression.Constant(enumerator.Current));
+        }
     }
 
     ISelectedTableQueryable<T> ISelectedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
