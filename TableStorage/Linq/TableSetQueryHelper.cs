@@ -17,9 +17,10 @@ internal sealed class TableSetQueryHelper<T> :
 {
     private readonly TableSet<T> _table;
 
-    private List<string>? _fields;
+    private HashSet<string>? _fields;
     private Expression<Func<T, bool>>? _filter;
     private int? _amount;
+    internal int? Amount => _amount;
     private Func<T, bool>? _distinct;
 
     public TableSetQueryHelper(TableSet<T> table)
@@ -130,26 +131,90 @@ internal sealed class TableSetQueryHelper<T> :
     }
 
     #region Select
-    internal TableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp)
+    internal TableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true)
     {
-        _fields = exp.Body switch
+        if (_fields is not null)
         {
-            MemberExpression body => new(1) { body.Member.Name },
-            UnaryExpression ubody when ubody.Operand is MemberExpression operand => new(1) { operand.Member.Name },
-            NewExpression newExpression => newExpression.Arguments.Cast<MemberExpression>().Select(x => x.Member.Name).ToList(), //assume anonymous class
-            _ => throw new NotSupportedException("Select expression is not supported"),
-        };
+            throw new NotSupportedException("Only one transformation is allowed at a time");
+        }
+
+        _fields = ExtractArguments(new[] { exp.Body }, throwIfnotYielded: true).ToHashSet();
+
+        if (throwIfNoArgumentsFound && _fields.Count == 0)
+        {
+            throw new NotSupportedException("Select expression is not supported");
+        }
 
         return this;
+
+        static IEnumerable<string> ExtractArguments(IEnumerable<Expression> expressions, bool throwIfnotYielded = false)
+        {
+            foreach (var expression in expressions)
+            {
+                switch (expression)
+                {
+                    case MemberExpression x:
+                        yield return x.Member.Name;
+
+                        break;
+
+                    case UnaryExpression x:
+                        foreach (var argument in ExtractArguments(new[] { x.Operand }))
+                        {
+                            yield return argument;
+                        }
+
+                        break;
+
+                    case BinaryExpression x:
+                        foreach (var argument in ExtractArguments(new[] { x.Left, x.Right }))
+                        {
+                            yield return argument;
+                        }
+
+                        break;
+
+                    case NewExpression x:
+                        foreach (var argument in ExtractArguments(x.Arguments))
+                        {
+                            yield return argument;
+                        }
+
+                        break;
+
+                    case MethodCallExpression x:
+                        foreach (var argument in ExtractArguments(x.Arguments))
+                        {
+                            yield return argument;
+                        }
+
+                        break;
+                }
+            }
+        }
     }
 
-    ISelectedTakenTableQueryable<T> ITakenTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    internal TransformedTableSetQueryHelper<T, TResult> SetFieldsAndTransform<TResult>(Expression<Func<T, TResult>> exp)
+    {
+        SetFields(exp, throwIfNoArgumentsFound: false);
+        return new TransformedTableSetQueryHelper<T, TResult>(this, exp);
+    }
 
-    ISelectedTableQueryable<T> IFilteredTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    ISelectedTakenTableQueryable<T> ITakenTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
 
-    ISelectedTakenTableQueryable<T> ITakenDistinctedTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    ISelectedTableQueryable<T> IFilteredTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
 
-    ISelectedDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    ISelectedTakenTableQueryable<T> ITakenDistinctedTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+
+    ISelectedDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+
+    ITableEnumerable<TResult> ITakenTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
+
+    ITableEnumerable<TResult> IFilteredTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
+
+    ITableEnumerable<TResult> ITakenDistinctedTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
+
+    ITableEnumerable<TResult> IDistinctedTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
     #endregion Select
 
     #region Take

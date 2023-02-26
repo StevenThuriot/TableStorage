@@ -83,3 +83,5 @@ var tableSet = context.GetTableSet<Model>("randomname");
 # Linq
 
 A few simple Linq extension methods have been provided in the `TableStorage.Linq` namespace.
+
+Note: `Select` will include the actual transformation. If you want the original model, with only the selected fields retrieved, use `SelectFields` instead.

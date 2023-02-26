@@ -3,7 +3,6 @@
 namespace TableStorage.Linq;
 
 public interface ICanTakeOneTableQueryable<T>
-    where T : class, ITableEntity, new()
 {
     Task<T> FirstAsync(CancellationToken token = default);
     Task<T?> FirstOrDefaultAsync(CancellationToken token = default);
@@ -12,16 +11,18 @@ public interface ICanTakeOneTableQueryable<T>
 }
 
 public interface ITableQueryable<T>
-    where T : class, ITableEntity, new()
 {
     Task<List<T>> ToListAsync(CancellationToken token = default);
     IAsyncEnumerable<T> ToAsyncEnumerableAsync(CancellationToken token = default);
 }
 
+public interface ITableEnumerable<T> : ICanTakeOneTableQueryable<T>, ITableQueryable<T> { }
+
 public interface IFilteredTableQueryable<T> : ITableQueryable<T>, ICanTakeOneTableQueryable<T>
     where T : class, ITableEntity, new()
 {
-    ISelectedTableQueryable<T> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ITableEnumerable<TResult> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ISelectedTableQueryable<T> SelectFields<TResult>(Expression<Func<T, TResult>> selector);
     ITakenTableQueryable<T> Take(int amount);
     IFilteredTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     IFilteredTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
@@ -40,7 +41,8 @@ public interface ISelectedTableQueryable<T> : ITableQueryable<T>, ICanTakeOneTab
 public interface ITakenTableQueryable<T> : ITableQueryable<T>
     where T : class, ITableEntity, new()
 {
-    ISelectedTakenTableQueryable<T> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ITableEnumerable<TResult> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ISelectedTakenTableQueryable<T> SelectFields<TResult>(Expression<Func<T, TResult>> selector);
     ITakenTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ITakenTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
     ITakenDistinctedTableQueryable<T> DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null);
@@ -49,7 +51,8 @@ public interface ITakenTableQueryable<T> : ITableQueryable<T>
 public interface IDistinctedTableQueryable<T> : ITableQueryable<T>, ICanTakeOneTableQueryable<T>
     where T : class, ITableEntity, new()
 {
-    ISelectedDistinctedTableQueryable<T> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ITableEnumerable<TResult> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ISelectedDistinctedTableQueryable<T> SelectFields<TResult>(Expression<Func<T, TResult>> selector);
     IDistinctedTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     IDistinctedTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
     ISelectedDistinctedTableQueryable<T> Take(int amount);
@@ -74,7 +77,8 @@ public interface ISelectedDistinctedTableQueryable<T> : ITableQueryable<T>, ICan
 public interface ITakenDistinctedTableQueryable<T> : ITableQueryable<T>
     where T : class, ITableEntity, new()
 {
-    ISelectedTakenTableQueryable<T> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ITableEnumerable<TResult> Select<TResult>(Expression<Func<T, TResult>> selector);
+    ISelectedTakenTableQueryable<T> SelectFields<TResult>(Expression<Func<T, TResult>> selector);
     ITakenDistinctedTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ITakenDistinctedTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
 }
