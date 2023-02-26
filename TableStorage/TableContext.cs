@@ -12,19 +12,30 @@ public abstract class TableContext
         Factory = factory;
         Configure(Options);
 
-        var tableSetProperties = GetType().GetProperties()
+        var contextType = GetType();
+        var tableSetProperties = contextType.GetProperties()
                                           .Where(x => x.PropertyType.IsGenericType &&
                                                       x.PropertyType.GetGenericTypeDefinition() == typeof(TableSet<>));
 
         foreach (var property in tableSetProperties)
         {
-            if (!property.CanWrite)
-            {
-                throw new Exception($"Unable to set value for {property.Name} due to missing setter");
-            }
-
             var tableSet = Activator.CreateInstance(property.PropertyType, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { factory, property.Name, Options }, System.Globalization.CultureInfo.CurrentCulture);
-            property.SetValue(this, tableSet);
+
+            if (property.CanWrite)
+            {
+                property.SetValue(this, tableSet);
+            }
+            else
+            {
+                var backingField = contextType.GetField($"<{property.Name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (backingField is null)
+                {
+                    throw new Exception($"Unable to set value for {property.Name} due to missing setter");
+                }
+
+                backingField.SetValue(this, tableSet);
+            }
         }
     }
 

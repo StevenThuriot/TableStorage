@@ -4,7 +4,13 @@ namespace TableStorage.Linq;
 
 public static class TableQueryHelper
 {
-    public static ISelectedTableQueryable<T> Select<T, TResult>(this TableSet<T> table, Expression<Func<T, TResult>> selector)
+    public static ITableEnumerable<TResult> Select<T, TResult>(this TableSet<T> table, Expression<Func<T, TResult>> selector)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).SetFieldsAndTransform(selector);
+    }
+
+    public static ISelectedTableQueryable<T> SelectFields<T, TResult>(this TableSet<T> table, Expression<Func<T, TResult>> selector)
         where T : class, ITableEntity, new()
     {
         return new TableSetQueryHelper<T>(table).SetFields(selector);
@@ -39,13 +45,13 @@ public static class TableQueryHelper
     {
         return new TableSetQueryHelper<T>(table).FirstAsync(token);
     }
-    
+
     public static Task<T?> FirstOrDefaultAsync<T>(this TableSet<T> table, CancellationToken token = default)
         where T : class, ITableEntity, new()
     {
         return new TableSetQueryHelper<T>(table).FirstOrDefaultAsync(token);
     }
-    
+
     public static Task<T> SingleAsync<T>(this TableSet<T> table, CancellationToken token = default)
         where T : class, ITableEntity, new()
     {

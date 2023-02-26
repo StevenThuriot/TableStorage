@@ -40,6 +40,9 @@ var firstTransformed4 = await context.Models1.Where(x => x.PartitionKey == "root
 var firstTransformed5 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty1 + 1 + x.MyProperty2 + "_test").FirstOrDefaultAsync(); //Should return a concatted string
 var firstTransformed6 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => TestTransformAndSelect.Map(x.MyProperty1, x.MyProperty2)).FirstOrDefaultAsync(); //Should return a record with only these two props and included transformations
 var firstTransformed7 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.Map()).FirstOrDefaultAsync(); //Should at least work but gets everything
+var firstTransformed8 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, x.MyProperty2, Guid.Parse(x.RowKey))).FirstOrDefaultAsync(); //Should only get 3 props and transform
+var firstTransformed9 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, "test", Guid.NewGuid())).FirstOrDefaultAsync(); //Should only get one prop and transform
+var firstTransformed10 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new NestedTestTransformAndSelect(Guid.Parse(x.RowKey), new(x.MyProperty1 + 1 * 4, x.MyProperty2 + "_test"))).FirstOrDefaultAsync(); //Should only get 3 props and transform into a nested object
 var unknown = context.GetTableSet<Model>("randomname") ?? throw new Exception("Should not be null"); //Gives a tableset that wasn't defined on the original DbContext
 var exists = await context.Models1.ExistsIn(x => x.MyProperty1, new[] { 1, 2, 3, 4 }).Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 < 3).ToListAsync();
 
@@ -62,9 +65,13 @@ public class MyTableContext : TableContext
 {
     public TableSet<Model> Models1 { get; set; }
     public TableSet<Model> Models2 { get; private set; }
-    //public TableSet<Model> Models3 { get; } -- This throws because we're unable to set it
-    public TableSet<Model> Models3 { get; init; } // This is fine, though.
+    public TableSet<Model> Models3 { get; }
+    public TableSet<Model> Models4 { get; init; }
 }
+
+public record TestTransformAndSelectWithGuid(int prop1, string prop2, Guid id);
+
+public record NestedTestTransformAndSelect(Guid id, TestTransformAndSelect test);
 
 public record TestTransformAndSelect(int prop1, string prop2)
 {
