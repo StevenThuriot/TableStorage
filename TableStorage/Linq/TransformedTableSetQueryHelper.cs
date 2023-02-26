@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using FastExpressionCompiler;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
 namespace TableStorage.Linq;
@@ -12,7 +13,7 @@ internal class TransformedTableSetQueryHelper<T, TResult> : ITableEnumerable<TRe
     public TransformedTableSetQueryHelper(TableSetQueryHelper<T> tableSetQueryHelper, Expression<Func<T, TResult>> transform)
     {
         _helper = tableSetQueryHelper;
-        _transform = transform.Compile();
+        _transform = transform.CompileFast();
     }
 
     public async Task<TResult> FirstAsync(CancellationToken token = default)
