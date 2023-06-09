@@ -43,6 +43,9 @@ var firstTransformed7 = await context.Models1.Where(x => x.PartitionKey == "root
 var firstTransformed8 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, x.MyProperty2, Guid.Parse(x.RowKey))).FirstOrDefaultAsync(); //Should only get 3 props and transform
 var firstTransformed9 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, "test", Guid.NewGuid())).FirstOrDefaultAsync(); //Should only get one prop and transform
 var firstTransformed10 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new NestedTestTransformAndSelect(Guid.Parse(x.RowKey), new(x.MyProperty1 + 1 * 4, x.MyProperty2 + "_test"))).FirstOrDefaultAsync(); //Should only get 3 props and transform into a nested object
+var firstTransformed11 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new StringFormatted($"{x.RowKey} - {x.MyProperty1 + 1 * 4}, {x.MyProperty2}_test")).FirstOrDefaultAsync(); //Should only get 3 props and transform into a string
+var firstTransformed12 = await context.Models1.Select(x => new StringFormatted2($"{x.RowKey} - {x.MyProperty1 + 1 * 4}, {x.MyProperty2}_test", null, x.Timestamp.GetValueOrDefault())).ToListAsync(); //Should only get 4 props and transform into a string
+var firstTransformed13 = await context.Models1.Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", x.RowKey, x.MyProperty1 + (1 * 4), x.MyProperty2, x.Timestamp.GetValueOrDefault()), null, x.Timestamp.GetValueOrDefault())).ToListAsync(); //Should only get 4 props and transform into a string
 var unknown = context.GetTableSet<Model>("randomname") ?? throw new Exception("Should not be null"); //Gives a tableset that wasn't defined on the original DbContext
 var exists = await context.Models1.ExistsIn(x => x.MyProperty1, new[] { 1, 2, 3, 4 }).Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 < 3).ToListAsync();
 
@@ -72,6 +75,8 @@ public class MyTableContext : TableContext
 public record TestTransformAndSelectWithGuid(int prop1, string prop2, Guid id);
 
 public record NestedTestTransformAndSelect(Guid id, TestTransformAndSelect test);
+public record StringFormatted(string value);
+public record StringFormatted2(string Value, string OtherValue, DateTimeOffset TimeStamp);
 
 public record TestTransformAndSelect(int prop1, string prop2)
 {

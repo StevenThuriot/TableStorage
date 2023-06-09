@@ -12,5 +12,5 @@ internal class AsyncLazy<T> : Lazy<Task<T>>
         : base(() => taskFactory())
     { }
 
-    public TaskAwaiter<T> GetAwaiter() { return Value.GetAwaiter(); }
+    public TaskAwaiter<T> GetAwaiter() => Value.GetAwaiter();
 }

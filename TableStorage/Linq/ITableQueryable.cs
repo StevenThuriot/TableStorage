@@ -26,6 +26,7 @@ public interface IFilteredTableQueryable<T> : ITableQueryable<T>, ICanTakeOneTab
     ITakenTableQueryable<T> Take(int amount);
     IFilteredTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     IFilteredTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    IFilteredTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
     IDistinctedTableQueryable<T> DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null);
 }
 
@@ -35,6 +36,7 @@ public interface ISelectedTableQueryable<T> : ITableQueryable<T>, ICanTakeOneTab
     ISelectedTakenTableQueryable<T> Take(int amount);
     ISelectedTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ISelectedTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    ISelectedTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
     ISelectedDistinctedTableQueryable<T> DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null);
 }
 
@@ -45,6 +47,7 @@ public interface ITakenTableQueryable<T> : ITableQueryable<T>
     ISelectedTakenTableQueryable<T> SelectFields<TResult>(Expression<Func<T, TResult>> selector);
     ITakenTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ITakenTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    ITakenTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
     ITakenDistinctedTableQueryable<T> DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null);
 }
 
@@ -55,6 +58,7 @@ public interface IDistinctedTableQueryable<T> : ITableQueryable<T>, ICanTakeOneT
     ISelectedDistinctedTableQueryable<T> SelectFields<TResult>(Expression<Func<T, TResult>> selector);
     IDistinctedTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     IDistinctedTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    IDistinctedTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
     ISelectedDistinctedTableQueryable<T> Take(int amount);
 }
 
@@ -63,6 +67,7 @@ public interface ISelectedTakenTableQueryable<T> : ITableQueryable<T>
 {
     ISelectedTakenTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ISelectedTakenTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    ISelectedTakenTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
     ISelectedTakenDistinctedTableQueryable<T> DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null);
 }
 
@@ -72,6 +77,7 @@ public interface ISelectedDistinctedTableQueryable<T> : ITableQueryable<T>, ICan
     ISelectedTakenDistinctedTableQueryable<T> Take(int amount);
     ISelectedDistinctedTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ISelectedDistinctedTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    ISelectedDistinctedTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
 }
 
 public interface ITakenDistinctedTableQueryable<T> : ITableQueryable<T>
@@ -81,6 +87,7 @@ public interface ITakenDistinctedTableQueryable<T> : ITableQueryable<T>
     ISelectedTakenTableQueryable<T> SelectFields<TResult>(Expression<Func<T, TResult>> selector);
     ITakenDistinctedTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ITakenDistinctedTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    ITakenDistinctedTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
 }
 
 public interface ISelectedTakenDistinctedTableQueryable<T> : ITableQueryable<T>
@@ -88,4 +95,5 @@ public interface ISelectedTakenDistinctedTableQueryable<T> : ITableQueryable<T>
 {
     ISelectedTakenDistinctedTableQueryable<T> Where(Expression<Func<T, bool>> predicate);
     ISelectedTakenDistinctedTableQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
+    ISelectedTakenDistinctedTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
 }

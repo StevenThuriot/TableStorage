@@ -34,6 +34,12 @@ public static class TableQueryHelper
         return new TableSetQueryHelper<T>(table).AddExistsInFilter(predicate, elements);
     }
 
+    public static IFilteredTableQueryable<T> NotExistsIn<T, TElement>(this TableSet<T> table, Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
+        where T : class, ITableEntity, new()
+    {
+        return new TableSetQueryHelper<T>(table).AddNotExistsInFilter(predicate, elements);
+    }
+
     public static IDistinctedTableQueryable<T> DistinctBy<T, TResult>(this TableSet<T> table, Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null)
         where T : class, ITableEntity, new()
     {

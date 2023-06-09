@@ -12,8 +12,9 @@
 		<PackageProjectUrl>https://github.com/StevenThuriot/TableStorage</PackageProjectUrl>
 		<Copyright>Steven THuriot</Copyright>
 		<Authors>Steven Thuriot</Authors>
-		<Version>3.1.0</Version>
+		<Version>3.2.0</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>TableStorage.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -21,6 +22,11 @@
 	    <Pack>True</Pack>
 	    <PackagePath>\</PackagePath>
 	  </None>
+    <None Update="TableStorage.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
 	</ItemGroup>
 
 	<ItemGroup>

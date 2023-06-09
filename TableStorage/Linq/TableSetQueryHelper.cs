@@ -138,7 +138,7 @@ internal sealed class TableSetQueryHelper<T> :
             throw new NotSupportedException("Only one transformation is allowed at a time");
         }
 
-        _fields = ExtractArguments(new[] { exp.Body }, throwIfnotYielded: true).ToHashSet();
+        _fields = ExtractArguments(new[] { exp.Body }).ToHashSet();
 
         if (throwIfNoArgumentsFound && _fields.Count == 0)
         {
@@ -147,7 +147,7 @@ internal sealed class TableSetQueryHelper<T> :
 
         return this;
 
-        static IEnumerable<string> ExtractArguments(IEnumerable<Expression> expressions, bool throwIfnotYielded = false)
+        static IEnumerable<string> ExtractArguments(IEnumerable<Expression> expressions)
         {
             foreach (var expression in expressions)
             {
@@ -183,7 +183,15 @@ internal sealed class TableSetQueryHelper<T> :
                         break;
 
                     case MethodCallExpression x:
-                        foreach (var argument in ExtractArguments(x.Arguments))
+                        foreach (var argument in ExtractArguments(x.Arguments.Append(x.Object)))
+                        {
+                            yield return argument;
+                        }
+
+                        break;
+
+                    case NewArrayExpression x:
+                        foreach (var argument in ExtractArguments(x.Expressions))
                         {
                             yield return argument;
                         }
@@ -362,4 +370,53 @@ internal sealed class TableSetQueryHelper<T> :
 
     ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
     #endregion ExistsIn
+
+    #region NotExistsIn
+    internal TableSetQueryHelper<T> AddNotExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
+    {
+        if (elements is null)
+        {
+            throw new ArgumentNullException(nameof(elements));
+        }
+
+        Expression filter = BuildFilterExpression();
+
+        var lambda = Expression.Lambda<Func<T, bool>>(filter, predicate.Parameters);
+        return AddFilter(lambda);
+
+        Expression BuildFilterExpression()
+        {
+            using var enumerator = elements.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+            {
+                return Expression.Constant(true);
+            }
+
+            var filter = GetFilterForElement();
+            while (enumerator.MoveNext())
+            {
+                filter = Expression.AndAlso(filter, GetFilterForElement());
+            }
+
+            return filter;
+
+            BinaryExpression GetFilterForElement() => Expression.NotEqual(predicate.Body, Expression.Constant(enumerator.Current));
+        }
+    }
+
+    ISelectedTableQueryable<T> ISelectedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+
+    ITakenTableQueryable<T> ITakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+
+    IFilteredTableQueryable<T> IFilteredTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+
+    ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements); IDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+
+    ISelectedDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+
+    ITakenDistinctedTableQueryable<T> ITakenDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+
+    ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+    #endregion NotExistsIn
 }
