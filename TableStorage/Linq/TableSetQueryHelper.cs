@@ -131,6 +131,17 @@ internal sealed class TableSetQueryHelper<T> :
     }
 
     #region Select
+    private class SelectionVisitor : ExpressionVisitor
+    {
+        public readonly HashSet<string> Members = new();
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            Members.Add(node.Member.Name);
+            return base.VisitMember(node);
+        }
+    }
+
     internal TableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true)
     {
         if (_fields is not null)
@@ -138,74 +149,28 @@ internal sealed class TableSetQueryHelper<T> :
             throw new NotSupportedException("Only one transformation is allowed at a time");
         }
 
-        _fields = ExtractArguments(new[] { exp.Body }).ToHashSet();
+        SelectionVisitor visitor = new();
+        _ = visitor.Visit(exp);
 
-        if (throwIfNoArgumentsFound && _fields.Count == 0)
+        if (visitor.Members.Count == 0)
         {
-            throw new NotSupportedException("Select expression is not supported");
+            if (throwIfNoArgumentsFound)
+            {
+                throw new NotSupportedException("Select expression is not supported");
+            }
+        }
+        else
+        {
+            _fields = visitor.Members;
         }
 
         return this;
-
-        static IEnumerable<string> ExtractArguments(IEnumerable<Expression> expressions)
-        {
-            foreach (var expression in expressions)
-            {
-                switch (expression)
-                {
-                    case MemberExpression x:
-                        yield return x.Member.Name;
-
-                        break;
-
-                    case UnaryExpression x:
-                        foreach (var argument in ExtractArguments(new[] { x.Operand }))
-                        {
-                            yield return argument;
-                        }
-
-                        break;
-
-                    case BinaryExpression x:
-                        foreach (var argument in ExtractArguments(new[] { x.Left, x.Right }))
-                        {
-                            yield return argument;
-                        }
-
-                        break;
-
-                    case NewExpression x:
-                        foreach (var argument in ExtractArguments(x.Arguments))
-                        {
-                            yield return argument;
-                        }
-
-                        break;
-
-                    case MethodCallExpression x:
-                        foreach (var argument in ExtractArguments(x.Arguments.Append(x.Object)))
-                        {
-                            yield return argument;
-                        }
-
-                        break;
-
-                    case NewArrayExpression x:
-                        foreach (var argument in ExtractArguments(x.Expressions))
-                        {
-                            yield return argument;
-                        }
-
-                        break;
-                }
-            }
-        }
     }
 
     internal TransformedTableSetQueryHelper<T, TResult> SetFieldsAndTransform<TResult>(Expression<Func<T, TResult>> exp)
     {
-        SetFields(exp, throwIfNoArgumentsFound: false);
-        return new TransformedTableSetQueryHelper<T, TResult>(this, exp);
+        var helper = SetFields(exp, throwIfNoArgumentsFound: false);
+        return new TransformedTableSetQueryHelper<T, TResult>(helper, exp);
     }
 
     ISelectedTakenTableQueryable<T> ITakenTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
