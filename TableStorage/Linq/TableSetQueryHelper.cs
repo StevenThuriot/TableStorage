@@ -271,7 +271,7 @@ internal sealed class TableSetQueryHelper<T> :
             return _equalityComparer.Equals(_selector(x), _selector(y));
         }
 
-        public int GetHashCode([DisallowNull] T obj)
+        public int GetHashCode(T obj)
         {
             var selection = _selector(obj);
             return selection is null ? 0 : selection.GetHashCode();

@@ -3,23 +3,19 @@ Streamlined way of working with Azure Data Tables
 
 # Usage
 
-Create your own TableContext
+Create your own TableContext and mark it with the `[TableContext]` attribute. This class must be partial.
 
 ```csharp
-public class MyTableContext : TableContext { }
+[TableContext]
+public partial class MyTableContext { }
 ```
 
-Create your models, these must be classes, inherit `ITableEntity` and have a parameterless constructor.
+Create your models, these must be classes and have a parameterless constructor. Mark them with the `[TableSetModel]` attribute. This class must be partial.
 
 ```csharp
-public class Model : ITableEntity
+[TableSetModel]
+public partial class Model
 {
-    public string PartitionKey { get; set; }
-    public string RowKey { get; set; }
-    public DateTimeOffset? Timestamp { get; set; }
-    public ETag ETag { get; set; }
-    
-    //Add your own custom properties, e.g:
     public string Data { get; set; }
     public bool Enabled { get; set; }
 }
@@ -28,30 +24,33 @@ public class Model : ITableEntity
 Place your tables on your TableContext. The sample below will create 2 tables in table storage, named Models1 and Models2.
 
 ```csharp
-public class MyTableContext : TableContext
+[TableContext]
+public partial class MyTableContext
 {
-    public TableSet<Model> Models1 { get; set; }    
+    public TableSet<Model> Models1 { get; set; }
     public TableSet<Model> Models2 { get; set; }
 }
 ```
 
-Optionally, override the `Configure` method to adjust some configuration options
+Register your TableContext in your services. An extension method will be available specifically for your context.
 
 ```csharp
-protected override void Configure(TableOptions options)
+builder.Services.AddMyTableContext(builder.Configuration.GetConnectionString("MyConnectionString"));
+```
+
+Optionally, pass along a `Configure` method to adjust some configuration options.
+
+```csharp
+builder.Services.AddMyTableContext(builder.Configuration.GetConnectionString("MyConnectionString"), Configure);
+
+static void Configure(TableOptions options)
 {
     options.AutoTimestamps = true;
     options.TableMode = TableUpdateMode.Merge;
 }
 ```
 
-Register your TableContext in your services
-
-```csharp
-builder.Services.AddTableContext<MyTableContext>(builder.Configuration.GetConnectionString("MyConnectionString"));
-```
-
-Inject `MyTableContext` into your class and use as needed
+Inject `MyTableContext` into your class and use as needed.
 
 ```csharp
 public class MyService

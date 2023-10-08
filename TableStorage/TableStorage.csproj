@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.1</TargetFramework>
+		<TargetFramework>netstandard2.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
@@ -10,9 +10,9 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryUrl>https://github.com/StevenThuriot/TableStorage</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/StevenThuriot/TableStorage</PackageProjectUrl>
-		<Copyright>Steven THuriot</Copyright>
+		<Copyright>Steven Thuriot</Copyright>
 		<Authors>Steven Thuriot</Authors>
-		<Version>3.2.1</Version>
+		<Version>4.0.0-preview.1</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>TableStorage.png</PackageIcon>
 	</PropertyGroup>
@@ -22,11 +22,13 @@
 	    <Pack>True</Pack>
 	    <PackagePath>\</PackagePath>
 	  </None>
-    <None Update="TableStorage.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
+      <None Update="TableStorage.png">
+        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        <Pack>True</Pack>
+        <PackagePath>\</PackagePath>
+      </None>
+      
+      <None Include="$(SolutionDir)\TableStorage.SourceGenerators\bin\$(Configuration)\$(TargetFramework)\TableStorage.SourceGenerators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -34,11 +36,12 @@
 		<PackageReference Include="FastExpressionCompiler" Version="3.3.4" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="[3.1.0, )" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="[3.1.0, )" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.2" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Azure" />
 		<Using Include="Azure.Data.Tables" />
-	</ItemGroup>
-	
+	</ItemGroup>	
 </Project>

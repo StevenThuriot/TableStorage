@@ -1,12 +1,12 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using Azure;
-using Azure.Data.Tables;
 using Microsoft.Extensions.DependencyInjection;
-using TableStorage;
+using System;
 using TableStorage.Linq;
+using TableStorage.Tests.Contexts;
+using TableStorage.Tests.Models;
 
 ServiceCollection services = new();
-services.AddTableContext<MyTableContext>("UseDevelopmentStorage=true");
+services.AddMyTableContext("UseDevelopmentStorage=true");
 var provider = services.BuildServiceProvider();
 
 var context = provider.GetRequiredService<MyTableContext>();
@@ -26,6 +26,37 @@ await context.Models1.UpsertEntityAsync(new()
     MyProperty1 = 5,
     MyProperty2 = "hallo 5"
 });
+
+await context.Models2.UpsertEntityAsync(new()
+{
+    PartitionKey = "root",
+    RowKey = Guid.NewGuid().ToString("N"),
+    MyProperty1 = 1,
+    MyProperty2 = "hallo 1",
+    MyProperty3 = DateTime.UtcNow,
+    MyProperty4 = Guid.NewGuid(),
+    MyProperty5 = DateTime.UtcNow,
+    MyProperty6 = Guid.NewGuid(),
+    MyProperty7 = ModelEnum.Yes,
+    MyProperty8 = ModelEnum.No
+});
+
+await context.Models2.UpsertEntityAsync(new()
+{
+    PartitionKey = "root",
+    RowKey = Guid.NewGuid().ToString("N"),
+    MyProperty1 = 5,
+    MyProperty2 = "hallo 5",
+    MyProperty3 = DateTime.UtcNow,
+    MyProperty4 = Guid.NewGuid(),
+    MyProperty5 = DateTime.UtcNow,
+    MyProperty6 = Guid.NewGuid(),
+    MyProperty7 = ModelEnum.Yes,
+    MyProperty8 = ModelEnum.No
+});
+
+var models2 = await context.Models2.ToListAsync(); //should just return all my big models
+var enumFilters = await context.Models2.Where(x => x.MyProperty7 == ModelEnum.Yes && x.MyProperty8 == ModelEnum.No).ToListAsync(); //enum filtering should work
 
 var list1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).ToListAsync(); //Should not contain more than 3 items with all properties filled in
 var list2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).DistinctBy(x => x.MyProperty1).ToListAsync(); //Should contain 1 item with all properties filled in
@@ -48,28 +79,52 @@ var firstTransformed12 = await context.Models1.Select(x => new StringFormatted2(
 var firstTransformed13 = await context.Models1.Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", x.RowKey, x.MyProperty1 + (1 * 4), x.MyProperty2, x.Timestamp.GetValueOrDefault()), null, x.Timestamp.GetValueOrDefault())).ToListAsync(); //Should only get 4 props and transform into a string
 var unknown = context.GetTableSet<Model>("randomname") ?? throw new Exception("Should not be null"); //Gives a tableset that wasn't defined on the original DbContext
 var exists = await context.Models1.ExistsIn(x => x.MyProperty1, new[] { 1, 2, 3, 4 }).Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 < 3).ToListAsync();
-
 var single = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => x.MyProperty2).SingleAsync(); //Should throw
 
+namespace TableStorage.Tests.Models
+{
 #nullable disable
 
-public class Model : ITableEntity
-{
-    public string PartitionKey { get; set; }
-    public string RowKey { get; set; }
-    public DateTimeOffset? Timestamp { get; set; }
-    public ETag ETag { get; set; }
+    [TableSetModel]
+    public partial class Model
+    {
+        public int MyProperty1 { get; set; }
+        public string MyProperty2 { get; set; }
+    }
 
-    public int MyProperty1 { get; set; }
-    public string MyProperty2 { get; set; }
+    [TableSetModel]
+    public partial class Model2
+    {
+        public int MyProperty1 { get; set; }
+        public string MyProperty2 { get; set; }
+        public System.DateTime? MyProperty3 { get; set; }
+        public System.Guid? MyProperty4 { get; set; }
+        public System.DateTime MyProperty5 { get; set; }
+        public System.Guid MyProperty6 { get; set; }
+        public ModelEnum MyProperty7 { get; set; }
+        public ModelEnum? MyProperty8 { get; set; }
+        public Nullable<ModelEnum> MyProperty9 { get; set; }
+    }
+
+    public enum ModelEnum
+    {
+        Yes,
+        No
+    }
 }
 
-public class MyTableContext : TableContext
+namespace TableStorage.Tests.Contexts
 {
-    public TableSet<Model> Models1 { get; set; }
-    public TableSet<Model> Models2 { get; private set; }
-    public TableSet<Model> Models3 { get; }
-    public TableSet<Model> Models4 { get; init; }
+    using TableStorage.Tests.Models;
+
+    [TableContext]
+    public partial class MyTableContext
+    {
+        public TableSet<Model> Models1 { get; set; }
+        public TableSet<Model2> Models2 { get; private set; }
+        public TableSet<Model> Models3 { get; init; }
+        public TableSet<Model> Models4 { get; init; }
+    }
 }
 
 public record TestTransformAndSelectWithGuid(int prop1, string prop2, Guid id);
@@ -88,7 +143,7 @@ public record TestTransformAndSelect(int prop1, string prop2)
 
 public static class Mapper
 {
-    public static TestTransformAndSelect Map(this Model model)
+    public static TestTransformAndSelect Map(this TableStorage.Tests.Models.Model model)
     {
         return new(model.MyProperty1, model.MyProperty2);
     }
