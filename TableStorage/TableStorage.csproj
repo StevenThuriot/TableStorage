@@ -12,7 +12,7 @@
 		<PackageProjectUrl>https://github.com/StevenThuriot/TableStorage</PackageProjectUrl>
 		<Copyright>Steven Thuriot</Copyright>
 		<Authors>Steven Thuriot</Authors>
-		<Version>4.0.0-preview.2</Version>
+		<Version>4.0.0-preview.3</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>TableStorage.png</PackageIcon>
 	</PropertyGroup>
@@ -33,11 +33,11 @@
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" Version="[12.0.0, )" />
-		<PackageReference Include="FastExpressionCompiler" Version="3.3.4" />
+		<PackageReference Include="FastExpressionCompiler" Version="4.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="[3.1.0, )" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="[3.1.0, )" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.2" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.0.1" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>

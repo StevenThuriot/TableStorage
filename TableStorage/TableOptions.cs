@@ -7,4 +7,5 @@ public sealed class TableOptions
     public bool AutoTimestamps { get; set; }
     public TableUpdateMode TableMode { get; set; }
     public int? PageSize { get; set; }
+    public bool CreateTableIfNotExists { get; set; } = true;
 }

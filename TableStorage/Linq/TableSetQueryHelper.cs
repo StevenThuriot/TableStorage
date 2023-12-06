@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace TableStorage.Linq;
 
@@ -120,7 +119,7 @@ internal sealed class TableSetQueryHelper<T> :
 
     public async Task<List<T>> ToListAsync(CancellationToken token = default)
     {
-        List<T> result = _amount.HasValue ? new(_amount.GetValueOrDefault()) : new();
+        List<T> result = _amount.HasValue ? new(_amount.GetValueOrDefault()) : [];
 
         await foreach (var item in ToAsyncEnumerableAsync(token))
         {
@@ -133,7 +132,7 @@ internal sealed class TableSetQueryHelper<T> :
     #region Select
     private class SelectionVisitor : ExpressionVisitor
     {
-        public readonly HashSet<string> Members = new();
+        public readonly HashSet<string> Members = [];
 
         protected override Expression VisitMember(MemberExpression node)
         {
