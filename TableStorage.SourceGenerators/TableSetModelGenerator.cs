@@ -1,7 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace TableStorage.SourceGenerators;
@@ -17,6 +19,15 @@ namespace TableStorage
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class TableSetModelAttribute : Attribute
     {
+    }
+
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public sealed class TableSetModelPropertyAttribute : Attribute
+    {
+        public TableSetModelPropertyAttribute(Type type, string name)
+        {
+        }
     }
 }";
 
@@ -144,12 +155,43 @@ namespace TableStorage
                             break;
 
                         default:
-                            var typeKind = property.Type.NullableAnnotation == NullableAnnotation.Annotated
-                                                   ? ((INamedTypeSymbol)property.Type).TypeArguments[0].TypeKind
-                                                   : property.Type.TypeKind;
-
-                            members.Add(new(member.Name, property.Type.ToDisplayString(), typeKind));
+                            ITypeSymbol type = property.Type;
+                            TypeKind typeKind = GetTypeKind(type);
+                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false));
                             break;
+                    }
+                }
+            }
+
+            foreach (AttributeListSyntax attributeListSyntax in classDeclarationSyntax.AttributeLists)
+            {
+                foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
+                {
+                    if (semanticModel.GetSymbolInfo(attributeSyntax).Symbol is not IMethodSymbol attributeSymbol)
+                    {
+                        // weird, we couldn't get the symbol, ignore it
+                        continue;
+                    }
+
+                    INamedTypeSymbol attributeContainingTypeSymbol = attributeSymbol.ContainingType;
+                    string fullName = attributeContainingTypeSymbol.ToDisplayString();
+
+                    // Is the attribute the [TableSetModelPropertyAttribute] attribute?
+                    if (fullName is "TableStorage.TableSetModelPropertyAttribute")
+                    {
+                        // Generate additional fields
+                        var nameSyntax = (LiteralExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[1].Expression;
+                        var name = nameSyntax.Token.ValueText;
+
+                        var typeOfSyntax = (TypeOfExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[0].Expression;
+                        var typeSyntax = typeOfSyntax.Type;
+
+                        TypeInfo typeInfo = semanticModel.GetTypeInfo(typeSyntax);
+
+                        string type = typeInfo.Type?.ToDisplayString() ?? typeSyntax.ToFullString();
+                        TypeKind typeKind = GetTypeKind(typeInfo.Type);
+
+                        members.Add(new(name, type, typeKind, true));
                     }
                 }
             }
@@ -160,6 +202,14 @@ namespace TableStorage
 
         return classesToGenerate;
     }
+
+    private static TypeKind GetTypeKind(ITypeSymbol? type) => type switch
+    {
+        null => TypeKind.Unknown,
+        INamedTypeSymbol namedTypeSymbol when type.NullableAnnotation == NullableAnnotation.Annotated || //Sometimes it's nullable yet not annoted
+                                              namedTypeSymbol.ConstructedFrom.ToDisplayString() == "System.Nullable<T>" => namedTypeSymbol.TypeArguments[0].TypeKind,
+        _ => type.TypeKind,
+    };
 
     public static string GenerateTableContextClasses(List<ClassToGenerate> classesToGenerate)
     {
@@ -194,7 +244,15 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
-        public Azure.ETag ETag { get; set; }
+        public Azure.ETag ETag { get; set; }");
+
+        foreach (var item in classToGenerate.Members.Where(x => x.GenerateProperty))
+        {
+            sb.Append(@"
+        [System.Runtime.Serialization.IgnoreDataMember] public ").Append(item.Type).Append(" ").Append(item.Name).Append(" { get; set; }");
+        }
+        
+        sb.Append(@"
 
         public object this[string key]
         {

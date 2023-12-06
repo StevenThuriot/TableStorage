@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Net;
 using TableStorage.Linq;
 using TableStorage.Tests.Contexts;
 using TableStorage.Tests.Models;
@@ -86,10 +87,16 @@ namespace TableStorage.Tests.Models
 #nullable disable
 
     [TableSetModel]
+    [TableSetModelProperty(typeof(int), "MyProperty1")]
+    [TableSetModelProperty(typeof(string), "MyProperty2")]
+    [TableSetModelProperty(typeof(ModelEnum), "MyProperty3")]
+    [TableSetModelProperty(typeof(ModelEnum?), "MyProperty4")]
+    [TableSetModelProperty(typeof(Nullable<ModelEnum>), "MyProperty6")]
+    [TableSetModelProperty(typeof(HttpStatusCode), "MyProperty7")]
+    [TableSetModelProperty(typeof(HttpStatusCode?), "MyProperty8")]
     public partial class Model
     {
-        public int MyProperty1 { get; set; }
-        public string MyProperty2 { get; set; }
+        [System.Runtime.Serialization.IgnoreDataMember] public ModelEnum? MyProperty5 { get; set; }
     }
 
     [TableSetModel]

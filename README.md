@@ -21,6 +21,16 @@ public partial class Model
 }
 ```
 
+Properties can also be defined using the `[TableSetModelProperty]` attribute. 
+This is particularly useful if you are planning on using dotnet 8+'s Native AOT, as the source generation will make sure any breaking reflection calls are avoided by the Azure.Core libraries.
+
+```csharp
+[TableSetModel]
+[TableSetModelProperty(typeof(string), "Data")]
+[TableSetModelProperty(typeof(bool), "Enabled")]
+public partial class Model { }
+```
+
 Place your tables on your TableContext. The sample below will create 2 tables in table storage, named Models1 and Models2.
 
 ```csharp
@@ -84,3 +94,4 @@ var tableSet = context.GetTableSet<Model>("randomname");
 A few simple Linq extension methods have been provided in the `TableStorage.Linq` namespace.
 
 Note: `Select` will include the actual transformation. If you want the original model, with only the selected fields retrieved, use `SelectFields` instead.
+If you are using Native AOT, you will need to use `SelectFields` as `Select` will not work.

@@ -123,7 +123,7 @@ namespace TableStorage
             {
                 if (member is IPropertySymbol property && property.Type.Name == "TableSet")
                 {
-                    members.Add(new(member.Name, ((INamedTypeSymbol)property.Type).TypeArguments[0].ToDisplayString(), property.Type.TypeKind));
+                    members.Add(new(member.Name, ((INamedTypeSymbol)property.Type).TypeArguments[0].ToDisplayString(), property.Type.TypeKind, false));
                 }
             }
 

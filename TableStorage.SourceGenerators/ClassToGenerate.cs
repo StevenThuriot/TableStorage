@@ -21,11 +21,13 @@ public readonly struct MemberToGenerate
     public readonly string Name;
     public readonly string Type;
     public readonly TypeKind TypeKind;
+    public readonly bool GenerateProperty;
 
-    public MemberToGenerate(string name, string type, TypeKind typeKind)
+    public MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty)
     {
         Name = name;
         Type = type;
         TypeKind = typeKind;
+        GenerateProperty = generateProperty;
     }
 }
