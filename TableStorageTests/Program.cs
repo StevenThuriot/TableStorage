@@ -86,20 +86,22 @@ namespace TableStorage.Tests.Models
 {
 #nullable disable
 
-    [TableSetModel]
-    [TableSetModelProperty(typeof(int), "MyProperty1")]
-    [TableSetModelProperty(typeof(string), "MyProperty2")]
-    [TableSetModelProperty(typeof(ModelEnum), "MyProperty3")]
-    [TableSetModelProperty(typeof(ModelEnum?), "MyProperty4")]
-    [TableSetModelProperty(typeof(Nullable<ModelEnum>), "MyProperty6")]
-    [TableSetModelProperty(typeof(HttpStatusCode), "MyProperty7")]
-    [TableSetModelProperty(typeof(HttpStatusCode?), "MyProperty8")]
+    [TableSet]
+    [TableSetProperty(typeof(int), "MyProperty1")]
+    [TableSetProperty(typeof(string), "MyProperty2")]
+    [TableSetProperty(typeof(ModelEnum), "MyProperty3")]
+    [TableSetProperty(typeof(ModelEnum?), "MyProperty4")]
+    [TableSetProperty(typeof(Nullable<ModelEnum>), "MyProperty6")]
+    [TableSetProperty(typeof(HttpStatusCode), "MyProperty7")]
+    [TableSetProperty(typeof(HttpStatusCode?), "MyProperty8")]
+    [PartitionKey("PrettyName")]
+    [RowKey("PrettyRow")]
     public partial class Model
     {
         [System.Runtime.Serialization.IgnoreDataMember] public ModelEnum? MyProperty5 { get; set; }
     }
 
-    [TableSetModel]
+    [TableSet]
     public partial class Model2
     {
         public int MyProperty1 { get; set; }

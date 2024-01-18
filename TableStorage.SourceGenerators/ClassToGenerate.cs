@@ -7,12 +7,14 @@ public readonly struct ClassToGenerate
     public readonly string Name;
     public readonly string Namespace;
     public readonly List<MemberToGenerate> Members;
+    public readonly List<PrettyMemberToGenerate> PrettyMembers;
 
-    public ClassToGenerate(string name, string @namespace, List<MemberToGenerate> members)
+    public ClassToGenerate(string name, string @namespace, List<MemberToGenerate> members, List<PrettyMemberToGenerate> prettyMembers)
     {
         Name = name;
         Namespace = @namespace;
         Members = members;
+        PrettyMembers = prettyMembers;
     }
 }
 
@@ -29,5 +31,17 @@ public readonly struct MemberToGenerate
         Type = type;
         TypeKind = typeKind;
         GenerateProperty = generateProperty;
+    }
+}
+
+public readonly struct PrettyMemberToGenerate
+{
+    public readonly string Name;
+    public readonly string Proxy;
+
+    public PrettyMemberToGenerate(string name, string proxy)
+    {
+        Name = name;
+        Proxy = proxy;
     }
 }

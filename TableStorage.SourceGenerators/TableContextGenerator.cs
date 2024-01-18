@@ -128,7 +128,7 @@ namespace TableStorage
             }
 
             // Create an ClassToGenerate for use in the generation phase
-            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members));
+            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members, []));
         }
 
         return classesToGenerate;

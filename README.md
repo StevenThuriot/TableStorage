@@ -10,10 +10,10 @@ Create your own TableContext and mark it with the `[TableContext]` attribute. Th
 public partial class MyTableContext { }
 ```
 
-Create your models, these must be classes and have a parameterless constructor. Mark them with the `[TableSetModel]` attribute. This class must be partial.
+Create your models, these must be classes and have a parameterless constructor. Mark them with the `[TableSet]` attribute. This class must be partial.
 
 ```csharp
-[TableSetModel]
+[TableSet]
 public partial class Model
 {
     public string Data { get; set; }
@@ -21,13 +21,23 @@ public partial class Model
 }
 ```
 
-Properties can also be defined using the `[TableSetModelProperty]` attribute. 
+Properties can also be defined using the `[TableSetProperty]` attribute. 
 This is particularly useful if you are planning on using dotnet 8+'s Native AOT, as the source generation will make sure any breaking reflection calls are avoided by the Azure.Core libraries.
 
 ```csharp
-[TableSetModel]
-[TableSetModelProperty(typeof(string), "Data")]
-[TableSetModelProperty(typeof(bool), "Enabled")]
+[TableSet]
+[TableSetProperty(typeof(string), "Data")]
+[TableSetProperty(typeof(bool), "Enabled")]
+public partial class Model { }
+```
+
+Some times it's also nice to have a pretty name for your `PartitionKey` and `RowKey` properties, as the original names might not always make much sense when reading your code, at least not in a functional way.
+You can use the `[PartitionKeyAttribute]` and `[RowKeyAttribute]` attributes to create a proxy for these two properties.
+
+```csharp
+[TableSet]
+[PartitionKey("MyPrettyPartitionKey")]
+[RowKey("MyPrettyRowKey")]
 public partial class Model { }
 ```
 

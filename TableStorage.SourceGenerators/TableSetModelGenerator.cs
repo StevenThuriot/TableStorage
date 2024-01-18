@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
 namespace TableStorage.SourceGenerators;
@@ -11,21 +10,37 @@ namespace TableStorage.SourceGenerators;
 [Generator]
 public class TableSetModelGenerator : IIncrementalGenerator
 {
-    private const string TableContextAttribute = @"
+    private const string TableAttributes = @"
 using System;
 
 namespace TableStorage
 {
     [AttributeUsage(AttributeTargets.Class)]
-    public sealed class TableSetModelAttribute : Attribute
+    public sealed class TableSetAttribute : Attribute
     {
     }
 
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-    public sealed class TableSetModelPropertyAttribute : Attribute
+    public sealed class TableSetPropertyAttribute : Attribute
     {
-        public TableSetModelPropertyAttribute(Type type, string name)
+        public TableSetPropertyAttribute(Type type, string name)
+        {
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public sealed class PartitionKeyAttribute : Attribute
+    {
+        public PartitionKeyAttribute(string name)
+        {
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public sealed class RowKeyAttribute : Attribute
+    {
+        public RowKeyAttribute(string name)
         {
         }
     }
@@ -33,7 +48,7 @@ namespace TableStorage
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        context.RegisterPostInitializationOutput(ctx => ctx.AddSource("TableSetModelAttribute.g.cs", SourceText.From(TableContextAttribute, Encoding.UTF8)));
+        context.RegisterPostInitializationOutput(ctx => ctx.AddSource("TableSetAttributes.g.cs", SourceText.From(TableAttributes, Encoding.UTF8)));
 
         var classDeclarations = context.SyntaxProvider.CreateSyntaxProvider(predicate: static (s, _) => IsSyntaxTargetForGeneration(s), // select class with attributes
                                                                             transform: static (ctx, _) => GetSemanticTargetForGeneration(ctx)) // select the class with the [TableContext] attribute
@@ -66,8 +81,8 @@ namespace TableStorage
                 INamedTypeSymbol attributeContainingTypeSymbol = attributeSymbol.ContainingType;
                 string fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                // Is the attribute the [TableSetModel] attribute?
-                if (fullName is "TableStorage.TableSetModelAttribute")
+                // Is the attribute the [TableSetAttribute] attribute?
+                if (fullName is "TableStorage.TableSetAttribute")
                 {
                     // return the class
                     return classDeclarationSyntax;
@@ -96,7 +111,7 @@ namespace TableStorage
         {
             // generate the source code and add it to the output
             var modelResult = GenerateTableContextClasses(classesToGenerate);
-            context.AddSource("TableSetModels.g.cs", SourceText.From(modelResult, Encoding.UTF8));
+            context.AddSource("TableSets.g.cs", SourceText.From(modelResult, Encoding.UTF8));
         }
     }
 
@@ -106,13 +121,7 @@ namespace TableStorage
         var classesToGenerate = new List<ClassToGenerate>();
 
         // Get the semantic representation of our marker attribute 
-        INamedTypeSymbol? contextAttribute = compilation.GetTypeByMetadataName("TableStorage.TableContextAttribute");
-        if (contextAttribute is null)
-        {
-            return classesToGenerate;
-        }
-
-        INamedTypeSymbol? modelAttribute = compilation.GetTypeByMetadataName("TableStorage.TableSetModelAttribute");
+        INamedTypeSymbol? modelAttribute = compilation.GetTypeByMetadataName("TableStorage.TableSetAttribute");
         if (modelAttribute is null)
         {
             return classesToGenerate;
@@ -135,6 +144,7 @@ namespace TableStorage
             var classMembers = classSymbol.GetMembers();
 
             var members = new List<MemberToGenerate>(classMembers.Length);
+            var prettyMembers = new List<PrettyMemberToGenerate>(2);
 
             // Get all the properties from the class, and add their name to the list
             foreach (ISymbol member in classMembers)
@@ -176,8 +186,8 @@ namespace TableStorage
                     INamedTypeSymbol attributeContainingTypeSymbol = attributeSymbol.ContainingType;
                     string fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                    // Is the attribute the [TableSetModelPropertyAttribute] attribute?
-                    if (fullName is "TableStorage.TableSetModelPropertyAttribute")
+                    // Is the attribute the [TableSetPropertyAttribute] attribute?
+                    if (fullName is "TableStorage.TableSetPropertyAttribute")
                     {
                         // Generate additional fields
                         var nameSyntax = (LiteralExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[1].Expression;
@@ -193,11 +203,29 @@ namespace TableStorage
 
                         members.Add(new(name, type, typeKind, true));
                     }
+
+                    if (fullName is "TableStorage.PartitionKeyAttribute")
+                    {
+                        // Generate additional fields
+                        var nameSyntax = (LiteralExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[0].Expression;
+                        var name = nameSyntax.Token.ValueText;
+
+                        prettyMembers.Add(new(name, "PartitionKey"));
+                    }
+
+                    if (fullName is "TableStorage.RowKeyAttribute")
+                    {
+                        // Generate additional fields
+                        var nameSyntax = (LiteralExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[0].Expression;
+                        var name = nameSyntax.Token.ValueText;
+
+                        prettyMembers.Add(new(name,"RowKey"));
+                    }
                 }
             }
 
             // Create an ClassToGenerate for use in the generation phase
-            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members));
+            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members, prettyMembers));
         }
 
         return classesToGenerate;
@@ -229,6 +257,8 @@ using System;
         return modelBuilder.ToString();
     }
 
+    public string Test { get => this.Test; set => this.Test = value; }
+
     private static void GenerateModel(StringBuilder sb, ClassToGenerate classToGenerate)
     {
         if (!string.IsNullOrEmpty(classToGenerate.Namespace))
@@ -250,6 +280,12 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         {
             sb.Append(@"
         [System.Runtime.Serialization.IgnoreDataMember] public ").Append(item.Type).Append(" ").Append(item.Name).Append(" { get; set; }");
+        }
+
+        foreach (var item in classToGenerate.PrettyMembers)
+        {
+            sb.Append(@"
+        [System.Runtime.Serialization.IgnoreDataMember] public string ").Append(item.Name).Append(" { get => ").Append(item.Proxy).Append("; set => ").Append(item.Proxy).Append(" = value; }");
         }
         
         sb.Append(@"
@@ -435,10 +471,12 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             if (item.TypeKind == TypeKind.Enum)
             {
                 sb.Append("(int");
+
                 if (item.Type.EndsWith("?"))
                 {
                     sb.Append('?');
                 }
+
                 sb.Append(")");
             }
 
