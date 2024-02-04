@@ -1,9 +1,10 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using TableStorage.Linq;
 
 namespace TableStorage;
 
-public sealed class TableSet<T>
+public sealed class TableSet<T> : IAsyncEnumerable<T>
     where T : class, ITableEntity, new()
 {
     private readonly AsyncLazy<TableClient> _lazyClient;
@@ -18,12 +19,6 @@ public sealed class TableSet<T>
     public async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-
-        if (_options.AutoTimestamps)
-        {
-            entity.Timestamp = DateTimeOffset.UtcNow;
-        }
-
         await client.AddEntityAsync(entity, cancellationToken);
     }
 
@@ -46,12 +41,6 @@ public sealed class TableSet<T>
     public async Task UpdateEntityAsync(T entity, ETag ifMatch, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-
-        if (_options.AutoTimestamps)
-        {
-            entity.Timestamp = DateTimeOffset.UtcNow;
-        }
-
         await client.UpdateEntityAsync(entity, ifMatch, mode ?? _options.TableMode, cancellationToken);
     }
 
@@ -60,12 +49,6 @@ public sealed class TableSet<T>
     public async Task UpsertEntityAsync(T entity, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-
-        if (_options.AutoTimestamps)
-        {
-            entity.Timestamp = DateTimeOffset.UtcNow;
-        }
-
         await client.UpsertEntityAsync(entity, mode ?? _options.TableMode, cancellationToken);
     }
 
@@ -114,5 +97,10 @@ public sealed class TableSet<T>
         {
             yield return item;
         }
+    }
+
+    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        return new TableSetQueryHelper<T>(this).GetAsyncEnumerator(cancellationToken);
     }
 }

@@ -40,12 +40,6 @@ public static class TableQueryHelper
         return new TableSetQueryHelper<T>(table).AddNotExistsInFilter(predicate, elements);
     }
 
-    public static IDistinctedTableQueryable<T> DistinctBy<T, TResult>(this TableSet<T> table, Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null)
-        where T : class, ITableEntity, new()
-    {
-        return new TableSetQueryHelper<T>(table).SetDistinction(selector, equalityComparer);
-    }
-
     public static Task<T> FirstAsync<T>(this TableSet<T> table, CancellationToken token = default)
         where T : class, ITableEntity, new()
     {
@@ -68,17 +62,5 @@ public static class TableQueryHelper
         where T : class, ITableEntity, new()
     {
         return new TableSetQueryHelper<T>(table).SingleOrDefaultAsync(token);
-    }
-
-    public static Task<List<T>> ToListAsync<T>(this TableSet<T> table, CancellationToken token = default)
-        where T : class, ITableEntity, new()
-    {
-        return new TableSetQueryHelper<T>(table).ToListAsync(token);
-    }
-
-    public static IAsyncEnumerable<T> ToAsyncEnumerableAsync<T>(this TableSet<T> table, CancellationToken token = default)
-        where T : class, ITableEntity, new()
-    {
-        return new TableSetQueryHelper<T>(table).ToAsyncEnumerableAsync(token);
     }
 }
