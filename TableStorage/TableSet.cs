@@ -103,4 +103,58 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         return new TableSetQueryHelper<T>(this).GetAsyncEnumerator(cancellationToken);
     }
+
+    #region Bulk Operations
+
+    private async Task ExecuteInBulk(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
+    {
+        foreach (var group in entities.GroupBy(x => x.PartitionKey))
+        {
+            await SubmitTransactionAsync(group.Select(x => new TableTransactionAction(tableTransactionActionType, x)), cancellationToken);
+        }
+    }
+
+    public Task BulkInsert(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    {
+        return ExecuteInBulk(entities, TableTransactionActionType.Add, cancellationToken);
+    }
+
+    public Task BulkUpdate(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    {
+        TableTransactionActionType tableTransactionActionType = bulkOperation switch
+        {
+            BulkOperation.Replace => TableTransactionActionType.UpdateReplace,
+            BulkOperation.Merge => TableTransactionActionType.UpdateMerge,
+            _ => throw new NotSupportedException(),
+        };
+
+        return ExecuteInBulk(entities, tableTransactionActionType, cancellationToken);
+    }
+
+    public Task BulkUpsert(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsert(entities, BulkOperation.Replace, cancellationToken);
+
+    public Task BulkUpsert(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    {
+        TableTransactionActionType tableTransactionActionType = bulkOperation switch
+        {
+            BulkOperation.Replace => TableTransactionActionType.UpsertReplace,
+            BulkOperation.Merge => TableTransactionActionType.UpsertMerge,
+            _ => throw new NotSupportedException(),
+        };
+
+        return ExecuteInBulk(entities, tableTransactionActionType, cancellationToken);
+    }
+
+    public Task BulkDelete(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    {
+        return ExecuteInBulk(entities, TableTransactionActionType.Delete, cancellationToken);
+    }
+
+    #endregion Bulk Operations
+}
+
+public enum BulkOperation
+{
+    Replace,
+    Merge
 }
