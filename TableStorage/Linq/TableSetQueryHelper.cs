@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Linq.Expressions;
 
 namespace TableStorage.Linq;
 
@@ -201,26 +202,42 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     }
 
     #region Select
-    private class SelectionVisitor : ExpressionVisitor
+    private sealed class SelectionVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
     {
+        private readonly string? _partitionKeyProxy = partitionKeyProxy;
+        private readonly string? _rowKeyProxy = rowKeyProxy;
+
         public readonly HashSet<string> Members = [];
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            Members.Add(node.Member.Name);
+            var name = node.Member.Name;
+
+            if (name == _partitionKeyProxy)
+            {
+                name = nameof(ITableEntity.PartitionKey);
+                node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
+            }
+            else if (name == _rowKeyProxy)
+            {
+                name = nameof(ITableEntity.RowKey);
+                node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+            }
+
+            Members.Add(name);
             return base.VisitMember(node);
         }
     }
 
-    internal TableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true)
+    internal TableSetQueryHelper<T> SetFields<TResult>(ref Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true)
     {
         if (_fields is not null)
         {
             throw new NotSupportedException("Only one transformation is allowed at a time");
         }
 
-        SelectionVisitor visitor = new();
-        _ = visitor.Visit(exp);
+        SelectionVisitor visitor = new(_table.PartitionKeyProxy, _table.RowKeyProxy);
+        exp = (Expression<Func<T, TResult>>)visitor.Visit(exp);
 
         if (visitor.Members.Count == 0)
         {
@@ -239,13 +256,13 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
     internal TransformedTableSetQueryHelper<T, TResult> SetFieldsAndTransform<TResult>(Expression<Func<T, TResult>> exp)
     {
-        var helper = SetFields(exp, throwIfNoArgumentsFound: false);
+        var helper = SetFields(ref exp, throwIfNoArgumentsFound: false);
         return new TransformedTableSetQueryHelper<T, TResult>(helper, exp);
     }
 
-    ISelectedTakenTableQueryable<T> ITakenTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    ISelectedTakenTableQueryable<T> ITakenTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(ref selector);
 
-    ISelectedTableQueryable<T> IFilteredTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    ISelectedTableQueryable<T> IFilteredTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(ref selector);
 
     ITableEnumerable<TResult> ITakenTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
 
@@ -270,8 +287,36 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #endregion Take
 
     #region Where
+    private sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+    {
+        private readonly string? _partitionKeyProxy = partitionKeyProxy;
+        private readonly string? _rowKeyProxy = rowKeyProxy;
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            var name = node.Member.Name;
+
+            if (name == _partitionKeyProxy)
+            {
+                node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
+            }
+            else if (name == _rowKeyProxy)
+            {
+                node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+            }
+
+            return base.VisitMember(node);
+        }
+    }
+
     internal TableSetQueryHelper<T> AddFilter(Expression<Func<T, bool>> predicate)
     {
+        if (_table.PartitionKeyProxy is not null || _table.RowKeyProxy is not null)
+        {
+            WhereVisitor visitor = new(_table.PartitionKeyProxy, _table.RowKeyProxy);
+            predicate = (Expression<Func<T, bool>>)visitor.Visit(predicate);
+        }
+
         if (_filter is null)
         {
             _filter = predicate;

@@ -167,12 +167,13 @@ namespace TableStorage
                         default:
                             ITypeSymbol type = property.Type;
                             TypeKind typeKind = GetTypeKind(type);
-                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false));
+                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false, "null", "null"));
                             break;
                     }
                 }
             }
 
+            List<(string fullName, AttributeSyntax attributeSyntax)> relevantSymbols = new();
             foreach (AttributeListSyntax attributeListSyntax in classDeclarationSyntax.AttributeLists)
             {
                 foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
@@ -186,42 +187,60 @@ namespace TableStorage
                     INamedTypeSymbol attributeContainingTypeSymbol = attributeSymbol.ContainingType;
                     string fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                    // Is the attribute the [TableSetPropertyAttribute] attribute?
-                    if (fullName is "TableStorage.TableSetPropertyAttribute")
+                    if (fullName.StartsWith("TableStorage."))
                     {
-                        // Generate additional fields
-                        var nameSyntax = (LiteralExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[1].Expression;
-                        var name = nameSyntax.Token.ValueText;
-
-                        var typeOfSyntax = (TypeOfExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[0].Expression;
-                        var typeSyntax = typeOfSyntax.Type;
-
-                        TypeInfo typeInfo = semanticModel.GetTypeInfo(typeSyntax);
-
-                        string type = typeInfo.Type?.ToDisplayString() ?? typeSyntax.ToFullString();
-                        TypeKind typeKind = GetTypeKind(typeInfo.Type);
-
-                        members.Add(new(name, type, typeKind, true));
-                    }
-
-                    if (fullName is "TableStorage.PartitionKeyAttribute")
-                    {
-                        // Generate additional fields
-                        var nameSyntax = (LiteralExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[0].Expression;
-                        var name = nameSyntax.Token.ValueText;
-
-                        prettyMembers.Add(new(name, "PartitionKey"));
-                    }
-
-                    if (fullName is "TableStorage.RowKeyAttribute")
-                    {
-                        // Generate additional fields
-                        var nameSyntax = (LiteralExpressionSyntax)attributeSyntax.ArgumentList!.Arguments[0].Expression;
-                        var name = nameSyntax.Token.ValueText;
-
-                        prettyMembers.Add(new(name,"RowKey"));
+                        relevantSymbols.Add((fullName, attributeSyntax));
                     }
                 }
+            }
+
+            string partitionKeyProxy;
+            var partitionKeyAttribute = relevantSymbols.Find(x => x.fullName == "TableStorage.PartitionKeyAttribute").attributeSyntax;
+            if (partitionKeyAttribute is not null)
+            {
+                // Generate additional fields
+                var nameSyntax = (LiteralExpressionSyntax)partitionKeyAttribute.ArgumentList!.Arguments[0].Expression;
+                var name = nameSyntax.Token.ValueText;
+
+                prettyMembers.Add(new(name, "PartitionKey"));
+                partitionKeyProxy = "\"" + name + "\"";
+            }
+            else
+            {
+                partitionKeyProxy = "null";
+            }
+
+            string rowKeyProxy;
+            var rowKeyAttribute = relevantSymbols.Find(x => x.fullName == "TableStorage.RowKeyAttribute").attributeSyntax;
+            if (rowKeyAttribute is not null)
+            {
+                // Generate additional fields
+                var nameSyntax = (LiteralExpressionSyntax)rowKeyAttribute.ArgumentList!.Arguments[0].Expression;
+                var name = nameSyntax.Token.ValueText;
+
+                prettyMembers.Add(new(name, "RowKey"));
+                rowKeyProxy = "\"" + name + "\"";
+            }
+            else
+            {
+                rowKeyProxy = "null";
+            }
+
+            foreach (var (_, tableSetPropertyAttribute) in relevantSymbols.Where(x => x.fullName == "TableStorage.TableSetPropertyAttribute"))
+            {
+                // Generate additional fields
+                var nameSyntax = (LiteralExpressionSyntax)tableSetPropertyAttribute.ArgumentList!.Arguments[1].Expression;
+                var name = nameSyntax.Token.ValueText;
+
+                var typeOfSyntax = (TypeOfExpressionSyntax)tableSetPropertyAttribute.ArgumentList!.Arguments[0].Expression;
+                var typeSyntax = typeOfSyntax.Type;
+
+                TypeInfo typeInfo = semanticModel.GetTypeInfo(typeSyntax);
+
+                string type = typeInfo.Type?.ToDisplayString() ?? typeSyntax.ToFullString();
+                TypeKind typeKind = GetTypeKind(typeInfo.Type);
+
+                members.Add(new(name, type, typeKind, true, partitionKeyProxy, rowKeyProxy));
             }
 
             // Create an ClassToGenerate for use in the generation phase

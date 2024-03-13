@@ -73,6 +73,13 @@ var updateCount = await context.Models2.Where(x => x.MyProperty1 == 1).BatchUpda
 var updatedModels = await context.Models2.Where(x => x.MyProperty2 == "hallo 1 updated").ToListAsync();
 Debug.Assert(updateCount == updatedModels.Count);
 
+_ = await context.Models1.SelectFields(x => x.PrettyName == "root" && x.PrettyRow != "").ToListAsync();
+
+var proxyWorksCount = await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow != "").CountAsync();
+Debug.Assert(proxyWorksCount != 0);
+
+var proxySelectionWorks = await context.Models1.Select(x => new { x.PrettyName, x.PrettyRow }).ToListAsync();
+
 var list1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).ToListAsync(); //Should not contain more than 3 items with all properties filled in
 var list2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).Distinct(FuncComparer.Create((Model x) => x.MyProperty1)).ToListAsync(); //Should contain 1 item with all properties filled in
 var list3 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Distinct(FuncComparer.Create((Model x) => x.MyProperty2, StringComparer.OrdinalIgnoreCase)).Take(3).ToListAsync(); //Should contain 1 item with all properties filled in

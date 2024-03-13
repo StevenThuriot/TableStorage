@@ -123,7 +123,18 @@ namespace TableStorage
             {
                 if (member is IPropertySymbol property && property.Type.Name == "TableSet")
                 {
-                    members.Add(new(member.Name, ((INamedTypeSymbol)property.Type).TypeArguments[0].ToDisplayString(), property.Type.TypeKind, false));
+                    var tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
+
+                    var attributes = tableSetType.GetAttributes();
+                    var partitionKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "PartitionKeyAttribute");
+                    string? partitionKeyProxy = partitionKeyAttribute is not null ? partitionKeyAttribute.ConstructorArguments[0].Value?.ToString() : null;
+                    partitionKeyProxy = partitionKeyProxy is not null ? "\"" + partitionKeyProxy + "\"" : "null";
+
+                    var rowKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "RowKeyAttribute");
+                    string? rowKeyProxy = rowKeyAttribute is not null ? rowKeyAttribute.ConstructorArguments[0].Value?.ToString() : null;
+                    rowKeyProxy = rowKeyProxy is not null ? "\"" + rowKeyProxy + "\"" : "null";
+
+                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, partitionKeyProxy, rowKeyProxy));
                 }
             }
 
@@ -203,7 +214,11 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         foreach (var item in classToGenerate.Members)
         {
             sb.Append(@"
-                            ").Append(item.Name).Append(" = creator.CreateSet<").Append(item.Type).Append(">(\"").Append(item.Name).Append("\"),");
+                            ").Append(item.Name).Append(" = creator.CreateSet<").Append(item.Type).Append(">(\"")
+                              .Append(item.Name)
+                              .Append("\", ").Append(item.ParitionKeyProxy)
+                              .Append(", ").Append(item.RowKeyProxy)
+                              .Append("),");
         }
 
         sb.Append(@"

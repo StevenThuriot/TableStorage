@@ -10,12 +10,14 @@ public readonly struct ClassToGenerate(string name, string @namespace, List<Memb
     public readonly List<PrettyMemberToGenerate> PrettyMembers = prettyMembers;
 }
 
-public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty)
+public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty, string paritionKeyProxy, string rowKeyProxy)
 {
     public readonly string Name = name;
     public readonly string Type = type;
     public readonly TypeKind TypeKind = typeKind;
     public readonly bool GenerateProperty = generateProperty;
+    public readonly string ParitionKeyProxy = paritionKeyProxy;
+    public readonly string RowKeyProxy = rowKeyProxy;
 }
 
 public readonly struct PrettyMemberToGenerate(string name, string proxy)

@@ -10,10 +10,15 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     private readonly AsyncLazy<TableClient> _lazyClient;
     private readonly TableOptions _options;
 
-    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options)
+    internal string? PartitionKeyProxy { get; }
+    internal string? RowKeyProxy { get; }
+
+    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
     {
         _lazyClient = new AsyncLazy<TableClient>(() => factory.GetClient(tableName));
         _options = options;
+        PartitionKeyProxy = partitionKeyProxy;
+        RowKeyProxy = rowKeyProxy;
     }
 
     public async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
