@@ -10,9 +10,18 @@ public interface ICanTakeOneTableQueryable<T>
     Task<T?> SingleOrDefaultAsync(CancellationToken token = default);
 }
 
-public interface ITableEnumerable<T> : ICanTakeOneTableQueryable<T>, IAsyncEnumerable<T> { }
+public interface ITableAsyncEnumerable<T> : IAsyncEnumerable<T>
+    where T : class, ITableEntity, new()
+{
+    Task<int> BatchDeleteAsync(CancellationToken token = default);
+    Task<int> BatchDeleteTransactionAsync(CancellationToken token = default);
+    Task<int> BatchUpdateAsync(Action<T> update, CancellationToken token = default);
+    Task<int> BatchUpdateTransactionAsync(Action<T> update, CancellationToken token = default);
+}
 
-public interface IFilteredTableQueryable<T> : IAsyncEnumerable<T>, ICanTakeOneTableQueryable<T>
+public interface ITableEnumerable<T> : ICanTakeOneTableQueryable<T>, IAsyncEnumerable<T>;
+
+public interface IFilteredTableQueryable<T> : ITableAsyncEnumerable<T>, ICanTakeOneTableQueryable<T>
     where T : class, ITableEntity, new()
 {
     ITableEnumerable<TResult> Select<TResult>(Expression<Func<T, TResult>> selector);
@@ -23,7 +32,7 @@ public interface IFilteredTableQueryable<T> : IAsyncEnumerable<T>, ICanTakeOneTa
     IFilteredTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
 }
 
-public interface ISelectedTableQueryable<T> : IAsyncEnumerable<T>, ICanTakeOneTableQueryable<T>
+public interface ISelectedTableQueryable<T> : ITableAsyncEnumerable<T>, ICanTakeOneTableQueryable<T>
     where T : class, ITableEntity, new()
 {
     ISelectedTakenTableQueryable<T> Take(int amount);
@@ -32,7 +41,7 @@ public interface ISelectedTableQueryable<T> : IAsyncEnumerable<T>, ICanTakeOneTa
     ISelectedTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
 }
 
-public interface ITakenTableQueryable<T> : IAsyncEnumerable<T>
+public interface ITakenTableQueryable<T> : ITableAsyncEnumerable<T>
     where T : class, ITableEntity, new()
 {
     ITableEnumerable<TResult> Select<TResult>(Expression<Func<T, TResult>> selector);
@@ -42,7 +51,7 @@ public interface ITakenTableQueryable<T> : IAsyncEnumerable<T>
     ITakenTableQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
 }
 
-public interface ISelectedTakenTableQueryable<T> : IAsyncEnumerable<T>
+public interface ISelectedTakenTableQueryable<T> : ITableAsyncEnumerable<T>
     where T : class, ITableEntity, new()
 {
     ISelectedTakenTableQueryable<T> Where(Expression<Func<T, bool>> predicate);

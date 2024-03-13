@@ -1,6 +1,5 @@
 ﻿using FastExpressionCompiler;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
 
 namespace TableStorage.Linq;
 

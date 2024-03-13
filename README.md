@@ -101,7 +101,10 @@ var tableSet = context.GetTableSet<Model>("randomname");
 
 # Linq
 
-A few simple Linq extension methods have been provided in the `TableStorage.Linq` namespace.
+A few simple Linq extension methods have been provided in the `TableStorage.Linq` namespace that optimize some existing LINQ methods specifically for Table Storage.
+
+Since these return an instance that implements `IAsyncEnumerable`, `System.Linq.Async` is an excellent companion to these methods.
+
 
 Note: `Select` will include the actual transformation. If you want the original model, with only the selected fields retrieved, use `SelectFields` instead.
 If you are using Native AOT, you will need to use `SelectFields` as `Select` will not work.

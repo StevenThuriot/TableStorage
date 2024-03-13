@@ -8,16 +8,10 @@ public static class FuncComparer
     }
 }
 
-public sealed class FuncComparer<T, TResult> : IEqualityComparer<T>
+public sealed class FuncComparer<T, TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer = null) : IEqualityComparer<T>
 {
-    private readonly Func<T, TResult> _selector;
-    private readonly IEqualityComparer<TResult> _equalityComparer;
-
-    public FuncComparer(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
-    {
-        _selector = selector;
-        _equalityComparer = equalityComparer ?? EqualityComparer<TResult>.Default;
-    }
+    private readonly Func<T, TResult> _selector = selector;
+    private readonly IEqualityComparer<TResult> _equalityComparer = equalityComparer ?? EqualityComparer<TResult>.Default;
 
     public bool Equals(T? x, T? y)
     {

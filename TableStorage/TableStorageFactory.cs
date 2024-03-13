@@ -2,17 +2,11 @@
 
 namespace TableStorage;
 
-internal sealed class TableStorageFactory
+internal sealed class TableStorageFactory(string connectionString, bool createIfNotExists)
 {
-    private readonly string _connectionString;
-    private readonly bool _createIfNotExists;
+    private readonly string _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+    private readonly bool _createIfNotExists = createIfNotExists;
     private readonly ConcurrentDictionary<string, Task<TableClient>> _tableClients = new(StringComparer.OrdinalIgnoreCase);
-
-    public TableStorageFactory(string connectionString, bool createIfNotExists)
-    {
-        _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
-        _createIfNotExists = createIfNotExists;
-    }
 
     public Task<TableClient> GetClient(string tableName)
     {

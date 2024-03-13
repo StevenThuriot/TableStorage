@@ -2,46 +2,24 @@
 
 namespace TableStorage.SourceGenerators;
 
-public readonly struct ClassToGenerate
+public readonly struct ClassToGenerate(string name, string @namespace, List<MemberToGenerate> members, List<PrettyMemberToGenerate> prettyMembers)
 {
-    public readonly string Name;
-    public readonly string Namespace;
-    public readonly List<MemberToGenerate> Members;
-    public readonly List<PrettyMemberToGenerate> PrettyMembers;
-
-    public ClassToGenerate(string name, string @namespace, List<MemberToGenerate> members, List<PrettyMemberToGenerate> prettyMembers)
-    {
-        Name = name;
-        Namespace = @namespace;
-        Members = members;
-        PrettyMembers = prettyMembers;
-    }
+    public readonly string Name = name;
+    public readonly string Namespace = @namespace;
+    public readonly List<MemberToGenerate> Members = members;
+    public readonly List<PrettyMemberToGenerate> PrettyMembers = prettyMembers;
 }
 
-public readonly struct MemberToGenerate
+public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty)
 {
-    public readonly string Name;
-    public readonly string Type;
-    public readonly TypeKind TypeKind;
-    public readonly bool GenerateProperty;
-
-    public MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty)
-    {
-        Name = name;
-        Type = type;
-        TypeKind = typeKind;
-        GenerateProperty = generateProperty;
-    }
+    public readonly string Name = name;
+    public readonly string Type = type;
+    public readonly TypeKind TypeKind = typeKind;
+    public readonly bool GenerateProperty = generateProperty;
 }
 
-public readonly struct PrettyMemberToGenerate
+public readonly struct PrettyMemberToGenerate(string name, string proxy)
 {
-    public readonly string Name;
-    public readonly string Proxy;
-
-    public PrettyMemberToGenerate(string name, string proxy)
-    {
-        Name = name;
-        Proxy = proxy;
-    }
+    public readonly string Name = name;
+    public readonly string Proxy = proxy;
 }

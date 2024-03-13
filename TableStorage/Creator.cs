@@ -5,19 +5,10 @@ public interface ICreator
     public TableSet<T> CreateSet<T>(string tableName) where T : class, ITableEntity, new();
 }
 
-internal sealed class Creator : ICreator
+internal sealed class Creator(TableStorageFactory factory, TableOptions options) : ICreator
 {
-    private readonly TableStorageFactory _factory;
-    private readonly TableOptions _options;
+    private readonly TableStorageFactory _factory = factory;
+    private readonly TableOptions _options = options;
 
-    public Creator(TableStorageFactory factory, TableOptions options)
-    {
-        _factory = factory;
-        _options = options;
-    }
-
-    TableSet<T> ICreator.CreateSet<T>(string tableName)
-    {
-        return new TableSet<T>(_factory, tableName, _options);
-    }
+    TableSet<T> ICreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options);
 }

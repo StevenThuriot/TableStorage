@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using TableStorage;
@@ -36,9 +37,9 @@ await context.Models2.UpsertEntityAsync(new()
     RowKey = Guid.NewGuid().ToString("N"),
     MyProperty1 = 1,
     MyProperty2 = "hallo 1",
-    MyProperty3 = DateTime.UtcNow,
+    MyProperty3 = DateTimeOffset.UtcNow,
     MyProperty4 = Guid.NewGuid(),
-    MyProperty5 = DateTime.UtcNow,
+    MyProperty5 = DateTimeOffset.UtcNow,
     MyProperty6 = Guid.NewGuid(),
     MyProperty7 = ModelEnum.Yes,
     MyProperty8 = ModelEnum.No
@@ -50,9 +51,9 @@ await context.Models2.UpsertEntityAsync(new()
     RowKey = Guid.NewGuid().ToString("N"),
     MyProperty1 = 5,
     MyProperty2 = "hallo 5",
-    MyProperty3 = DateTime.UtcNow,
+    MyProperty3 = DateTimeOffset.UtcNow,
     MyProperty4 = Guid.NewGuid(),
-    MyProperty5 = DateTime.UtcNow,
+    MyProperty5 = DateTimeOffset.UtcNow,
     MyProperty6 = Guid.NewGuid(),
     MyProperty7 = ModelEnum.Yes,
     MyProperty8 = ModelEnum.No
@@ -60,6 +61,17 @@ await context.Models2.UpsertEntityAsync(new()
 
 var models2 = await context.Models2.ToListAsync(); //should just return all my big models
 var enumFilters = await context.Models2.Where(x => x.MyProperty7 == ModelEnum.Yes && x.MyProperty8 == ModelEnum.No).ToListAsync(); //enum filtering should work
+
+var fiveCount = await context.Models2.Where(x => x.MyProperty1 == 5).CountAsync();
+var deleteCount = await context.Models2.Where(x => x.MyProperty1 == 5).BatchDeleteTransactionAsync();
+Debug.Assert(deleteCount == fiveCount);
+
+var newModels2 = await context.Models2.ToListAsync();
+Debug.Assert(newModels2.Count == (models2.Count - deleteCount));
+
+var updateCount = await context.Models2.Where(x => x.MyProperty1 == 1).BatchUpdateTransactionAsync(x => x.MyProperty2 = "hallo 1 updated");
+var updatedModels = await context.Models2.Where(x => x.MyProperty2 == "hallo 1 updated").ToListAsync();
+Debug.Assert(updateCount == updatedModels.Count);
 
 var list1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).ToListAsync(); //Should not contain more than 3 items with all properties filled in
 var list2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).Distinct(FuncComparer.Create((Model x) => x.MyProperty1)).ToListAsync(); //Should contain 1 item with all properties filled in
@@ -108,9 +120,9 @@ namespace TableStorage.Tests.Models
     {
         public int MyProperty1 { get; set; }
         public string MyProperty2 { get; set; }
-        public System.DateTime? MyProperty3 { get; set; }
+        public System.DateTimeOffset? MyProperty3 { get; set; }
         public System.Guid? MyProperty4 { get; set; }
-        public System.DateTime MyProperty5 { get; set; }
+        public System.DateTimeOffset MyProperty5 { get; set; }
         public System.Guid MyProperty6 { get; set; }
         public ModelEnum MyProperty7 { get; set; }
         public ModelEnum? MyProperty8 { get; set; }

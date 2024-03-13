@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using static FastExpressionCompiler.ExpressionCompiler;
 
 namespace TableStorage.Linq;
 
@@ -17,13 +16,13 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     private Expression<Func<T, bool>>? _filter;
     private int? _amount;
 
-    public async Task<T> FirstAsync(CancellationToken token = default)
+    public async Task<T> FirstAsync(CancellationToken token)
     {
         T? result = await FirstOrDefaultAsync(token);
         return result ?? throw new InvalidOperationException("No element satisfies the condition in predicate. -or- The source sequence is empty.");
     }
 
-    public async Task<T?> FirstOrDefaultAsync(CancellationToken token = default)
+    public async Task<T?> FirstOrDefaultAsync(CancellationToken token)
     {
         _amount = 1;
         await foreach (var item in this.WithCancellation(token))
@@ -34,13 +33,13 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         return default;
     }
 
-    public async Task<T> SingleAsync(CancellationToken token = default)
+    public async Task<T> SingleAsync(CancellationToken token)
     {
         var result = await SingleOrDefaultAsync(token);
         return result ?? throw new InvalidOperationException("No element satisfies the condition in predicate. -or- The source sequence is empty.");
     }
 
-    public async Task<T?> SingleOrDefaultAsync(CancellationToken token = default)
+    public async Task<T?> SingleOrDefaultAsync(CancellationToken token)
     {
         T? result = default;
         bool gotOne = false;
@@ -61,13 +60,144 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         return result;
     }
 
+    public async Task<int> BatchDeleteAsync(CancellationToken token)
+    {
+        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        int result = 0;
+
+        while (await enumerator.MoveNextAsync())
+        {
+            T current = enumerator.Current;
+            await _table.DeleteEntityAsync(current.PartitionKey, current.RowKey, current.ETag, token);
+            result++;
+        }
+
+        return result;
+    }
+
+    public async Task<int> BatchDeleteTransactionAsync(CancellationToken token)
+    {
+        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
+
+        Dictionary<string, List<TableTransactionAction>> entities = [];
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        while (await enumerator.MoveNextAsync())
+        {
+            T current = enumerator.Current;
+            if (!entities.TryGetValue(current.PartitionKey, out var list))
+            {
+                list = [];
+                entities.Add(current.PartitionKey, list);
+            }
+
+            list.Add(new(TableTransactionActionType.Delete, current, current.ETag));
+        }
+
+        foreach (var group in entities)
+        {
+            await _table.SubmitTransactionAsync(group.Value, token);
+        }
+
+        return entities.Count == 0 ? 0 : entities.Sum(x => x.Value.Count);
+    }
+
+    public async Task<int> BatchUpdateAsync(Action<T> update, CancellationToken token)
+    {
+        if (update is null)
+        {
+            throw new ArgumentNullException(nameof(update), "update action should not be null");
+        }
+
+        if (_fields is not null)
+        {
+            throw new NotSupportedException("Using a select in a batch update will result in data loss");
+        }
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        int result = 0;
+
+        while (await enumerator.MoveNextAsync())
+        {
+            var current = enumerator.Current;
+            update(current);
+
+            await _table.UpdateEntityAsync(current, current.ETag, TableUpdateMode.Replace, token);
+            result++;
+        }
+
+        return result;
+    }
+
+    public async Task<int> BatchUpdateTransactionAsync(Action<T> update, CancellationToken token)
+    {
+        if (update is null)
+        {
+            throw new ArgumentNullException(nameof(update), "update action should not be null");
+        }
+
+        if (_fields is not null)
+        {
+            throw new NotSupportedException("Using a select in a batch update will result in data loss");
+        }
+
+        Dictionary<string, List<TableTransactionAction>> entities = [];
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        while (await enumerator.MoveNextAsync())
+        {
+            T current = enumerator.Current;
+            update(current);
+
+            if (!entities.TryGetValue(current.PartitionKey, out var list))
+            {
+                list = [];
+                entities.Add(current.PartitionKey, list);
+            }
+
+            list.Add(new(TableTransactionActionType.UpdateReplace, current, current.ETag));
+        }
+
+        foreach (var group in entities)
+        {
+            await _table.SubmitTransactionAsync(group.Value, token);
+        }
+
+        return entities.Count == 0 ? 0 : entities.Sum(x => x.Value.Count);
+    }
+
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
         var query = _filter is null
                     ? _table.QueryAsync((string?)null, _amount, _fields, cancellationToken)
                     : _table.QueryAsync(_filter, _amount, _fields, cancellationToken);
 
+        if (_amount.HasValue)
+        {
+            query = IterateWithAmount(query);
+        }
+
         return query.GetAsyncEnumerator(cancellationToken);
+
+        async IAsyncEnumerable<T> IterateWithAmount(IAsyncEnumerable<T> values)
+        {
+            int count = _amount.GetValueOrDefault();
+            await foreach (var item in values)
+            {
+                yield return item;
+
+                if (--count == 0)
+                {
+                    yield break;
+                }
+            }
+        }
     }
 
     #region Select
@@ -195,7 +325,10 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
             return filter;
 
-            BinaryExpression GetFilterForElement() => Expression.Equal(predicate.Body, Expression.Constant(enumerator.Current));
+            BinaryExpression GetFilterForElement()
+            {
+                return Expression.Equal(predicate.Body, Expression.Constant(enumerator.Current));
+            }
         }
     }
 
@@ -238,7 +371,10 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
             return filter;
 
-            BinaryExpression GetFilterForElement() => Expression.NotEqual(predicate.Body, Expression.Constant(enumerator.Current));
+            BinaryExpression GetFilterForElement()
+            {
+                return Expression.NotEqual(predicate.Body, Expression.Constant(enumerator.Current));
+            }
         }
     }
 
