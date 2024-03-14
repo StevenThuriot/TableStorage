@@ -280,6 +280,9 @@ using System;
 
     private static void GenerateModel(StringBuilder sb, ClassToGenerate classToGenerate)
     {
+        var hasPartitionKeyProxy = classToGenerate.Members.Any(x => x.ParitionKeyProxy is not "null");
+        var hasRowKeyProxy = classToGenerate.Members.Any(x => x.RowKeyProxy is not "null");
+
         if (!string.IsNullOrEmpty(classToGenerate.Namespace))
         {
             sb.Append(@"
@@ -290,8 +293,8 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         sb.Append(@"
     partial class ").Append(classToGenerate.Name).Append(@" : IDictionary<string, object>, Azure.Data.Tables.ITableEntity
     {
-        public string PartitionKey { get; set; }
-        public string RowKey { get; set; }
+        ").Append(hasPartitionKeyProxy ? "[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] " : "").Append(@"public string PartitionKey { get; set; }
+        ").Append(hasRowKeyProxy ? "[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] " : "").Append(@"public string RowKey { get; set; }
         public DateTimeOffset? Timestamp { get; set; }
         public Azure.ETag ETag { get; set; }");
 
