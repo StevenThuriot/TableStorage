@@ -1,7 +1,13 @@
 ﻿# TableStorage
 Streamlined way of working with Azure Data Tables
 
-# Usage
+## Installation
+
+```bash
+dotnet add package TableStorage
+```
+
+## Usage
 
 Create your own TableContext and mark it with the `[TableContext]` attribute. This class must be partial.
 
@@ -99,7 +105,7 @@ For some special cases, your table name might not be known at compile time. To h
 var tableSet = context.GetTableSet<Model>("randomname");
 ```
 
-# Linq
+## Linq
 
 A few simple Linq extension methods have been provided in the `TableStorage.Linq` namespace that optimize some existing LINQ methods specifically for Table Storage.
 
