@@ -58,6 +58,20 @@ await context.Models2.UpsertEntityAsync(new()
     MyProperty8 = ModelEnum.No
 });
 
+await context.Models2.UpsertEntityAsync(new()
+{
+    PartitionKey = "root",
+    RowKey = "this is a test",
+    MyProperty1 = 5,
+    MyProperty2 = "hallo 5",
+    MyProperty3 = DateTimeOffset.UtcNow,
+    MyProperty4 = Guid.NewGuid(),
+    MyProperty5 = DateTimeOffset.UtcNow,
+    MyProperty6 = Guid.NewGuid(),
+    MyProperty7 = ModelEnum.Yes,
+    MyProperty8 = ModelEnum.No
+});
+
 var models2 = await context.Models2.ToListAsync(); //should just return all my big models
 Debug.Assert(models2.Count > 0);
 
@@ -155,6 +169,12 @@ var updateCount = await context.Models2.Where(x => x.MyProperty1 == 1).BatchUpda
 var updatedModels = await context.Models2.Where(x => x.MyProperty2 == "hallo 1 updated").ToListAsync();
 Debug.Assert(updateCount == updatedModels.Count);
 
+var prettyItem = new { PrettyRow = "this is a test" };
+var visitorWorks = await context.Models2.Where(x => x.PrettyRow == prettyItem.PrettyRow).ToListAsync();
+Debug.Assert(visitorWorks.Count == 1);
+visitorWorks = await context.Models2.Where(x => x.PrettyRow != prettyItem.PrettyRow).ToListAsync();
+Debug.Assert(visitorWorks.Count > 1);
+
 namespace TableStorage.Tests.Models
 {
 #nullable disable
@@ -175,6 +195,7 @@ namespace TableStorage.Tests.Models
     }
 
     [TableSet]
+    [RowKey("PrettyRow")]
     public partial class Model2
     {
         public int MyProperty1 { get; set; }
@@ -193,6 +214,11 @@ namespace TableStorage.Tests.Models
         Yes,
         No
     }
+
+    [TableSet]
+    public partial class Model3
+    {
+    }
 }
 
 namespace TableStorage.Tests.Contexts
@@ -206,6 +232,7 @@ namespace TableStorage.Tests.Contexts
         public TableSet<Model2> Models2 { get; private set; }
         public TableSet<Model> Models3 { get; init; }
         public TableSet<Model> Models4 { get; init; }
+        public TableSet<Model3> Models5 { get; init; }
     }
 }
 

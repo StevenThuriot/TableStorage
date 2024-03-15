@@ -280,8 +280,8 @@ using System;
 
     private static void GenerateModel(StringBuilder sb, ClassToGenerate classToGenerate)
     {
-        var hasPartitionKeyProxy = classToGenerate.Members.Any(x => x.ParitionKeyProxy is not "null");
-        var hasRowKeyProxy = classToGenerate.Members.Any(x => x.RowKeyProxy is not "null");
+        var hasPartitionKeyProxy = classToGenerate.PrettyMembers.Any(x => x.Proxy is "PartitionKey");
+        var hasRowKeyProxy = classToGenerate.PrettyMembers.Any(x => x.Proxy is "RowKey");
 
         if (!string.IsNullOrEmpty(classToGenerate.Namespace))
         {

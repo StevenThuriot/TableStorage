@@ -10,16 +10,18 @@ internal sealed class TableStorageFactory(string connectionString, bool createIf
 
     public Task<TableClient> GetClient(string tableName)
     {
-        return _tableClients.GetOrAdd(tableName, async name =>
+        return _tableClients.GetOrAdd(tableName, Create);
+    }
+
+    private async Task<TableClient> Create(string name)
+    {
+        TableClient client = new(_connectionString, name);
+
+        if (_createIfNotExists)
         {
-            TableClient client = new(_connectionString, name);
+            _ = await client.CreateIfNotExistsAsync();
+        }
 
-            if (_createIfNotExists)
-            {
-                _ = await client.CreateIfNotExistsAsync();
-            }
-
-            return client;
-        });
+        return client;
     }
 }

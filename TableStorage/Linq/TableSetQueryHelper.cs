@@ -294,15 +294,18 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            var name = node.Member.Name;
+            if (node.Expression.NodeType == ExpressionType.Parameter && node.Expression.Type == typeof(T))
+            {
+                var name = node.Member.Name;
 
-            if (name == _partitionKeyProxy)
-            {
-                node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
-            }
-            else if (name == _rowKeyProxy)
-            {
-                node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+                if (name == _partitionKeyProxy)
+                {
+                    node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
+                }
+                else if (name == _rowKeyProxy)
+                {
+                    node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+                }
             }
 
             return base.VisitMember(node);
