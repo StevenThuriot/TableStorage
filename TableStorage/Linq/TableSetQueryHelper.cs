@@ -1,86 +1,32 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
 using System.Linq.Expressions;
 
 namespace TableStorage.Linq;
 
-internal sealed class TableSetQueryHelper<T> :
-    ITableQueryable<T>,
+internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
+    IAsyncEnumerable<T>,
     ISelectedTableQueryable<T>,
     ITakenTableQueryable<T>,
     IFilteredTableQueryable<T>,
-    ISelectedTakenTableQueryable<T>,
-    IDistinctedTableQueryable<T>,
-    ISelectedDistinctedTableQueryable<T>,
-    ITakenDistinctedTableQueryable<T>,
-    ISelectedTakenDistinctedTableQueryable<T>
+    ISelectedTakenTableQueryable<T>
     where T : class, ITableEntity, new()
 {
-    private readonly TableSet<T> _table;
+    private readonly TableSet<T> _table = table;
 
     private HashSet<string>? _fields;
     private Expression<Func<T, bool>>? _filter;
     private int? _amount;
-    internal int? Amount => _amount;
-    private Func<T, bool>? _distinct;
 
-    public TableSetQueryHelper(TableSet<T> table)
-    {
-        _table = table;
-    }
-
-    public async Task<T> FirstAsync(CancellationToken token = default)
+    public async Task<T> FirstAsync(CancellationToken token)
     {
         T? result = await FirstOrDefaultAsync(token);
         return result ?? throw new InvalidOperationException("No element satisfies the condition in predicate. -or- The source sequence is empty.");
     }
 
-    private IAsyncEnumerable<T> GetAsyncEnumerable(int? amount, CancellationToken token)
+    public async Task<T?> FirstOrDefaultAsync(CancellationToken token)
     {
-        var query = _filter is null
-                    ? _table.QueryAsync((string?)null, null, _fields, token)
-                    : _table.QueryAsync(_filter, null, _fields, token);
-
-        if (_distinct is not null)
-        {
-            query = IterateWithDistinct(query);
-        }
-
-        if (_amount.HasValue)
-        {
-            query = IterateWithAmount(query);
-        }
-
-        return query;
-
-        async IAsyncEnumerable<T> IterateWithAmount(IAsyncEnumerable<T> values)
-        {
-            int count = amount.GetValueOrDefault();
-            await foreach (var item in values)
-            {
-                yield return item;
-
-                if (--count == 0)
-                {
-                    yield break;
-                }
-            }
-        }
-
-        async IAsyncEnumerable<T> IterateWithDistinct(IAsyncEnumerable<T> values)
-        {
-            await foreach (var item in values)
-            {
-                if (_distinct(item))
-                {
-                    yield return item;
-                }
-            }
-        }
-    }
-
-    public async Task<T?> FirstOrDefaultAsync(CancellationToken token = default)
-    {
-        await foreach (var item in GetAsyncEnumerable(1, token))
+        _amount = 1;
+        await foreach (var item in this.WithCancellation(token))
         {
             return item;
         }
@@ -88,18 +34,20 @@ internal sealed class TableSetQueryHelper<T> :
         return default;
     }
 
-    public async Task<T> SingleAsync(CancellationToken token = default)
+    public async Task<T> SingleAsync(CancellationToken token)
     {
         var result = await SingleOrDefaultAsync(token);
         return result ?? throw new InvalidOperationException("No element satisfies the condition in predicate. -or- The source sequence is empty.");
     }
 
-    public async Task<T?> SingleOrDefaultAsync(CancellationToken token = default)
+    public async Task<T?> SingleOrDefaultAsync(CancellationToken token)
     {
         T? result = default;
         bool gotOne = false;
 
-        await foreach (var item in GetAsyncEnumerable(2, token))
+        _amount = 2;
+
+        await foreach (var item in this.WithCancellation(token))
         {
             if (gotOne)
             {
@@ -113,44 +61,183 @@ internal sealed class TableSetQueryHelper<T> :
         return result;
     }
 
-    public IAsyncEnumerable<T> ToAsyncEnumerableAsync(CancellationToken token = default)
+    public async Task<int> BatchDeleteAsync(CancellationToken token)
     {
-        return GetAsyncEnumerable(_amount, token);
-    }
+        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
 
-    public async Task<List<T>> ToListAsync(CancellationToken token = default)
-    {
-        List<T> result = _amount.HasValue ? new(_amount.GetValueOrDefault()) : new();
+        await using var enumerator = GetAsyncEnumerator(token);
 
-        await foreach (var item in ToAsyncEnumerableAsync(token))
+        int result = 0;
+
+        while (await enumerator.MoveNextAsync())
         {
-            result.Add(item);
+            T current = enumerator.Current;
+            await _table.DeleteEntityAsync(current.PartitionKey, current.RowKey, current.ETag, token);
+            result++;
         }
 
         return result;
     }
 
-    #region Select
-    private class SelectionVisitor : ExpressionVisitor
+    public async Task<int> BatchDeleteTransactionAsync(CancellationToken token)
     {
-        public readonly HashSet<string> Members = new();
+        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
+
+        Dictionary<string, List<TableTransactionAction>> entities = [];
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        while (await enumerator.MoveNextAsync())
+        {
+            T current = enumerator.Current;
+            if (!entities.TryGetValue(current.PartitionKey, out var list))
+            {
+                list = [];
+                entities.Add(current.PartitionKey, list);
+            }
+
+            list.Add(new(TableTransactionActionType.Delete, current, current.ETag));
+        }
+
+        foreach (var group in entities)
+        {
+            await _table.SubmitTransactionAsync(group.Value, token);
+        }
+
+        return entities.Count == 0 ? 0 : entities.Sum(x => x.Value.Count);
+    }
+
+    public async Task<int> BatchUpdateAsync(Action<T> update, CancellationToken token)
+    {
+        if (update is null)
+        {
+            throw new ArgumentNullException(nameof(update), "update action should not be null");
+        }
+
+        if (_fields is not null)
+        {
+            throw new NotSupportedException("Using a select in a batch update will result in data loss");
+        }
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        int result = 0;
+
+        while (await enumerator.MoveNextAsync())
+        {
+            var current = enumerator.Current;
+            update(current);
+
+            await _table.UpdateEntityAsync(current, current.ETag, TableUpdateMode.Replace, token);
+            result++;
+        }
+
+        return result;
+    }
+
+    public async Task<int> BatchUpdateTransactionAsync(Action<T> update, CancellationToken token)
+    {
+        if (update is null)
+        {
+            throw new ArgumentNullException(nameof(update), "update action should not be null");
+        }
+
+        if (_fields is not null)
+        {
+            throw new NotSupportedException("Using a select in a batch update will result in data loss");
+        }
+
+        Dictionary<string, List<TableTransactionAction>> entities = [];
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        while (await enumerator.MoveNextAsync())
+        {
+            T current = enumerator.Current;
+            update(current);
+
+            if (!entities.TryGetValue(current.PartitionKey, out var list))
+            {
+                list = [];
+                entities.Add(current.PartitionKey, list);
+            }
+
+            list.Add(new(TableTransactionActionType.UpdateReplace, current, current.ETag));
+        }
+
+        foreach (var group in entities)
+        {
+            await _table.SubmitTransactionAsync(group.Value, token);
+        }
+
+        return entities.Count == 0 ? 0 : entities.Sum(x => x.Value.Count);
+    }
+
+    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
+    {
+        var query = _filter is null
+                    ? _table.QueryAsync((string?)null, _amount, _fields, cancellationToken)
+                    : _table.QueryAsync(_filter, _amount, _fields, cancellationToken);
+
+        if (_amount.HasValue)
+        {
+            query = IterateWithAmount(query);
+        }
+
+        return query.GetAsyncEnumerator(cancellationToken);
+
+        async IAsyncEnumerable<T> IterateWithAmount(IAsyncEnumerable<T> values)
+        {
+            int count = _amount.GetValueOrDefault();
+            await foreach (var item in values)
+            {
+                yield return item;
+
+                if (--count == 0)
+                {
+                    yield break;
+                }
+            }
+        }
+    }
+
+    #region Select
+    private sealed class SelectionVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+    {
+        private readonly string? _partitionKeyProxy = partitionKeyProxy;
+        private readonly string? _rowKeyProxy = rowKeyProxy;
+
+        public readonly HashSet<string> Members = [];
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            Members.Add(node.Member.Name);
+            var name = node.Member.Name;
+
+            if (name == _partitionKeyProxy)
+            {
+                name = nameof(ITableEntity.PartitionKey);
+                node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
+            }
+            else if (name == _rowKeyProxy)
+            {
+                name = nameof(ITableEntity.RowKey);
+                node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+            }
+
+            Members.Add(name);
             return base.VisitMember(node);
         }
     }
 
-    internal TableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true)
+    internal TableSetQueryHelper<T> SetFields<TResult>(ref Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true)
     {
         if (_fields is not null)
         {
             throw new NotSupportedException("Only one transformation is allowed at a time");
         }
 
-        SelectionVisitor visitor = new();
-        _ = visitor.Visit(exp);
+        SelectionVisitor visitor = new(_table.PartitionKeyProxy, _table.RowKeyProxy);
+        exp = (Expression<Func<T, TResult>>)visitor.Visit(exp);
 
         if (visitor.Members.Count == 0)
         {
@@ -169,25 +256,17 @@ internal sealed class TableSetQueryHelper<T> :
 
     internal TransformedTableSetQueryHelper<T, TResult> SetFieldsAndTransform<TResult>(Expression<Func<T, TResult>> exp)
     {
-        var helper = SetFields(exp, throwIfNoArgumentsFound: false);
+        var helper = SetFields(ref exp, throwIfNoArgumentsFound: false);
         return new TransformedTableSetQueryHelper<T, TResult>(helper, exp);
     }
 
-    ISelectedTakenTableQueryable<T> ITakenTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    ISelectedTakenTableQueryable<T> ITakenTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(ref selector);
 
-    ISelectedTableQueryable<T> IFilteredTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
-
-    ISelectedTakenTableQueryable<T> ITakenDistinctedTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
-
-    ISelectedDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(selector);
+    ISelectedTableQueryable<T> IFilteredTableQueryable<T>.SelectFields<TResult>(Expression<Func<T, TResult>> selector) => SetFields(ref selector);
 
     ITableEnumerable<TResult> ITakenTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
 
     ITableEnumerable<TResult> IFilteredTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
-
-    ITableEnumerable<TResult> ITakenDistinctedTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
-
-    ITableEnumerable<TResult> IDistinctedTableQueryable<T>.Select<TResult>(Expression<Func<T, TResult>> selector) => SetFieldsAndTransform(selector);
     #endregion Select
 
     #region Take
@@ -205,15 +284,39 @@ internal sealed class TableSetQueryHelper<T> :
     ISelectedTakenTableQueryable<T> ISelectedTableQueryable<T>.Take(int amount) => SetAmount(amount);
 
     ITakenTableQueryable<T> IFilteredTableQueryable<T>.Take(int amount) => SetAmount(amount);
-
-    ISelectedTakenDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.Take(int amount) => SetAmount(amount);
-
-    ISelectedDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.Take(int amount) => SetAmount(amount);
     #endregion Take
 
     #region Where
+    private sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+    {
+        private readonly string? _partitionKeyProxy = partitionKeyProxy;
+        private readonly string? _rowKeyProxy = rowKeyProxy;
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            var name = node.Member.Name;
+
+            if (name == _partitionKeyProxy)
+            {
+                node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
+            }
+            else if (name == _rowKeyProxy)
+            {
+                node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+            }
+
+            return base.VisitMember(node);
+        }
+    }
+
     internal TableSetQueryHelper<T> AddFilter(Expression<Func<T, bool>> predicate)
     {
+        if (_table.PartitionKeyProxy is not null || _table.RowKeyProxy is not null)
+        {
+            WhereVisitor visitor = new(_table.PartitionKeyProxy, _table.RowKeyProxy);
+            predicate = (Expression<Func<T, bool>>)visitor.Visit(predicate);
+        }
+
         if (_filter is null)
         {
             _filter = predicate;
@@ -235,57 +338,7 @@ internal sealed class TableSetQueryHelper<T> :
     IFilteredTableQueryable<T> IFilteredTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
 
     ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
-
-    IDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
-
-    ISelectedDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
-
-    ITakenDistinctedTableQueryable<T> ITakenDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
-
-    ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate) => AddFilter(predicate);
     #endregion Where
-
-    #region Distinct
-    internal TableSetQueryHelper<T> SetDistinction<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
-    {
-        var set = new HashSet<T>(new FuncComparer<TResult>(selector, equalityComparer));
-        _distinct = new Func<T, bool>(set.Add);
-        return this;
-    }
-
-    private class FuncComparer<TResult> : IEqualityComparer<T>
-    {
-        private readonly Func<T, TResult> _selector;
-        private readonly IEqualityComparer<TResult> _equalityComparer;
-
-        public FuncComparer(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer)
-        {
-            _selector = selector;
-            _equalityComparer = equalityComparer ?? EqualityComparer<TResult>.Default;
-        }
-
-        public bool Equals(T? x, T? y)
-        {
-            if (x is null) return y is null;
-            if (y is null) return false;
-            return _equalityComparer.Equals(_selector(x), _selector(y));
-        }
-
-        public int GetHashCode([DisallowNull] T obj)
-        {
-            var selection = _selector(obj);
-            return selection is null ? 0 : selection.GetHashCode();
-        }
-    }
-
-    ISelectedDistinctedTableQueryable<T> ISelectedTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
-
-    ITakenDistinctedTableQueryable<T> ITakenTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
-
-    IDistinctedTableQueryable<T> IFilteredTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
-
-    ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenTableQueryable<T>.DistinctBy<TResult>(Func<T, TResult> selector, IEqualityComparer<TResult>? equalityComparer) => SetDistinction(selector, equalityComparer);
-    #endregion  Distinct
 
     #region ExistsIn
     internal TableSetQueryHelper<T> AddExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
@@ -317,7 +370,10 @@ internal sealed class TableSetQueryHelper<T> :
 
             return filter;
 
-            BinaryExpression GetFilterForElement() => Expression.Equal(predicate.Body, Expression.Constant(enumerator.Current));
+            BinaryExpression GetFilterForElement()
+            {
+                return Expression.Equal(predicate.Body, Expression.Constant(enumerator.Current));
+            }
         }
     }
 
@@ -327,13 +383,7 @@ internal sealed class TableSetQueryHelper<T> :
 
     IFilteredTableQueryable<T> IFilteredTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
 
-    ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements); IDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
-
-    ISelectedDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
-
-    ITakenDistinctedTableQueryable<T> ITakenDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
-
-    ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
+    ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
     #endregion ExistsIn
 
     #region NotExistsIn
@@ -366,7 +416,10 @@ internal sealed class TableSetQueryHelper<T> :
 
             return filter;
 
-            BinaryExpression GetFilterForElement() => Expression.NotEqual(predicate.Body, Expression.Constant(enumerator.Current));
+            BinaryExpression GetFilterForElement()
+            {
+                return Expression.NotEqual(predicate.Body, Expression.Constant(enumerator.Current));
+            }
         }
     }
 
@@ -376,12 +429,6 @@ internal sealed class TableSetQueryHelper<T> :
 
     IFilteredTableQueryable<T> IFilteredTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
 
-    ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements); IDistinctedTableQueryable<T> IDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
-
-    ISelectedDistinctedTableQueryable<T> ISelectedDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
-
-    ITakenDistinctedTableQueryable<T> ITakenDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
-
-    ISelectedTakenDistinctedTableQueryable<T> ISelectedTakenDistinctedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+    ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
     #endregion NotExistsIn
 }

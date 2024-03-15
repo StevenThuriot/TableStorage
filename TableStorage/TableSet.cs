@@ -1,33 +1,33 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using TableStorage.Linq;
 
 namespace TableStorage;
 
-public sealed class TableSet<T>
+public sealed class TableSet<T> : IAsyncEnumerable<T>
     where T : class, ITableEntity, new()
 {
     private readonly AsyncLazy<TableClient> _lazyClient;
     private readonly TableOptions _options;
 
-    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options)
+    internal string? PartitionKeyProxy { get; }
+    internal string? RowKeyProxy { get; }
+
+    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
     {
         _lazyClient = new AsyncLazy<TableClient>(() => factory.GetClient(tableName));
         _options = options;
+        PartitionKeyProxy = partitionKeyProxy;
+        RowKeyProxy = rowKeyProxy;
     }
 
     public async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-
-        if (_options.AutoTimestamps)
-        {
-            entity.Timestamp = DateTimeOffset.UtcNow;
-        }
-
         await client.AddEntityAsync(entity, cancellationToken);
     }
 
-    public Task DeleteEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => DeleteEntityAsync(partitionKey, rowKey, cancellationToken);
+    public Task DeleteEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => DeleteEntityAsync(partitionKey, rowKey, ETag.All, cancellationToken);
 
     public async Task DeleteEntityAsync(string partitionKey, string rowKey, ETag ifMatch, CancellationToken cancellationToken = default)
     {
@@ -46,12 +46,6 @@ public sealed class TableSet<T>
     public async Task UpdateEntityAsync(T entity, ETag ifMatch, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-
-        if (_options.AutoTimestamps)
-        {
-            entity.Timestamp = DateTimeOffset.UtcNow;
-        }
-
         await client.UpdateEntityAsync(entity, ifMatch, mode ?? _options.TableMode, cancellationToken);
     }
 
@@ -60,12 +54,6 @@ public sealed class TableSet<T>
     public async Task UpsertEntityAsync(T entity, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-
-        if (_options.AutoTimestamps)
-        {
-            entity.Timestamp = DateTimeOffset.UtcNow;
-        }
-
         await client.UpsertEntityAsync(entity, mode ?? _options.TableMode, cancellationToken);
     }
 
@@ -115,4 +103,63 @@ public sealed class TableSet<T>
             yield return item;
         }
     }
+
+    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        return new TableSetQueryHelper<T>(this).GetAsyncEnumerator(cancellationToken);
+    }
+
+    #region Bulk Operations
+
+    private async Task ExecuteInBulk(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
+    {
+        foreach (var group in entities.GroupBy(x => x.PartitionKey))
+        {
+            await SubmitTransactionAsync(group.Select(x => new TableTransactionAction(tableTransactionActionType, x)), cancellationToken);
+        }
+    }
+
+    public Task BulkInsert(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    {
+        return ExecuteInBulk(entities, TableTransactionActionType.Add, cancellationToken);
+    }
+
+    public Task BulkUpdate(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    {
+        TableTransactionActionType tableTransactionActionType = bulkOperation switch
+        {
+            BulkOperation.Replace => TableTransactionActionType.UpdateReplace,
+            BulkOperation.Merge => TableTransactionActionType.UpdateMerge,
+            _ => throw new NotSupportedException(),
+        };
+
+        return ExecuteInBulk(entities, tableTransactionActionType, cancellationToken);
+    }
+
+    public Task BulkUpsert(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsert(entities, BulkOperation.Replace, cancellationToken);
+
+    public Task BulkUpsert(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    {
+        TableTransactionActionType tableTransactionActionType = bulkOperation switch
+        {
+            BulkOperation.Replace => TableTransactionActionType.UpsertReplace,
+            BulkOperation.Merge => TableTransactionActionType.UpsertMerge,
+            _ => throw new NotSupportedException(),
+        };
+
+        return ExecuteInBulk(entities, tableTransactionActionType, cancellationToken);
+    }
+
+    public Task BulkDelete(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    {
+        return ExecuteInBulk(entities, TableTransactionActionType.Delete, cancellationToken);
+    }
+
+    #endregion Bulk Operations
+}
+
+public enum BulkOperation
+{
+    Replace,
+    Merge
 }

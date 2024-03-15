@@ -1,8 +1,10 @@
 ﻿namespace TableStorage;
 
-public class TableOptions
+public sealed class TableOptions
 {
-    public bool AutoTimestamps { get; set; }
+    internal TableOptions() { }
+
     public TableUpdateMode TableMode { get; set; }
     public int? PageSize { get; set; }
+    public bool CreateTableIfNotExists { get; set; } = true;
 }
