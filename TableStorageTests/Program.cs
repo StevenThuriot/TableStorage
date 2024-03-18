@@ -16,16 +16,16 @@ var context = provider.GetRequiredService<MyTableContext>();
 
 await context.Models1.UpsertEntityAsync(new()
 {
-    PartitionKey = "root",
-    RowKey = Guid.NewGuid().ToString("N"),
+    PrettyName = "root",
+    PrettyRow = Guid.NewGuid().ToString("N"),
     MyProperty1 = 1,
     MyProperty2 = "hallo 1"
 });
 
 await context.Models1.UpsertEntityAsync(new()
 {
-    PartitionKey = "root",
-    RowKey = Guid.NewGuid().ToString("N"),
+    PrettyName = "root",
+    PrettyRow = Guid.NewGuid().ToString("N"),
     MyProperty1 = 5,
     MyProperty2 = "hallo 5"
 });
@@ -33,7 +33,7 @@ await context.Models1.UpsertEntityAsync(new()
 await context.Models2.UpsertEntityAsync(new()
 {
     PartitionKey = "root",
-    RowKey = Guid.NewGuid().ToString("N"),
+    PrettyRow = Guid.NewGuid().ToString("N"),
     MyProperty1 = 1,
     MyProperty2 = "hallo 1",
     MyProperty3 = DateTimeOffset.UtcNow,
@@ -47,7 +47,7 @@ await context.Models2.UpsertEntityAsync(new()
 await context.Models2.UpsertEntityAsync(new()
 {
     PartitionKey = "root",
-    RowKey = Guid.NewGuid().ToString("N"),
+    PrettyRow = Guid.NewGuid().ToString("N"),
     MyProperty1 = 5,
     MyProperty2 = "hallo 5",
     MyProperty3 = DateTimeOffset.UtcNow,
@@ -61,7 +61,7 @@ await context.Models2.UpsertEntityAsync(new()
 await context.Models2.UpsertEntityAsync(new()
 {
     PartitionKey = "root",
-    RowKey = "this is a test",
+    PrettyRow = "this is a test",
     MyProperty1 = 5,
     MyProperty2 = "hallo 5",
     MyProperty3 = DateTimeOffset.UtcNow,
@@ -86,72 +86,72 @@ Debug.Assert(proxyWorksCount == proxiedList.Count);
 
 var proxySelectionWorks = await context.Models1.Select(x => new { x.PrettyName, x.PrettyRow }).ToListAsync();
 
-var list1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).ToListAsync();
-Debug.Assert(list1.Count <= 3 && list1.All(x => x.PartitionKey != null && x.RowKey != null && x.MyProperty1 != 0 && x.MyProperty2 != null)); // Should not contain more than 3 items with all properties filled in
+var list1 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Take(3).ToListAsync();
+Debug.Assert(list1.Count <= 3 && list1.All(x => x.PrettyName != null && x.PrettyRow != null && x.MyProperty1 != 0 && x.MyProperty2 != null)); // Should not contain more than 3 items with all properties filled in
 
-var list2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Take(3).Distinct(FuncComparer.Create((Model x) => x.MyProperty1)).ToListAsync();
-Debug.Assert(list2.Count == 1 && list2.All(x => x.PartitionKey != null && x.RowKey != null && x.MyProperty1 != 0 && x.MyProperty2 != null)); // Should contain 1 item with all properties filled in
+var list2 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Take(3).Distinct(FuncComparer.Create((Model x) => x.MyProperty1)).ToListAsync();
+Debug.Assert(list2.Count == 1 && list2.All(x => x.PrettyName != null && x.PrettyRow != null && x.MyProperty1 != 0 && x.MyProperty2 != null)); // Should contain 1 item with all properties filled in
 
-var list3 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Distinct(FuncComparer.Create((Model x) => x.MyProperty2, StringComparer.OrdinalIgnoreCase)).Take(3).ToListAsync();
-Debug.Assert(list3.Count == 1 && list3.All(x => x.PartitionKey != null && x.RowKey != null && x.MyProperty1 != 0 && x.MyProperty2 != null)); // Should contain 1 item with all properties filled in
+var list3 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Distinct(FuncComparer.Create((Model x) => x.MyProperty2, StringComparer.OrdinalIgnoreCase)).Take(3).ToListAsync();
+Debug.Assert(list3.Count == 1 && list3.All(x => x.PrettyName != null && x.PrettyRow != null && x.MyProperty1 != 0 && x.MyProperty2 != null)); // Should contain 1 item with all properties filled in
 
-var first1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => new { x.MyProperty2, x.MyProperty1 }).FirstOrDefaultAsync();
-Debug.Assert(first1 != null && first1.PartitionKey == null && first1.RowKey == null && first1.MyProperty1 != 0 && first1.MyProperty2 != null); // Should only fill in the selected properties
+var first1 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => new { x.MyProperty2, x.MyProperty1 }).FirstOrDefaultAsync();
+Debug.Assert(first1 != null && first1.PrettyName == null && first1.PrettyRow == null && first1.MyProperty1 != 0 && first1.MyProperty2 != null); // Should only fill in the selected properties
 
-var first2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => x.MyProperty1).FirstOrDefaultAsync();
-Debug.Assert(first2 != null && first2.PartitionKey == null && first2.RowKey == null && first2.MyProperty1 != 0 && first2.MyProperty2 == null); // Should only fill in MyProperty1
+var first2 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => x.MyProperty1).FirstOrDefaultAsync();
+Debug.Assert(first2 != null && first2.PrettyName == null && first2.PrettyRow == null && first2.MyProperty1 != 0 && first2.MyProperty2 == null); // Should only fill in MyProperty1
 
-var first3 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => new TestTransformAndSelect(x.MyProperty1, x.MyProperty2)).FirstOrDefaultAsync();
-Debug.Assert(first3 != null && first3.PartitionKey == null && first3.RowKey == null && first3.MyProperty1 != 0 && first3.MyProperty2 != null); // Should only fill in MyProperty1 and MyProperty2
+var first3 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => new TestTransformAndSelect(x.MyProperty1, x.MyProperty2)).FirstOrDefaultAsync();
+Debug.Assert(first3 != null && first3.PrettyName == null && first3.PrettyRow == null && first3.MyProperty1 != 0 && first3.MyProperty2 != null); // Should only fill in MyProperty1 and MyProperty2
 
-var firstTransformed1 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new { x.MyProperty2, x.MyProperty1 }).FirstOrDefaultAsync();
+var firstTransformed1 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => new { x.MyProperty2, x.MyProperty1 }).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed1 != null && firstTransformed1.MyProperty1 != 0 && firstTransformed1.MyProperty2 != null); // Should return an anon type with only these two props
 
-var firstTransformed2 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty1).FirstOrDefaultAsync();
+var firstTransformed2 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty1).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed2 != 0); // Should return an int
 
-var firstTransformed3 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelect(x.MyProperty1, x.MyProperty2)).FirstOrDefaultAsync();
+var firstTransformed3 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelect(x.MyProperty1, x.MyProperty2)).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed3 != null && firstTransformed3.prop1 != 0 && firstTransformed3.prop2 != null); // Should return a record with only these two props
 
-var firstTransformed4 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelect(x.MyProperty1 + 1, x.MyProperty2 + "_test")).FirstOrDefaultAsync();
+var firstTransformed4 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelect(x.MyProperty1 + 1, x.MyProperty2 + "_test")).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed4 != null && firstTransformed4.prop1 != 0 && firstTransformed4.prop2 != null); // Should return a record with only these two props and included transformations
 
-var firstTransformed5 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty1 + 1 + x.MyProperty2 + "_test").FirstOrDefaultAsync();
+var firstTransformed5 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => x.MyProperty1 + 1 + x.MyProperty2 + "_test").FirstOrDefaultAsync();
 Debug.Assert(!string.IsNullOrEmpty(firstTransformed5)); // Should return a concatted string
 
-var firstTransformed6 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => TestTransformAndSelect.Map(x.MyProperty1, x.MyProperty2)).FirstOrDefaultAsync();
+var firstTransformed6 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => TestTransformAndSelect.Map(x.MyProperty1, x.MyProperty2)).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed6 != null && firstTransformed6.prop1 != 0 && firstTransformed6.prop2 != null); // Should return a record with only these two props and included transformations
 
-var firstTransformed7 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => x.Map()).FirstOrDefaultAsync();
+var firstTransformed7 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => x.Map()).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed7 != null && firstTransformed7.prop1 != 0 && firstTransformed7.prop2 != null); // Should at least work but gets everything
 
-var firstTransformed8 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, x.MyProperty2, Guid.Parse(x.RowKey))).FirstOrDefaultAsync();
+var firstTransformed8 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, x.MyProperty2, Guid.Parse(x.PrettyRow))).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed8 != null && firstTransformed8.prop1 != 0 && firstTransformed8.prop2 != null); // Should only get 3 props and transform
 
-var firstTransformed9 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, "test", Guid.NewGuid())).FirstOrDefaultAsync();
+var firstTransformed9 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, "test", Guid.NewGuid())).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed9 != null && firstTransformed9.prop1 != 0 && firstTransformed9.prop2 != null); // Should only get one prop and transform
 
-var firstTransformed10 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new NestedTestTransformAndSelect(Guid.Parse(x.RowKey), new(x.MyProperty1 + 1 * 4, x.MyProperty2 + "_test"))).FirstOrDefaultAsync();
+var firstTransformed10 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => new NestedTestTransformAndSelect(Guid.Parse(x.PrettyRow), new(x.MyProperty1 + 1 * 4, x.MyProperty2 + "_test"))).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed10 != null && firstTransformed10.id != Guid.Empty && firstTransformed10.test != null && firstTransformed10.test.prop1 != 0 && firstTransformed10.test.prop2 != null); // Should only get 3 props and transform into a nested object
 
-var firstTransformed11 = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).Select(x => new StringFormatted($"{x.RowKey} - {x.MyProperty1 + 1 * 4}, {x.MyProperty2}_test")).FirstOrDefaultAsync();
+var firstTransformed11 = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).Select(x => new StringFormatted($"{x.PrettyRow} - {x.MyProperty1 + 1 * 4}, {x.MyProperty2}_test")).FirstOrDefaultAsync();
 Debug.Assert(firstTransformed11?.value != null); // Should only get 3 props and transform into a string
 
-var firstTransformed12 = await context.Models1.Select(x => new StringFormatted2($"{x.RowKey} - {x.MyProperty1 + 1 * 4}, {x.MyProperty2}_test", null, x.Timestamp.GetValueOrDefault())).ToListAsync();
+var firstTransformed12 = await context.Models1.Select(x => new StringFormatted2($"{x.PrettyRow} - {x.MyProperty1 + 1 * 4}, {x.MyProperty2}_test", null, x.Timestamp.GetValueOrDefault())).ToListAsync();
 Debug.Assert(firstTransformed12?.All(x => x.Value != null) == true); // Should only get 4 props and transform into a string
 
-var firstTransformed13 = await context.Models1.Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", x.RowKey, x.MyProperty1 + (1 * 4), x.MyProperty2, x.Timestamp.GetValueOrDefault()), null, x.Timestamp.GetValueOrDefault())).ToListAsync();
+var firstTransformed13 = await context.Models1.Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", x.PrettyRow, x.MyProperty1 + (1 * 4), x.MyProperty2, x.Timestamp.GetValueOrDefault()), null, x.Timestamp.GetValueOrDefault())).ToListAsync();
 Debug.Assert(firstTransformed13?.All(x => x.Value != null && x.OtherValue == null && x.TimeStamp != default) == true); // Should only get 4 props and transform into a string
 
 var unknown = context.GetTableSet<Model>("randomname");
 Debug.Assert(unknown != null); // Gives a tableset that wasn't defined on the original DbContext
 
-var exists = await context.Models1.ExistsIn(x => x.MyProperty1, [1, 2, 3, 4]).Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 < 3).ToListAsync();
+var exists = await context.Models1.ExistsIn(x => x.MyProperty1, [1, 2, 3, 4]).Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 < 3).ToListAsync();
 Debug.Assert(exists?.Count > 0); // Should return a list of existing models
 
 try
 {
-    var single = await context.Models1.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => x.MyProperty2).SingleAsync();
+    var single = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => x.MyProperty2).SingleAsync();
     Debug.Fail("Should throw");
 }
 catch (InvalidOperationException)

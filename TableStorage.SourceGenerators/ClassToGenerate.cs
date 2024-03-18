@@ -8,6 +8,21 @@ public readonly struct ClassToGenerate(string name, string @namespace, List<Memb
     public readonly string Namespace = @namespace;
     public readonly List<MemberToGenerate> Members = members;
     public readonly List<PrettyMemberToGenerate> PrettyMembers = prettyMembers;
+
+    public bool TryGetPrettyMember(string proxy, out PrettyMemberToGenerate prettyMemberToGenerate)
+    {
+        foreach (var member in PrettyMembers)
+        {
+            if (member.Proxy == proxy)
+            {
+                prettyMemberToGenerate = member;
+                return true;
+            }
+        }
+
+        prettyMemberToGenerate = default;
+        return false;
+    }
 }
 
 public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty, string paritionKeyProxy, string rowKeyProxy)

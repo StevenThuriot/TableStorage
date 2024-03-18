@@ -276,12 +276,12 @@ using System;
         return modelBuilder.ToString();
     }
 
-    public string Test { get => this.Test; set => this.Test = value; }
-
     private static void GenerateModel(StringBuilder sb, ClassToGenerate classToGenerate)
     {
-        var hasPartitionKeyProxy = classToGenerate.PrettyMembers.Any(x => x.Proxy is "PartitionKey");
-        var hasRowKeyProxy = classToGenerate.PrettyMembers.Any(x => x.Proxy is "RowKey");
+        var hasPartitionKeyProxy = classToGenerate.TryGetPrettyMember("PartitionKey", out var partitionKeyProxy);
+        var realParitionKey = hasPartitionKeyProxy ? partitionKeyProxy.Name : "PartitionKey";
+        var hasRowKeyProxy = classToGenerate.TryGetPrettyMember("RowKey", out var rowKeyProxy);
+        var realRowKey = hasRowKeyProxy ? rowKeyProxy.Name : "RowKey";
 
         if (!string.IsNullOrEmpty(classToGenerate.Namespace))
         {
@@ -293,8 +293,30 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         sb.Append(@"
     partial class ").Append(classToGenerate.Name).Append(@" : IDictionary<string, object>, Azure.Data.Tables.ITableEntity
     {
-        ").Append(hasPartitionKeyProxy ? "[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] " : "").Append(@"public string PartitionKey { get; set; }
-        ").Append(hasRowKeyProxy ? "[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] " : "").Append(@"public string RowKey { get; set; }
+        ");
+
+        if (hasPartitionKeyProxy)
+        {
+            sb.Append("[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] string Azure.Data.Tables.ITableEntity.PartitionKey { get => ").Append(partitionKeyProxy.Name).Append("; set => ").Append(partitionKeyProxy.Name).Append(" = value; }");
+        }
+        else
+        {
+            sb.Append("public string PartitionKey { get; set; }");
+        }
+
+        sb.Append(@"
+        ");
+
+        if (hasRowKeyProxy)
+        {
+            sb.Append("[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] string Azure.Data.Tables.ITableEntity.RowKey { get => ").Append(rowKeyProxy.Name).Append("; set => ").Append(rowKeyProxy.Name).Append(" = value; }");
+        }
+        else
+        {
+            sb.Append("public string RowKey { get; set; }");
+        }
+
+        sb.Append(@"
         public DateTimeOffset? Timestamp { get; set; }
         public Azure.ETag ETag { get; set; }");
 
@@ -306,10 +328,18 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         foreach (var item in classToGenerate.PrettyMembers)
         {
-            sb.Append(@"
+            if (item.Proxy is "PartitionKey" or "RowKey")
+            {
+                sb.Append(@"
+        [System.Runtime.Serialization.IgnoreDataMember] public string ").Append(item.Name).Append(" { get; set; }");
+            }
+            else
+            {
+                sb.Append(@"
         [System.Runtime.Serialization.IgnoreDataMember] public string ").Append(item.Name).Append(" { get => ").Append(item.Proxy).Append("; set => ").Append(item.Proxy).Append(" = value; }");
+            }
         }
-        
+
         sb.Append(@"
 
         public object this[string key]
@@ -318,8 +348,8 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             {
                 switch (key)
                 {
-                    case ""PartitionKey"": return PartitionKey;
-                    case ""RowKey"": return RowKey;
+                    case ""PartitionKey"": return ").Append(realParitionKey).Append(@";
+                    case ""RowKey"": return ").Append(realRowKey).Append(@";
                     case ""Timestamp"": return Timestamp;
                     case ""odata.etag"": return ETag.ToString();");
 
@@ -338,8 +368,8 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             {
                 switch (key)
                 {
-                    case ""PartitionKey"": PartitionKey = value?.ToString(); break;
-                    case ""RowKey"": RowKey = value?.ToString(); break;
+                    case ""PartitionKey"": ").Append(realParitionKey).Append(@" = value?.ToString(); break;
+                    case ""RowKey"": ").Append(realRowKey).Append(@" = value?.ToString(); break;
                     case ""Timestamp"": Timestamp = (System.DateTimeOffset?)value; break;
                     case ""odata.etag"": ETag = new Azure.ETag(value?.ToString()); break;");
 
@@ -390,7 +420,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         }
         
         sb.Append(@" };
-        public ICollection<object> Values => new object[] { PartitionKey, RowKey, Timestamp, ETag.ToString(), ");
+        public ICollection<object> Values => new object[] { ").Append(realParitionKey).Append(", ").Append(realRowKey).Append(", Timestamp, ETag.ToString(), ");
 
         foreach (var item in classToGenerate.Members)
         {
@@ -480,8 +510,8 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
         {
-            yield return new KeyValuePair<string, object>(""PartitionKey"", PartitionKey);
-            yield return new KeyValuePair<string, object>(""RowKey"", RowKey);
+            yield return new KeyValuePair<string, object>(""PartitionKey"", ").Append(realParitionKey).Append(@");
+            yield return new KeyValuePair<string, object>(""RowKey"", ").Append(realRowKey).Append(@");
             yield return new KeyValuePair<string, object>(""Timestamp"", Timestamp);
             yield return new KeyValuePair<string, object>(""odata.etag"", ETag.ToString());");
 
@@ -534,8 +564,8 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         {
             switch (key)
             {
-                case ""PartitionKey"": value = PartitionKey; return true;
-                case ""RowKey"": value = RowKey; return true;
+                case ""PartitionKey"": value = ").Append(realParitionKey).Append(@"; return true;
+                case ""RowKey"": value = ").Append(realRowKey).Append(@"; return true;
                 case ""Timestamp"": value = Timestamp; return true;
                 case ""odata.etag"": value = ETag; return true;");
 

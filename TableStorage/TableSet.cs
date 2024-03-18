@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
-using TableStorage.Linq;
 
 namespace TableStorage;
 
@@ -106,7 +105,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return new TableSetQueryHelper<T>(this).GetAsyncEnumerator(cancellationToken);
+        return QueryAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
     }
 
     #region Bulk Operations

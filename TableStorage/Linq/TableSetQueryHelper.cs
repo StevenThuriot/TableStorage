@@ -216,12 +216,12 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
             if (name == _partitionKeyProxy)
             {
                 name = nameof(ITableEntity.PartitionKey);
-                node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
+                node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
             }
             else if (name == _rowKeyProxy)
             {
                 name = nameof(ITableEntity.RowKey);
-                node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+                node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));
             }
 
             Members.Add(name);
@@ -300,11 +300,11 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
                 if (name == _partitionKeyProxy)
                 {
-                    node = Expression.Property(node.Expression, nameof(ITableEntity.PartitionKey));
+                    node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
                 }
                 else if (name == _rowKeyProxy)
                 {
-                    node = Expression.Property(node.Expression, nameof(ITableEntity.RowKey));
+                    node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));
                 }
             }
 
