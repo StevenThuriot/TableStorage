@@ -83,28 +83,18 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     {
         _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
 
-        Dictionary<string, List<TableTransactionAction>> entities = [];
+        List<TableTransactionAction> entities = [];
 
         await using var enumerator = GetAsyncEnumerator(token);
 
         while (await enumerator.MoveNextAsync())
         {
             T current = enumerator.Current;
-            if (!entities.TryGetValue(current.PartitionKey, out var list))
-            {
-                list = [];
-                entities.Add(current.PartitionKey, list);
-            }
-
-            list.Add(new(TableTransactionActionType.Delete, current, current.ETag));
+            entities.Add(new(TableTransactionActionType.Delete, current, current.ETag));
         }
 
-        foreach (var group in entities)
-        {
-            await _table.SubmitTransactionAsync(group.Value, token);
-        }
-
-        return entities.Count == 0 ? 0 : entities.Sum(x => x.Value.Count);
+        await _table.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
+        return entities.Count;
     }
 
     public async Task<int> BatchUpdateAsync(Action<T> update, CancellationToken token)
@@ -147,7 +137,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
             throw new NotSupportedException("Using a select in a batch update will result in data loss");
         }
 
-        Dictionary<string, List<TableTransactionAction>> entities = [];
+        List<TableTransactionAction> entities = [];
 
         await using var enumerator = GetAsyncEnumerator(token);
 
@@ -155,22 +145,11 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         {
             T current = enumerator.Current;
             update(current);
-
-            if (!entities.TryGetValue(current.PartitionKey, out var list))
-            {
-                list = [];
-                entities.Add(current.PartitionKey, list);
-            }
-
-            list.Add(new(TableTransactionActionType.UpdateReplace, current, current.ETag));
+            entities.Add(new(TableTransactionActionType.UpdateReplace, current, current.ETag));
         }
 
-        foreach (var group in entities)
-        {
-            await _table.SubmitTransactionAsync(group.Value, token);
-        }
-
-        return entities.Count == 0 ? 0 : entities.Sum(x => x.Value.Count);
+        await _table.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
+        return entities.Count;
     }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)

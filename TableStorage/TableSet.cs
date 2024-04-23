@@ -34,10 +34,33 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         await client.DeleteEntityAsync(partitionKey, rowKey, ifMatch, cancellationToken);
     }
 
-    public async Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, CancellationToken cancellationToken = default)
+    public Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, CancellationToken cancellationToken = default)
+    {
+        return SubmitTransactionAsync(transactionActions, _options.TransactionSafety, cancellationToken);
+    }
+
+    public async Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-        await client.SubmitTransactionAsync(transactionActions, cancellationToken);
+
+        if (transactionSafety is TransactionSafety.Enabled)
+        {
+            foreach (var partition in transactionActions.GroupBy(x => x.Entity.PartitionKey))
+            {
+                foreach (var chunk in partition.Chunk(_options.TransactionChunkSize))
+                {
+                    await client.SubmitTransactionAsync(chunk, cancellationToken);
+                }
+            }
+        }
+        else if (transactionSafety is TransactionSafety.Disabled)
+        {
+            await client.SubmitTransactionAsync(transactionActions, cancellationToken);
+        }
+        else
+        {
+            throw new NotSupportedException();
+        }
     }
 
     public Task UpdateEntityAsync(T entity, CancellationToken cancellationToken = default) => UpdateEntityAsync(entity, ETag.All, null, cancellationToken);
@@ -110,18 +133,17 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
 
     #region Bulk Operations
 
-    private async Task ExecuteInBulk(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
+    private Task ExecuteInBulk(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
     {
-        foreach (var group in entities.GroupBy(x => x.PartitionKey))
-        {
-            await SubmitTransactionAsync(group.Select(x => new TableTransactionAction(tableTransactionActionType, x)), cancellationToken);
-        }
+        return SubmitTransactionAsync(entities.Select(x => new TableTransactionAction(tableTransactionActionType, x)), TransactionSafety.Enabled, cancellationToken);
     }
 
     public Task BulkInsert(IEnumerable<T> entities, CancellationToken cancellationToken = default)
     {
         return ExecuteInBulk(entities, TableTransactionActionType.Add, cancellationToken);
     }
+
+    public Task BulkUpdate(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpdate(entities, _options.BulkOperation, cancellationToken);
 
     public Task BulkUpdate(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
     {
@@ -135,7 +157,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         return ExecuteInBulk(entities, tableTransactionActionType, cancellationToken);
     }
 
-    public Task BulkUpsert(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsert(entities, BulkOperation.Replace, cancellationToken);
+    public Task BulkUpsert(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsert(entities, _options.BulkOperation, cancellationToken);
 
     public Task BulkUpsert(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
     {
@@ -155,10 +177,4 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     }
 
     #endregion Bulk Operations
-}
-
-public enum BulkOperation
-{
-    Replace,
-    Merge
 }

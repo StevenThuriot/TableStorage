@@ -12,7 +12,7 @@
 		<PackageProjectUrl>https://github.com/StevenThuriot/TableStorage</PackageProjectUrl>
 		<Copyright>Steven Thuriot</Copyright>
 		<Authors>Steven Thuriot</Authors>
-		<Version>4.2.0</Version>
+		<Version>4.2.1</Version>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>TableStorage.png</PackageIcon>
 	</PropertyGroup>

@@ -291,6 +291,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         }
 
         sb.Append(@"
+    [System.Diagnostics.DebuggerDisplay(@""").Append(classToGenerate.Name).Append(@" \{ {").Append(realParitionKey).Append("}, {").Append(realRowKey).Append(@"} \}"")]
     partial class ").Append(classToGenerate.Name).Append(@" : IDictionary<string, object>, Azure.Data.Tables.ITableEntity
     {
         ");
