@@ -6,6 +6,9 @@ namespace TableStorage;
 public sealed class TableSet<T> : IAsyncEnumerable<T>
     where T : class, ITableEntity, new()
 {
+    public string Name { get; }
+    public string EntityType => typeof(T).Name;
+
     private readonly AsyncLazy<TableClient> _lazyClient;
     private readonly TableOptions _options;
 
@@ -14,7 +17,8 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
 
     internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
     {
-        _lazyClient = new AsyncLazy<TableClient>(() => factory.GetClient(tableName));
+        Name = tableName;
+        _lazyClient = new(() => factory.GetClient(tableName));
         _options = options;
         PartitionKeyProxy = partitionKeyProxy;
         RowKeyProxy = rowKeyProxy;

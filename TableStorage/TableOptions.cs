@@ -2,7 +2,6 @@
 
 public sealed class TableOptions
 {
-
     internal TableOptions() { }
 
     public TableUpdateMode TableMode { get; set; } = TableUpdateMode.Merge;
