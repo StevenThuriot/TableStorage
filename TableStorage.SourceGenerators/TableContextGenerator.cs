@@ -201,28 +201,29 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             return TableSetCache<T>.GetTableSet(_creator, tableName);
         }
 
-        public static void Register(IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null)
+        private ").Append(classToGenerate.Name).Append(@"(TableStorage.ICreator creator)
         {
-            services.AddSingleton(s =>
-                    {
-                        ICreator creator = TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);
-
-                        return new ").Append(classToGenerate.Name).Append(@"()
-                        {
-                            _creator = creator,");
+            _creator = creator;");
 
         foreach (var item in classToGenerate.Members)
         {
             sb.Append(@"
-                            ").Append(item.Name).Append(" = creator.CreateSet<").Append(item.Type).Append(">(\"")
-                              .Append(item.Name)
-                              .Append("\", ").Append(item.ParitionKeyProxy)
-                              .Append(", ").Append(item.RowKeyProxy)
-                              .Append("),");
+            ").Append(item.Name).Append(" = creator.CreateSet<").Append(item.Type).Append(">(\"")
+              .Append(item.Name)
+              .Append("\", ").Append(item.ParitionKeyProxy)
+              .Append(", ").Append(item.RowKeyProxy)
+              .Append(");");
         }
 
         sb.Append(@"
-                        };
+        }
+
+        public static void Register(IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null)
+        {
+            services.AddSingleton(s =>
+                    {
+                        TableStorage.ICreator creator = TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);
+                        return new ").Append(classToGenerate.Name).Append(@"(creator);
                     });").Append(@"
         }
     }

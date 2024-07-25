@@ -230,7 +230,7 @@ namespace TableStorage.Tests.Contexts
     {
         public TableSet<Model> Models1 { get; set; }
         public TableSet<Model2> Models2 { get; private set; }
-        public TableSet<Model> Models3 { get; init; }
+        public TableSet<Model> Models3 { get; }
         public TableSet<Model> Models4 { get; init; }
         public TableSet<Model3> Models5 { get; init; }
     }
