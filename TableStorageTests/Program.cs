@@ -175,6 +175,34 @@ Debug.Assert(visitorWorks.Count == 1);
 visitorWorks = await context.Models2.Where(x => x.PrettyRow != prettyItem.PrettyRow).ToListAsync();
 Debug.Assert(visitorWorks.Count > 1);
 
+Model mergeTest = new()
+{
+    PrettyName = "root",
+    PrettyRow = Guid.NewGuid().ToString("N"),
+    MyProperty1 = 1,
+    MyProperty2 = "hallo 1"
+};
+await context.Models1.UpsertEntityAsync(mergeTest);
+await context.Models1.UpdateAsync(() => new()
+{
+    PrettyName = "root",
+    PrettyRow = mergeTest.PrettyRow,
+    MyProperty1 = 5
+});
+Debug.Assert((await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).Select(x => x.MyProperty1).FirstAsync()) == 5);
+var mergeCount = await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).BatchUpdateAsync(() => new()
+{
+    MyProperty1 = 6
+});
+Debug.Assert(mergeCount == 1);
+Debug.Assert((await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).Select(x => x.MyProperty1).FirstAsync()) == 6);
+mergeCount = await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).BatchUpdateTransactionAsync(() => new()
+{
+    MyProperty1 = 5
+});
+Debug.Assert(mergeCount == 1);
+Debug.Assert((await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).Select(x => x.MyProperty1).FirstAsync()) == 5);
+
 namespace TableStorage.Tests.Models
 {
 #nullable disable

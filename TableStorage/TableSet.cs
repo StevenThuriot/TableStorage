@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace TableStorage;
@@ -135,21 +136,21 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         return QueryAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
     }
 
-    #region Bulk Operations
+#region Bulk Operations
 
-    private Task ExecuteInBulk(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
+    private Task ExecuteInBulkAsync(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
     {
         return SubmitTransactionAsync(entities.Select(x => new TableTransactionAction(tableTransactionActionType, x)), TransactionSafety.Enabled, cancellationToken);
     }
 
-    public Task BulkInsert(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    public Task BulkInsertAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
     {
-        return ExecuteInBulk(entities, TableTransactionActionType.Add, cancellationToken);
+        return ExecuteInBulkAsync(entities, TableTransactionActionType.Add, cancellationToken);
     }
 
-    public Task BulkUpdate(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpdate(entities, _options.BulkOperation, cancellationToken);
+    public Task BulkUpdateAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpdateAsync(entities, _options.BulkOperation, cancellationToken);
 
-    public Task BulkUpdate(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    public Task BulkUpdateAsync(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
     {
         TableTransactionActionType tableTransactionActionType = bulkOperation switch
         {
@@ -158,12 +159,12 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
             _ => throw new NotSupportedException(),
         };
 
-        return ExecuteInBulk(entities, tableTransactionActionType, cancellationToken);
+        return ExecuteInBulkAsync(entities, tableTransactionActionType, cancellationToken);
     }
 
-    public Task BulkUpsert(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsert(entities, _options.BulkOperation, cancellationToken);
+    public Task BulkUpsertAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsertAsync(entities, _options.BulkOperation, cancellationToken);
 
-    public Task BulkUpsert(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    public Task BulkUpsertAsync(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
     {
         TableTransactionActionType tableTransactionActionType = bulkOperation switch
         {
@@ -172,13 +173,107 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
             _ => throw new NotSupportedException(),
         };
 
-        return ExecuteInBulk(entities, tableTransactionActionType, cancellationToken);
+        return ExecuteInBulkAsync(entities, tableTransactionActionType, cancellationToken);
     }
 
-    public Task BulkDelete(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+    public Task BulkDeleteAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
     {
-        return ExecuteInBulk(entities, TableTransactionActionType.Delete, cancellationToken);
+        return ExecuteInBulkAsync(entities, TableTransactionActionType.Delete, cancellationToken);
+    }
+    #endregion Bulk Operations
+
+    #region Merge Operations
+    private sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+    {
+        private readonly string? _partitionKeyProxy = partitionKeyProxy;
+        private readonly string? _rowKeyProxy = rowKeyProxy;
+
+        public readonly TableEntity Entity = [];
+
+        protected override Expression VisitMember(MemberExpression memberExpression)
+        {
+            var expression = Visit(memberExpression.Expression);
+
+            if (expression is ConstantExpression constantExpression)
+            {
+                object container = constantExpression.Value;
+                var member = memberExpression.Member;
+
+                if (member is FieldInfo fieldInfo)
+                {
+                    object value = fieldInfo.GetValue(container);
+                    return Expression.Constant(value);
+                }
+                
+                if (member is PropertyInfo propertyInfo)
+                {
+                    object value = propertyInfo.GetValue(container, null);
+                    return Expression.Constant(value);
+                }
+            }
+
+            return base.VisitMember(memberExpression);
+        }
+
+        protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
+        {
+            node = base.VisitMemberAssignment(node);
+
+            var name = node.Member.Name;
+
+            if (name == _partitionKeyProxy)
+            {
+                name = nameof(ITableEntity.PartitionKey);
+            }
+            else if (name == _rowKeyProxy)
+            {
+                name = nameof(ITableEntity.RowKey);
+            }
+
+            Entity[name] = node.Expression switch
+            {
+                ConstantExpression constant => constant.Value,
+                _ => throw new NotSupportedException("Merge expression is not supported")
+            };
+
+            return node;
+        }
     }
 
-    #endregion Bulk Operations
+    public Task UpdateAsync(Expression<Func<T>> exp, CancellationToken cancellationToken = default)
+    {
+        var entity = VisitForMerge(exp);
+
+        if (entity.PartitionKey is null)
+        {
+            throw new NotSupportedException("PartitionKey is a required field to be able to merge");
+        }
+
+        if (entity.RowKey is null)
+        {
+            throw new NotSupportedException("RowKey is a required field to be able to merge");
+        }
+
+        return UpdateAsync(entity, cancellationToken);
+    }
+
+    internal TableEntity VisitForMerge(Expression<Func<T>> exp)
+    {
+        MergeVisitor visitor = new(PartitionKeyProxy, RowKeyProxy);
+        _ = visitor.Visit(exp);
+
+        if (visitor.Entity.Count == 0)
+        {
+            throw new NotSupportedException("Merge expression is not supported");
+        }
+
+        return visitor.Entity;
+    }
+
+    internal async Task UpdateAsync(TableEntity entity, CancellationToken cancellationToken)
+    {
+        var client = await _lazyClient;
+        await client.UpdateEntityAsync(entity, ETag.All, TableUpdateMode.Merge, cancellationToken);
+    }
+    #endregion Merge Operations
 }

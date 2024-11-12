@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace TableStorage.Linq;
 
@@ -125,6 +124,36 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         return result;
     }
 
+    public async Task<int> BatchUpdateAsync(Expression<Func<T>> update, CancellationToken token = default)
+    {
+        if (update is null)
+        {
+            throw new ArgumentNullException(nameof(update), "update action should not be null");
+        }
+
+        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
+
+        var entity = _table.VisitForMerge(update);
+
+        int result = 0;
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        while (await enumerator.MoveNextAsync())
+        {
+            T current = enumerator.Current;
+
+            entity.PartitionKey = current.PartitionKey;
+            entity.RowKey = current.RowKey;
+
+            await _table.UpdateAsync(entity, token);
+
+            result++;
+        }
+
+        return result;
+    }
+
     public async Task<int> BatchUpdateTransactionAsync(Action<T> update, CancellationToken token)
     {
         if (update is null)
@@ -146,6 +175,39 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
             T current = enumerator.Current;
             update(current);
             entities.Add(new(TableTransactionActionType.UpdateReplace, current, current.ETag));
+        }
+
+        await _table.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
+        return entities.Count;
+    }
+
+    public async Task<int> BatchUpdateTransactionAsync(Expression<Func<T>> update, CancellationToken token)
+    {
+        if (update is null)
+        {
+            throw new ArgumentNullException(nameof(update), "update action should not be null");
+        }
+
+        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
+
+        var fieldsToUpdate = _table.VisitForMerge(update);
+
+        List<TableTransactionAction> entities = [];
+
+        await using var enumerator = GetAsyncEnumerator(token);
+
+        while (await enumerator.MoveNextAsync())
+        {
+            T current = enumerator.Current;
+
+            TableEntity entity = new(current.PartitionKey, current.RowKey);
+
+            foreach (var item in fieldsToUpdate)
+            {
+                entity[item.Key] = item.Value;
+            }
+
+            entities.Add(new(TableTransactionActionType.UpdateMerge, entity, current.ETag));
         }
 
         await _table.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
