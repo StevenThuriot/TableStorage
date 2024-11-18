@@ -14,6 +14,12 @@ var provider = services.BuildServiceProvider();
 
 var context = provider.GetRequiredService<MyTableContext>();
 
+await context.Models1.Where(x => true).BatchDeleteAsync();
+await context.Models2.Where(x => true).BatchDeleteAsync();
+await context.Models3.Where(x => true).BatchDeleteAsync();
+await context.Models4.Where(x => true).BatchDeleteAsync();
+await context.Models5.Where(x => true).BatchDeleteAsync();
+
 await context.Models1.UpsertEntityAsync(new()
 {
     PrettyName = "root",
@@ -151,7 +157,7 @@ Debug.Assert(exists?.Count > 0); // Should return a list of existing models
 
 try
 {
-    var single = await context.Models1.Where(x => x.PrettyName == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => x.MyProperty2).SingleAsync();
+    var single = await context.Models2.Where(x => x.PartitionKey == "root").Where(x => x.MyProperty1 > 2).SelectFields(x => x.MyProperty2).SingleAsync();
     Debug.Fail("Should throw");
 }
 catch (InvalidOperationException)
@@ -165,7 +171,7 @@ Debug.Assert(deleteCount == fiveCount);
 var newModels2 = await context.Models2.ToListAsync();
 Debug.Assert(newModels2.Count == (models2.Count - deleteCount));
 
-var updateCount = await context.Models2.Where(x => x.MyProperty1 == 1).BatchUpdateTransactionAsync(x => x.MyProperty2 = "hallo 1 updated");
+var updateCount = await context.Models2.Where(x => x.MyProperty1 == 1).BatchUpdateTransactionAsync(x => new() { MyProperty2 = "hallo 1 updated" });
 var updatedModels = await context.Models2.Where(x => x.MyProperty2 == "hallo 1 updated").ToListAsync();
 Debug.Assert(updateCount == updatedModels.Count);
 
@@ -190,22 +196,37 @@ await context.Models1.UpdateAsync(() => new()
     MyProperty1 = 5
 });
 Debug.Assert((await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).Select(x => x.MyProperty1).FirstAsync()) == 5);
-var mergeCount = await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).BatchUpdateAsync(() => new()
+var mergeCount = await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).BatchUpdateAsync(x => new()
 {
-    MyProperty1 = 6
+    MyProperty1 = x.MyProperty1 + 1
 });
 Debug.Assert(mergeCount == 1);
 Debug.Assert((await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).Select(x => x.MyProperty1).FirstAsync()) == 6);
-mergeCount = await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).BatchUpdateTransactionAsync(() => new()
+mergeCount = await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).BatchUpdateTransactionAsync(x => new()
 {
-    MyProperty1 = 5
+    MyProperty1 = x.MyProperty1 - 1,
+    MyProperty2 = Randoms.String(),
+    MyProperty9 = Randoms.From(x.MyProperty3.ToString(), Randoms.String())
+
 });
 Debug.Assert(mergeCount == 1);
 Debug.Assert((await context.Models1.Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow).Select(x => x.MyProperty1).FirstAsync()) == 5);
 
+await context.Models1.UpsertAsync(() => new()
+{
+    PrettyName = "root",
+    PrettyRow = mergeTest.PrettyRow,
+    MyProperty1 = 5
+});
+
+#nullable disable
 namespace TableStorage.Tests.Models
 {
-#nullable disable
+    public static class Randoms
+    {
+        public static string String() => Guid.NewGuid().ToString("N");
+        public static string From(string value, string value2) => value + String() + value2;
+    }
 
     [TableSet]
     [TableSetProperty(typeof(int), "MyProperty1")]
@@ -215,6 +236,7 @@ namespace TableStorage.Tests.Models
     [TableSetProperty(typeof(Nullable<ModelEnum>), "MyProperty6")]
     [TableSetProperty(typeof(HttpStatusCode), "MyProperty7")]
     [TableSetProperty(typeof(HttpStatusCode?), "MyProperty8")]
+    [TableSetProperty(typeof(string), "MyProperty9")]
     [PartitionKey("PrettyName")]
     [RowKey("PrettyRow")]
     public partial class Model

@@ -15,10 +15,8 @@ public interface ITableAsyncEnumerable<T> : IAsyncEnumerable<T>
 {
     Task<int> BatchDeleteAsync(CancellationToken token = default);
     Task<int> BatchDeleteTransactionAsync(CancellationToken token = default);
-    Task<int> BatchUpdateAsync(Action<T> update, CancellationToken token = default);
-    Task<int> BatchUpdateAsync(Expression<Func<T>> exp, CancellationToken token = default);
-    Task<int> BatchUpdateTransactionAsync(Action<T> update, CancellationToken token = default);
-    Task<int> BatchUpdateTransactionAsync(Expression<Func<T>> update, CancellationToken token = default);
+    Task<int> BatchUpdateAsync(Expression<Func<T, T>> update, CancellationToken token = default);
+    Task<int> BatchUpdateTransactionAsync(Expression<Func<T, T>> update, CancellationToken token = default);
 }
 
 public interface ITableEnumerable<T> : ICanTakeOneTableQueryable<T>, IAsyncEnumerable<T>;

@@ -1,4 +1,6 @@
 ﻿using System.Linq.Expressions;
+using System.Reflection;
+using static FastExpressionCompiler.ImTools.FHashMap;
 
 namespace TableStorage.Linq;
 
@@ -96,44 +98,9 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         return entities.Count;
     }
 
-    public async Task<int> BatchUpdateAsync(Action<T> update, CancellationToken token)
+    public async Task<int> BatchUpdateAsync(Expression<Func<T, T>> update, CancellationToken token = default)
     {
-        if (update is null)
-        {
-            throw new ArgumentNullException(nameof(update), "update action should not be null");
-        }
-
-        if (_fields is not null)
-        {
-            throw new NotSupportedException("Using a select in a batch update will result in data loss");
-        }
-
-        await using var enumerator = GetAsyncEnumerator(token);
-
-        int result = 0;
-
-        while (await enumerator.MoveNextAsync())
-        {
-            var current = enumerator.Current;
-            update(current);
-
-            await _table.UpdateEntityAsync(current, current.ETag, TableUpdateMode.Replace, token);
-            result++;
-        }
-
-        return result;
-    }
-
-    public async Task<int> BatchUpdateAsync(Expression<Func<T>> update, CancellationToken token = default)
-    {
-        if (update is null)
-        {
-            throw new ArgumentNullException(nameof(update), "update action should not be null");
-        }
-
-        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
-
-        var entity = _table.VisitForMerge(update);
+        var (visitor, compiledUpdate) = PrepareExpression(update);
 
         int result = 0;
 
@@ -142,10 +109,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         while (await enumerator.MoveNextAsync())
         {
             T current = enumerator.Current;
-
-            entity.PartitionKey = current.PartitionKey;
-            entity.RowKey = current.RowKey;
-
+            ITableEntity entity = PrepareEntity(visitor, compiledUpdate, current);
             await _table.UpdateAsync(entity, token);
 
             result++;
@@ -154,17 +118,9 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         return result;
     }
 
-    public async Task<int> BatchUpdateTransactionAsync(Action<T> update, CancellationToken token)
+    public async Task<int> BatchUpdateTransactionAsync(Expression<Func<T, T>> update, CancellationToken token)
     {
-        if (update is null)
-        {
-            throw new ArgumentNullException(nameof(update), "update action should not be null");
-        }
-
-        if (_fields is not null)
-        {
-            throw new NotSupportedException("Using a select in a batch update will result in data loss");
-        }
+        var (visitor, compiledUpdate) = PrepareExpression(update);
 
         List<TableTransactionAction> entities = [];
 
@@ -173,45 +129,76 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         while (await enumerator.MoveNextAsync())
         {
             T current = enumerator.Current;
-            update(current);
-            entities.Add(new(TableTransactionActionType.UpdateReplace, current, current.ETag));
+            ITableEntity entity = PrepareEntity(visitor, compiledUpdate, current);
+            entities.Add(new(TableTransactionActionType.UpdateMerge, entity, current.ETag));
         }
 
         await _table.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
         return entities.Count;
     }
 
-    public async Task<int> BatchUpdateTransactionAsync(Expression<Func<T>> update, CancellationToken token)
+    private static ITableEntity PrepareEntity(MergeVisitor visitor, LazyExpression<T> compiledUpdate, T current)
+    {
+        TableEntity entity = new(visitor.Entity)
+        {
+            PartitionKey = current.PartitionKey,
+            RowKey = current.RowKey
+        };
+
+        if (visitor.IsComplex)
+        {
+            current = compiledUpdate.Invoke(current);
+
+            if (current is not IDictionary<string, object> currentEntity)
+            {
+                //throw new NotSupportedException("Complex entity must have an indexer");
+                return current;
+            }
+
+            foreach (var member in visitor.ComplexMembers)
+            {
+                entity[member] = currentEntity[member];
+            }
+        }
+
+        return entity;
+    }
+
+    private (MergeVisitor, LazyExpression<T>) PrepareExpression(Expression<Func<T, T>> update)
     {
         if (update is null)
         {
             throw new ArgumentNullException(nameof(update), "update action should not be null");
         }
 
-        _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
+        MergeVisitor visitor = new(_table.PartitionKeyProxy, _table.RowKeyProxy);
+        update = (Expression<Func<T, T>>)visitor.Visit(update);
 
-        var fieldsToUpdate = _table.VisitForMerge(update);
-
-        List<TableTransactionAction> entities = [];
-
-        await using var enumerator = GetAsyncEnumerator(token);
-
-        while (await enumerator.MoveNextAsync())
+        if (!visitor.HasMerges)
         {
-            T current = enumerator.Current;
-
-            TableEntity entity = new(current.PartitionKey, current.RowKey);
-
-            foreach (var item in fieldsToUpdate)
-            {
-                entity[item.Key] = item.Value;
-            }
-
-            entities.Add(new(TableTransactionActionType.UpdateMerge, entity, current.ETag));
+            throw new NotSupportedException("Expression is not supported");
         }
 
-        await _table.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
-        return entities.Count;
+        if (visitor.Entity.PartitionKey is not null)
+        {
+            throw new NotSupportedException("PartitionKey is a readonly field");
+        }
+
+        if (visitor.Entity.RowKey is not null)
+        {
+            throw new NotSupportedException("RowKey is a readonly field");
+        }
+
+        if (!visitor.IsComplex)
+        {
+            _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
+        }
+        else if (_fields is not null)
+        {
+            throw new NotSupportedException("Data loss might occur when doing a select before an update");
+        }
+
+        return (visitor, update);
     }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
@@ -335,17 +322,37 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            if (node.Expression.NodeType == ExpressionType.Parameter && node.Expression.Type == typeof(T))
+            if (node.Expression.NodeType is ExpressionType.Parameter)
             {
-                var name = node.Member.Name;
+                if (node.Expression.Type == typeof(T))
+                {
+                    var name = node.Member.Name;
 
-                if (name == _partitionKeyProxy)
-                {
-                    node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
+                    if (name == _partitionKeyProxy)
+                    {
+                        node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
+                    }
+                    else if (name == _rowKeyProxy)
+                    {
+                        node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));
+                    }
                 }
-                else if (name == _rowKeyProxy)
+            }
+            else if (node.Expression.NodeType is ExpressionType.Constant)
+            {
+                object container = ((ConstantExpression)node.Expression).Value;
+                var member = node.Member;
+
+                if (member.MemberType is MemberTypes.Field)
                 {
-                    node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));
+                    object value = ((FieldInfo)member).GetValue(container);
+                    return Expression.Constant(value);
+                }
+
+                if (member.MemberType is MemberTypes.Property)
+                {
+                    object value = ((PropertyInfo)member).GetValue(container, null);
+                    return Expression.Constant(value);
                 }
             }
 

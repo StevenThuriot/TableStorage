@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using FastExpressionCompiler;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -10,7 +11,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public string Name { get; }
     public string EntityType => typeof(T).Name;
 
-    private readonly AsyncLazy<TableClient> _lazyClient;
+    private readonly LazyAsync<TableClient> _lazyClient;
     private readonly TableOptions _options;
 
     internal string? PartitionKeyProxy { get; }
@@ -131,12 +132,9 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         }
     }
 
-    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-    {
-        return QueryAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
-    }
+    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => QueryAsync(cancellationToken).GetAsyncEnumerator(cancellationToken);
 
-#region Bulk Operations
+    #region Bulk Operations
 
     private Task ExecuteInBulkAsync(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
     {
@@ -183,66 +181,30 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     #endregion Bulk Operations
 
     #region Merge Operations
-    private sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
-    {
-        private readonly string? _partitionKeyProxy = partitionKeyProxy;
-        private readonly string? _rowKeyProxy = rowKeyProxy;
-
-        public readonly TableEntity Entity = [];
-
-        protected override Expression VisitMember(MemberExpression memberExpression)
-        {
-            var expression = Visit(memberExpression.Expression);
-
-            if (expression is ConstantExpression constantExpression)
-            {
-                object container = constantExpression.Value;
-                var member = memberExpression.Member;
-
-                if (member is FieldInfo fieldInfo)
-                {
-                    object value = fieldInfo.GetValue(container);
-                    return Expression.Constant(value);
-                }
-                
-                if (member is PropertyInfo propertyInfo)
-                {
-                    object value = propertyInfo.GetValue(container, null);
-                    return Expression.Constant(value);
-                }
-            }
-
-            return base.VisitMember(memberExpression);
-        }
-
-        protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
-        {
-            node = base.VisitMemberAssignment(node);
-
-            var name = node.Member.Name;
-
-            if (name == _partitionKeyProxy)
-            {
-                name = nameof(ITableEntity.PartitionKey);
-            }
-            else if (name == _rowKeyProxy)
-            {
-                name = nameof(ITableEntity.RowKey);
-            }
-
-            Entity[name] = node.Expression switch
-            {
-                ConstantExpression constant => constant.Value,
-                _ => throw new NotSupportedException("Merge expression is not supported")
-            };
-
-            return node;
-        }
-    }
 
     public Task UpdateAsync(Expression<Func<T>> exp, CancellationToken cancellationToken = default)
     {
-        var entity = VisitForMerge(exp);
+        TableEntity entity = VisitForMergeAndValidate(exp);
+        return UpdateAsync(entity, cancellationToken);
+    }
+
+    public Task UpsertAsync(Expression<Func<T>> exp, CancellationToken cancellationToken = default)
+    {
+        TableEntity entity = VisitForMergeAndValidate(exp);
+        return UpsertAsync(entity, cancellationToken);
+    }
+
+    private TableEntity VisitForMergeAndValidate(Expression<Func<T>> exp)
+    {
+        MergeVisitor visitor = new(PartitionKeyProxy, RowKeyProxy);
+        _ = visitor.Visit(exp);
+
+        var entity = visitor.Entity;
+
+        if (entity.Count == 0 || visitor.IsComplex)
+        {
+            throw new NotSupportedException("Merge expression is not supported");
+        }
 
         if (entity.PartitionKey is null)
         {
@@ -254,26 +216,135 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
             throw new NotSupportedException("RowKey is a required field to be able to merge");
         }
 
-        return UpdateAsync(entity, cancellationToken);
+        return entity;
     }
 
-    internal TableEntity VisitForMerge(Expression<Func<T>> exp)
-    {
-        MergeVisitor visitor = new(PartitionKeyProxy, RowKeyProxy);
-        _ = visitor.Visit(exp);
-
-        if (visitor.Entity.Count == 0)
-        {
-            throw new NotSupportedException("Merge expression is not supported");
-        }
-
-        return visitor.Entity;
-    }
-
-    internal async Task UpdateAsync(TableEntity entity, CancellationToken cancellationToken)
+    internal async Task UpdateAsync(ITableEntity entity, CancellationToken cancellationToken)
     {
         var client = await _lazyClient;
         await client.UpdateEntityAsync(entity, ETag.All, TableUpdateMode.Merge, cancellationToken);
     }
+
+    internal async Task UpsertAsync(ITableEntity entity, CancellationToken cancellationToken)
+    {
+        var client = await _lazyClient;
+        await client.UpsertEntityAsync(entity, TableUpdateMode.Merge, cancellationToken);
+    }
     #endregion Merge Operations
+}
+
+internal sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+{
+    private readonly string? _partitionKeyProxy = partitionKeyProxy;
+    private readonly string? _rowKeyProxy = rowKeyProxy;
+    private readonly HashSet<string> _members = [];
+    private readonly HashSet<string> _complexMembers = [];
+
+    public TableEntity Entity { get; } = [];
+
+    public IReadOnlyCollection<string> Members => _members;
+    public IReadOnlyCollection<string> ComplexMembers => _complexMembers;
+
+    public bool IsComplex => _complexMembers.Count > 0;
+    public bool HasMerges => _members.Count > 0 || _complexMembers.Count > 0;
+
+    private readonly Lazy<UsesParameterVisitor> _usesParameterVisitor = new(() => new());
+
+    protected override Expression VisitMember(MemberExpression memberExpression)
+    {
+        var expression = Visit(memberExpression.Expression);
+
+        if (expression is ConstantExpression constantExpression)
+        {
+            object container = constantExpression.Value;
+            var member = memberExpression.Member;
+
+            if (member.MemberType is MemberTypes.Field)
+            {
+                object value = ((FieldInfo)member).GetValue(container);
+                return Expression.Constant(value);
+            }
+
+            if (member.MemberType is MemberTypes.Property)
+            {
+                object value = ((PropertyInfo)member).GetValue(container, null);
+                return Expression.Constant(value);
+            }
+        }
+
+        return base.VisitMember(memberExpression);
+    }
+
+    protected override Expression VisitMethodCall(MethodCallExpression node)
+    {
+        Expression result = base.VisitMethodCall(node);
+
+        if (result is MethodCallExpression call)
+        {
+            var visitor = _usesParameterVisitor.Value.Reset();
+            _ = visitor.Visit(call);
+
+            if (!visitor.UsesParameter)
+            {
+                var value = Expression.Lambda(call, visitor.Parameters).CompileFast().DynamicInvoke();
+                return Expression.Constant(value);
+            }
+        }
+
+        return result;
+    }
+
+    protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
+    {
+        node = base.VisitMemberAssignment(node);
+
+        string name = GetMemberName(node);
+
+        if (node.Expression is ConstantExpression memberExpression)
+        {
+            _members.Add(name);
+            Entity[name] = memberExpression.Value;
+        }
+        else
+        {
+            _complexMembers.Add(name);
+        }
+
+        return node;
+    }
+
+    private string GetMemberName(MemberAssignment node)
+    {
+        if (node.Member.Name == _partitionKeyProxy)
+        {
+            return nameof(ITableEntity.PartitionKey);
+        }
+
+        if (node.Member.Name == _rowKeyProxy)
+        {
+            return nameof(ITableEntity.RowKey);
+        }
+
+        return node.Member.Name;
+    }
+}
+
+internal sealed class UsesParameterVisitor : ExpressionVisitor
+{
+    private readonly HashSet<ParameterExpression> _parameters = [];
+
+    public IReadOnlyCollection<ParameterExpression> Parameters => _parameters;
+    public bool UsesParameter => _parameters.Count is not 0;
+
+    protected override Expression VisitParameter(ParameterExpression node)
+    {
+        _parameters.Add(node);
+        return base.VisitParameter(node);
+    }
+
+    public UsesParameterVisitor Reset()
+    {
+        _parameters.Clear();
+        return this;
+    }
 }
