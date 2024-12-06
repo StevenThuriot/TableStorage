@@ -216,7 +216,8 @@ await context.Models1.UpsertAsync(() => new()
 {
     PrettyName = "root",
     PrettyRow = mergeTest.PrettyRow,
-    MyProperty1 = 5
+    MyProperty1 = 5,
+    MyProperty6 = ModelEnum.No
 });
 
 #nullable disable

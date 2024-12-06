@@ -294,6 +294,34 @@ internal sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProx
         return result;
     }
 
+    protected override Expression VisitUnary(UnaryExpression node)
+    {
+        if (node.NodeType is ExpressionType.Convert)
+        {
+            Expression expression = Visit(node.Operand);
+            if (expression is ConstantExpression constantExpression)
+            {
+                if (constantExpression.Value is null)
+                {
+                    return Expression.Constant(null, node.Type);
+                }
+
+                Type conversionType = Nullable.GetUnderlyingType(node.Type) ?? node.Type;
+
+                object value = constantExpression.Value;
+
+                if (constantExpression.Type != conversionType)
+                {
+                    value = Convert.ChangeType(value, conversionType);
+                }
+
+                return Expression.Constant(value, node.Type);
+            }
+        }
+
+        return node;
+    }
+
     protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
     {
         node = base.VisitMemberAssignment(node);
@@ -303,7 +331,14 @@ internal sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProx
         if (node.Expression is ConstantExpression memberExpression)
         {
             _members.Add(name);
-            Entity[name] = memberExpression.Value;
+            object value = memberExpression.Value;
+
+            if (memberExpression.Type.IsEnum || (Nullable.GetUnderlyingType(memberExpression.Type)?.IsEnum == true))
+            {
+                value = (int)value;
+            }
+
+            Entity[name] = value;
         }
         else
         {

@@ -425,6 +425,18 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         foreach (var item in classToGenerate.Members)
         {
+            if (item.TypeKind == TypeKind.Enum)
+            {
+                sb.Append("(int");
+
+                if (item.Type.EndsWith("?"))
+                {
+                    sb.Append('?');
+                }
+
+                sb.Append(") ");
+            }
+
             sb.Append(item.Name).Append(", ");
         }
 
