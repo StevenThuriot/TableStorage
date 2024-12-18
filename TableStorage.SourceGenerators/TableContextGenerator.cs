@@ -24,18 +24,17 @@ namespace TableStorage
     {
         context.RegisterPostInitializationOutput(ctx => ctx.AddSource("TableContextAttribute.g.cs", SourceText.From(TableContextAttribute, Encoding.UTF8)));
 
-        var classDeclarations = context.SyntaxProvider.CreateSyntaxProvider(predicate: static (s, _) => IsSyntaxTargetForGeneration(s), // select class with attributes
+        IncrementalValuesProvider<ClassDeclarationSyntax?> classDeclarations = context.SyntaxProvider.CreateSyntaxProvider(predicate: static (s, _) => IsSyntaxTargetForGeneration(s), // select class with attributes
                                                                             transform: static (ctx, _) => GetSemanticTargetForGeneration(ctx)) // select the class with the [TableContext] attribute
                                                       .Where(static m => m is not null) // filter out attributed classes that we don't care about
                                                       ;
 
         IncrementalValueProvider<(Compilation, ImmutableArray<ClassDeclarationSyntax>)> compilationAndClasses = context.CompilationProvider.Combine(classDeclarations.Collect())!;
         context.RegisterSourceOutput(compilationAndClasses, static (spc, source) => Execute(source.Item1, source.Item2, spc));
-
     }
 
     private static bool IsSyntaxTargetForGeneration(SyntaxNode node) => node is ClassDeclarationSyntax m && m.AttributeLists.Count > 0;
-    
+
     private static ClassDeclarationSyntax? GetSemanticTargetForGeneration(GeneratorSyntaxContext context)
     {
         // we know the node is a ClassDeclarationSyntax thanks to IsSyntaxTargetForGeneration
@@ -84,7 +83,7 @@ namespace TableStorage
         if (classesToGenerate.Count > 0)
         {
             // generate the source code and add it to the output
-            var result = GenerateTableContextClasses(classesToGenerate);
+            string result = GenerateTableContextClasses(classesToGenerate);
             context.AddSource("TableContexts.g.cs", SourceText.From(result, Encoding.UTF8));
         }
     }
@@ -115,7 +114,7 @@ namespace TableStorage
             }
 
             // Get all the members in the class
-            var classMembers = classSymbol.GetMembers();
+            ImmutableArray<ISymbol> classMembers = classSymbol.GetMembers();
             var members = new List<MemberToGenerate>(classMembers.Length);
 
             // Get all the properties from the class, and add their name to the list
@@ -123,15 +122,15 @@ namespace TableStorage
             {
                 if (member is IPropertySymbol property && property.Type.Name == "TableSet")
                 {
-                    var tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
+                    ITypeSymbol tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
 
-                    var attributes = tableSetType.GetAttributes();
-                    var partitionKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "PartitionKeyAttribute");
-                    string? partitionKeyProxy = partitionKeyAttribute is not null ? partitionKeyAttribute.ConstructorArguments[0].Value?.ToString() : null;
+                    ImmutableArray<AttributeData> attributes = tableSetType.GetAttributes();
+                    AttributeData? partitionKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "PartitionKeyAttribute");
+                    string? partitionKeyProxy = partitionKeyAttribute?.ConstructorArguments[0].Value?.ToString();
                     partitionKeyProxy = partitionKeyProxy is not null ? "\"" + partitionKeyProxy + "\"" : "null";
 
-                    var rowKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "RowKeyAttribute");
-                    string? rowKeyProxy = rowKeyAttribute is not null ? rowKeyAttribute.ConstructorArguments[0].Value?.ToString() : null;
+                    AttributeData? rowKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "RowKeyAttribute");
+                    string? rowKeyProxy = rowKeyAttribute?.ConstructorArguments[0].Value?.ToString();
                     rowKeyProxy = rowKeyProxy is not null ? "\"" + rowKeyProxy + "\"" : "null";
 
                     members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, partitionKeyProxy, rowKeyProxy));
@@ -153,7 +152,7 @@ using System;
 
 #nullable disable
 ");
-        foreach (var classToGenerate in classesToGenerate)
+        foreach (ClassToGenerate classToGenerate in classesToGenerate)
         {
             GenerateContext(contextBuilder, classToGenerate);
         }
@@ -184,28 +183,23 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
     {
         private TableStorage.ICreator _creator { get; init; }
 
-        private static class TableSetCache<T>
-                where T : class, Azure.Data.Tables.ITableEntity, new()
-        {
-            private static System.Collections.Concurrent.ConcurrentDictionary<string, TableStorage.TableSet<T>> _unknownTableSets = new System.Collections.Concurrent.ConcurrentDictionary<string, TableStorage.TableSet<T>>();
-            public static TableStorage.TableSet<T> GetTableSet(TableStorage.ICreator creator, string tableName)
-            {
-                return _unknownTableSets.GetOrAdd(tableName, creator.CreateSet<T>);
-            }
-
-        }
-
         public TableSet<T> GetTableSet<T>(string tableName)
             where T : class, Azure.Data.Tables.ITableEntity, new()
         {
-            return TableSetCache<T>.GetTableSet(_creator, tableName);
+            return _creator.CreateSet<T>(tableName);
+        }
+
+        public TableSet<T> GetTableSet<T>(string tableName, string partitionKeyProxy = null, string rowKeyProxy = null)
+            where T : class, Azure.Data.Tables.ITableEntity, new()
+        {
+            return _creator.CreateSet<T>(tableName, partitionKeyProxy, rowKeyProxy);
         }
 
         private ").Append(classToGenerate.Name).Append(@"(TableStorage.ICreator creator)
         {
             _creator = creator;");
 
-        foreach (var item in classToGenerate.Members)
+        foreach (MemberToGenerate item in classToGenerate.Members)
         {
             sb.Append(@"
             ").Append(item.Name).Append(" = creator.CreateSet<").Append(item.Type).Append(">(\"")

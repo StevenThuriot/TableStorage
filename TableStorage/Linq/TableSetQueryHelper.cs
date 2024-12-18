@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
-using System.Reflection;
-using static FastExpressionCompiler.ImTools.FHashMap;
+using TableStorage.Visitors;
 
 namespace TableStorage.Linq;
 
@@ -230,33 +229,6 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     }
 
     #region Select
-    private sealed class SelectionVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
-    {
-        private readonly string? _partitionKeyProxy = partitionKeyProxy;
-        private readonly string? _rowKeyProxy = rowKeyProxy;
-
-        public readonly HashSet<string> Members = [];
-
-        protected override Expression VisitMember(MemberExpression node)
-        {
-            var name = node.Member.Name;
-
-            if (name == _partitionKeyProxy)
-            {
-                name = nameof(ITableEntity.PartitionKey);
-                node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
-            }
-            else if (name == _rowKeyProxy)
-            {
-                name = nameof(ITableEntity.RowKey);
-                node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));
-            }
-
-            Members.Add(name);
-            return base.VisitMember(node);
-        }
-    }
-
     internal TableSetQueryHelper<T> SetFields<TResult>(ref Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true)
     {
         if (_fields is not null)
@@ -315,56 +287,11 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #endregion Take
 
     #region Where
-    private sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
-    {
-        private readonly string? _partitionKeyProxy = partitionKeyProxy;
-        private readonly string? _rowKeyProxy = rowKeyProxy;
-
-        protected override Expression VisitMember(MemberExpression node)
-        {
-            if (node.Expression.NodeType is ExpressionType.Parameter)
-            {
-                if (node.Expression.Type == typeof(T))
-                {
-                    var name = node.Member.Name;
-
-                    if (name == _partitionKeyProxy)
-                    {
-                        node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
-                    }
-                    else if (name == _rowKeyProxy)
-                    {
-                        node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));
-                    }
-                }
-            }
-            else if (node.Expression.NodeType is ExpressionType.Constant)
-            {
-                object container = ((ConstantExpression)node.Expression).Value;
-                var member = node.Member;
-
-                if (member.MemberType is MemberTypes.Field)
-                {
-                    object value = ((FieldInfo)member).GetValue(container);
-                    return Expression.Constant(value);
-                }
-
-                if (member.MemberType is MemberTypes.Property)
-                {
-                    object value = ((PropertyInfo)member).GetValue(container, null);
-                    return Expression.Constant(value);
-                }
-            }
-
-            return base.VisitMember(node);
-        }
-    }
-
     internal TableSetQueryHelper<T> AddFilter(Expression<Func<T, bool>> predicate)
     {
         if (_table.PartitionKeyProxy is not null || _table.RowKeyProxy is not null)
         {
-            WhereVisitor visitor = new(_table.PartitionKeyProxy, _table.RowKeyProxy);
+            WhereVisitor visitor = new(_table.PartitionKeyProxy, _table.RowKeyProxy, _table.Type);
             predicate = (Expression<Func<T, bool>>)visitor.Visit(predicate);
         }
 

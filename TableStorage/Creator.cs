@@ -11,6 +11,6 @@ internal sealed class Creator(TableStorageFactory factory, TableOptions options)
     private readonly TableStorageFactory _factory = factory;
     private readonly TableOptions _options = options;
 
-    TableSet<T> ICreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options, null, null);
+    TableSet<T> ICreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options);
     TableSet<T> ICreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy);
 }

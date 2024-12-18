@@ -1,7 +1,6 @@
-﻿using FastExpressionCompiler;
-using System.Linq.Expressions;
-using System.Reflection;
+﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using TableStorage.Visitors;
 
 namespace TableStorage;
 
@@ -9,7 +8,8 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     where T : class, ITableEntity, new()
 {
     public string Name { get; }
-    public string EntityType => typeof(T).Name;
+    public Type Type => typeof(T);
+    public string EntityType => Type.Name;
 
     private readonly LazyAsync<TableClient> _lazyClient;
     private readonly TableOptions _options;
@@ -17,11 +17,16 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     internal string? PartitionKeyProxy { get; }
     internal string? RowKeyProxy { get; }
 
-    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
+    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options)
     {
         Name = tableName;
         _lazyClient = new(() => factory.GetClient(tableName));
         _options = options;
+    }
+
+    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
+        : this (factory, tableName, options)
+    {
         PartitionKeyProxy = partitionKeyProxy;
         RowKeyProxy = rowKeyProxy;
     }
@@ -104,7 +109,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         }
         catch (RequestFailedException e) when (e.Status == 404)
         {
-            return null;
+            return default;
         }
     }
 
@@ -231,155 +236,4 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         await client.UpsertEntityAsync(entity, TableUpdateMode.Merge, cancellationToken);
     }
     #endregion Merge Operations
-}
-
-internal sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
-{
-    private readonly string? _partitionKeyProxy = partitionKeyProxy;
-    private readonly string? _rowKeyProxy = rowKeyProxy;
-    private readonly HashSet<string> _members = [];
-    private readonly HashSet<string> _complexMembers = [];
-
-    public TableEntity Entity { get; } = [];
-
-    public IReadOnlyCollection<string> Members => _members;
-    public IReadOnlyCollection<string> ComplexMembers => _complexMembers;
-
-    public bool IsComplex => _complexMembers.Count > 0;
-    public bool HasMerges => _members.Count > 0 || _complexMembers.Count > 0;
-
-    private readonly Lazy<UsesParameterVisitor> _usesParameterVisitor = new(() => new());
-
-    protected override Expression VisitMember(MemberExpression memberExpression)
-    {
-        var expression = Visit(memberExpression.Expression);
-
-        if (expression is ConstantExpression constantExpression)
-        {
-            object container = constantExpression.Value;
-            var member = memberExpression.Member;
-
-            if (member.MemberType is MemberTypes.Field)
-            {
-                object value = ((FieldInfo)member).GetValue(container);
-                return Expression.Constant(value);
-            }
-
-            if (member.MemberType is MemberTypes.Property)
-            {
-                object value = ((PropertyInfo)member).GetValue(container, null);
-                return Expression.Constant(value);
-            }
-        }
-
-        return base.VisitMember(memberExpression);
-    }
-
-    protected override Expression VisitMethodCall(MethodCallExpression node)
-    {
-        Expression result = base.VisitMethodCall(node);
-
-        if (result is MethodCallExpression call)
-        {
-            var visitor = _usesParameterVisitor.Value.Reset();
-            _ = visitor.Visit(call);
-
-            if (!visitor.UsesParameter)
-            {
-                var value = Expression.Lambda(call, visitor.Parameters).CompileFast().DynamicInvoke();
-                return Expression.Constant(value);
-            }
-        }
-
-        return result;
-    }
-
-    protected override Expression VisitUnary(UnaryExpression node)
-    {
-        if (node.NodeType is ExpressionType.Convert)
-        {
-            Expression expression = Visit(node.Operand);
-            if (expression is ConstantExpression constantExpression)
-            {
-                if (constantExpression.Value is null)
-                {
-                    return Expression.Constant(null, node.Type);
-                }
-
-                Type conversionType = Nullable.GetUnderlyingType(node.Type) ?? node.Type;
-
-                object value = constantExpression.Value;
-
-                if (constantExpression.Type != conversionType)
-                {
-                    value = Convert.ChangeType(value, conversionType);
-                }
-
-                return Expression.Constant(value, node.Type);
-            }
-        }
-
-        return node;
-    }
-
-    protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
-    {
-        node = base.VisitMemberAssignment(node);
-
-        string name = GetMemberName(node);
-
-        if (node.Expression is ConstantExpression memberExpression)
-        {
-            _members.Add(name);
-            object value = memberExpression.Value;
-
-            if (memberExpression.Type.IsEnum || (Nullable.GetUnderlyingType(memberExpression.Type)?.IsEnum == true))
-            {
-                value = (int)value;
-            }
-
-            Entity[name] = value;
-        }
-        else
-        {
-            _complexMembers.Add(name);
-        }
-
-        return node;
-    }
-
-    private string GetMemberName(MemberAssignment node)
-    {
-        if (node.Member.Name == _partitionKeyProxy)
-        {
-            return nameof(ITableEntity.PartitionKey);
-        }
-
-        if (node.Member.Name == _rowKeyProxy)
-        {
-            return nameof(ITableEntity.RowKey);
-        }
-
-        return node.Member.Name;
-    }
-}
-
-internal sealed class UsesParameterVisitor : ExpressionVisitor
-{
-    private readonly HashSet<ParameterExpression> _parameters = [];
-
-    public IReadOnlyCollection<ParameterExpression> Parameters => _parameters;
-    public bool UsesParameter => _parameters.Count is not 0;
-
-    protected override Expression VisitParameter(ParameterExpression node)
-    {
-        _parameters.Add(node);
-        return base.VisitParameter(node);
-    }
-
-    public UsesParameterVisitor Reset()
-    {
-        _parameters.Clear();
-        return this;
-    }
 }

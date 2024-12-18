@@ -1,21 +1,13 @@
-﻿using System.Collections.Concurrent;
-
-namespace TableStorage;
+﻿namespace TableStorage;
 
 internal sealed class TableStorageFactory(string connectionString, bool createIfNotExists)
 {
-    private readonly string _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+    private readonly TableServiceClient _client = new(connectionString ?? throw new ArgumentNullException(nameof(connectionString)));
     private readonly bool _createIfNotExists = createIfNotExists;
-    private readonly ConcurrentDictionary<string, Task<TableClient>> _tableClients = new(StringComparer.OrdinalIgnoreCase);
 
-    public Task<TableClient> GetClient(string tableName)
+    public async Task<TableClient> GetClient(string tableName)
     {
-        return _tableClients.GetOrAdd(tableName, Create);
-    }
-
-    private async Task<TableClient> Create(string name)
-    {
-        TableClient client = new(_connectionString, name);
+        TableClient client = _client.GetTableClient(tableName);
 
         if (_createIfNotExists)
         {
