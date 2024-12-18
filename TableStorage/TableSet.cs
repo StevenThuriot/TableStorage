@@ -31,10 +31,19 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         RowKeyProxy = rowKeyProxy;
     }
 
+    private void AcceptChanges(T? entity)
+    {
+        if (entity is IChangeTracking changeTrackingEntity)
+        {
+            changeTrackingEntity.AcceptChanges();
+        }
+    }
+
     public async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
         await client.AddEntityAsync(entity, cancellationToken);
+        AcceptChanges(entity);
     }
 
     public Task DeleteEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => DeleteEntityAsync(partitionKey, rowKey, ETag.All, cancellationToken);
@@ -72,6 +81,11 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         {
             throw new NotSupportedException();
         }
+
+        foreach (var entity in transactionActions.Select(x => x.Entity).OfType<T>())
+        {
+            AcceptChanges(entity);
+        }
     }
 
     public Task UpdateEntityAsync(T entity, CancellationToken cancellationToken = default) => UpdateEntityAsync(entity, ETag.All, null, cancellationToken);
@@ -80,6 +94,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         var client = await _lazyClient;
         await client.UpdateEntityAsync(entity, ifMatch, mode ?? _options.TableMode, cancellationToken);
+        AcceptChanges(entity);
     }
 
     public Task UpsertEntityAsync(T entity, CancellationToken cancellationToken = default) => UpsertEntityAsync(entity, null, cancellationToken);
@@ -88,6 +103,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         var client = await _lazyClient;
         await client.UpsertEntityAsync(entity, mode ?? _options.TableMode, cancellationToken);
+        AcceptChanges(entity);
     }
 
     public Task<T?> GetEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => GetEntityAsync(partitionKey, rowKey, null, cancellationToken);
@@ -96,7 +112,9 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         var client = await _lazyClient;
         var result = await client.GetEntityAsync<T>(partitionKey, rowKey, select, cancellationToken);
-        return result.Value;
+        var entity = result.Value;
+        AcceptChanges(entity);
+        return entity;
     }
 
     public Task<T?> GetEntityOrDefaultAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => GetEntityOrDefaultAsync(partitionKey, rowKey, null, cancellationToken);
@@ -105,7 +123,9 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         try
         {
-            return await GetEntityAsync(partitionKey, rowKey, select, cancellationToken);
+            var entity = await GetEntityAsync(partitionKey, rowKey, select, cancellationToken);
+            AcceptChanges(entity);
+            return entity;
         }
         catch (RequestFailedException e) when (e.Status == 404)
         {
@@ -120,9 +140,10 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public async IAsyncEnumerable<T> QueryAsync(string? filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-        await foreach (var item in client.QueryAsync<T>(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
+        await foreach (var entity in client.QueryAsync<T>(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
         {
-            yield return item;
+            AcceptChanges(entity);
+            yield return entity;
         }
     }
 
@@ -131,9 +152,10 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public async IAsyncEnumerable<T> QueryAsync(Expression<Func<T, bool>> filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-        await foreach (var item in client.QueryAsync(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
+        await foreach (var entity in client.QueryAsync(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
         {
-            yield return item;
+            AcceptChanges(entity);
+            yield return entity;
         }
     }
 

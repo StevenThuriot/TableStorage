@@ -15,7 +15,7 @@ using System;
 
 namespace TableStorage
 {
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class TableSetAttribute : Attribute
     {
     }
@@ -29,7 +29,7 @@ namespace TableStorage
         }
     }
 
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class PartitionKeyAttribute : Attribute
     {
         public PartitionKeyAttribute(string name)
@@ -37,12 +37,17 @@ namespace TableStorage
         }
     }
 
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class RowKeyAttribute : Attribute
     {
         public RowKeyAttribute(string name)
         {
         }
+    }
+
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    public sealed class TableSetChangeTrackingAttribute : Attribute
+    {
     }
 }";
 
@@ -140,11 +145,34 @@ namespace TableStorage
                 continue;
             }
 
+            List<(string fullName, AttributeSyntax attributeSyntax)> relevantSymbols = [];
+            foreach (AttributeListSyntax attributeListSyntax in classDeclarationSyntax.AttributeLists)
+            {
+                foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
+                {
+                    if (semanticModel.GetSymbolInfo(attributeSyntax).Symbol is not IMethodSymbol attributeSymbol)
+                    {
+                        // weird, we couldn't get the symbol, ignore it
+                        continue;
+                    }
+
+                    INamedTypeSymbol attributeContainingTypeSymbol = attributeSymbol.ContainingType;
+                    string fullName = attributeContainingTypeSymbol.ToDisplayString();
+
+                    if (fullName.StartsWith("TableStorage."))
+                    {
+                        relevantSymbols.Add((fullName, attributeSyntax));
+                    }
+                }
+            }
+
             // Get all the members in the class
             var classMembers = classSymbol.GetMembers();
 
             var members = new List<MemberToGenerate>(classMembers.Length);
             var prettyMembers = new List<PrettyMemberToGenerate>(2);
+
+            bool withChangeTracking = relevantSymbols.Any(x => x.fullName == "TableStorage.TableSetChangeTrackingAttribute");
 
             // Get all the properties from the class, and add their name to the list
             foreach (ISymbol member in classMembers)
@@ -167,29 +195,8 @@ namespace TableStorage
                         default:
                             ITypeSymbol type = property.Type;
                             TypeKind typeKind = GetTypeKind(type);
-                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false, "null", "null"));
+                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false, "null", "null", withChangeTracking));
                             break;
-                    }
-                }
-            }
-
-            List<(string fullName, AttributeSyntax attributeSyntax)> relevantSymbols = new();
-            foreach (AttributeListSyntax attributeListSyntax in classDeclarationSyntax.AttributeLists)
-            {
-                foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
-                {
-                    if (semanticModel.GetSymbolInfo(attributeSyntax).Symbol is not IMethodSymbol attributeSymbol)
-                    {
-                        // weird, we couldn't get the symbol, ignore it
-                        continue;
-                    }
-
-                    INamedTypeSymbol attributeContainingTypeSymbol = attributeSymbol.ContainingType;
-                    string fullName = attributeContainingTypeSymbol.ToDisplayString();
-
-                    if (fullName.StartsWith("TableStorage."))
-                    {
-                        relevantSymbols.Add((fullName, attributeSyntax));
                     }
                 }
             }
@@ -240,7 +247,7 @@ namespace TableStorage
                 string type = typeInfo.Type?.ToDisplayString() ?? typeSyntax.ToFullString();
                 TypeKind typeKind = GetTypeKind(typeInfo.Type);
 
-                members.Add(new(name, type, typeKind, true, partitionKeyProxy, rowKeyProxy));
+                members.Add(new(name, type, typeKind, true, partitionKeyProxy, rowKeyProxy, withChangeTracking));
             }
 
             // Create an ClassToGenerate for use in the generation phase
@@ -264,6 +271,14 @@ namespace TableStorage
 using TableStorage;
 using System.Collections.Generic;
 using System;
+");
+
+        if (classesToGenerate.Any(x => x.Members.Any(m => m.WithChangeTracking)))
+        {
+            modelBuilder.AppendLine("using System.Linq;");
+        }
+
+        modelBuilder.Append(@"
 
 #nullable disable
 ");
@@ -278,6 +293,7 @@ using System;
 
     private static void GenerateModel(StringBuilder sb, ClassToGenerate classToGenerate)
     {
+        var hasChangeTracking = classToGenerate.Members.Any(x => x.WithChangeTracking);
         var hasPartitionKeyProxy = classToGenerate.TryGetPrettyMember("PartitionKey", out var partitionKeyProxy);
         var realParitionKey = hasPartitionKeyProxy ? partitionKeyProxy.Name : "PartitionKey";
         var hasRowKeyProxy = classToGenerate.TryGetPrettyMember("RowKey", out var rowKeyProxy);
@@ -292,8 +308,38 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         sb.Append(@"
     [System.Diagnostics.DebuggerDisplay(@""").Append(classToGenerate.Name).Append(@" \{ {").Append(realParitionKey).Append("}, {").Append(realRowKey).Append(@"} \}"")]
-    partial class ").Append(classToGenerate.Name).Append(@" : IDictionary<string, object>, Azure.Data.Tables.ITableEntity
-    {
+    partial class ").Append(classToGenerate.Name).Append(@" : IDictionary<string, object>, Azure.Data.Tables.ITableEntity");
+
+        if (hasChangeTracking)
+        {
+            sb.Append(", TableStorage.IChangeTracking");
+        }
+
+        sb.Append(@"
+    {");
+
+        if (hasChangeTracking)
+        {
+            sb.Append(@"
+        private readonly HashSet<string> _changes = [];
+
+        void TableStorage.IChangeTracking.AcceptChanges()
+        {
+            _changes.Clear();
+        }
+
+        bool TableStorage.IChangeTracking.IsDirty()
+        {
+            return _changes.Count > 0;
+        }
+
+        bool TableStorage.IChangeTracking.IsDirty(string field)
+        {
+            return _changes.Contains(field);
+        }");
+        }
+
+        sb.Append(@"
         ");
 
         if (hasPartitionKeyProxy)
@@ -324,7 +370,28 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         foreach (var item in classToGenerate.Members.Where(x => x.GenerateProperty))
         {
             sb.Append(@"
-        [System.Runtime.Serialization.IgnoreDataMember] public ").Append(item.Type).Append(" ").Append(item.Name).Append(" { get; set; }");
+        [System.Runtime.Serialization.IgnoreDataMember] public ").Append(item.Type).Append(" ").Append(item.Name);
+
+            if (item.WithChangeTracking)
+            {
+                sb.Append(@"
+        { 
+            get
+            {
+                return _").Append(item.Name).Append(@";
+            }
+            set
+            {
+                _").Append(item.Name).Append(@" = value;
+                _changes.Add(""").Append(item.Name).Append(@""");
+            }
+        }
+        private ").Append(item.Type).Append(" _").Append(item.Name).Append(";");
+            }
+            else
+            {
+                sb.Append(" { get; set; }");
+            }
         }
 
         foreach (var item in classToGenerate.PrettyMembers)
@@ -359,7 +426,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             sb.Append(@"
                     case """).Append(item.Name).Append(@""": return ").Append(item.Name).Append(";");
         }
-        
+
         sb.Append(@"
                     default: return null;
                 }
@@ -413,35 +480,60 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             }
         }
 
-        public ICollection<string> Keys => new string[] { ""PartitionKey"", ""RowKey"", ""Timestamp"", ""odata.etag"", ");
+        public ICollection<string> Keys => [ ""PartitionKey"", ""RowKey"", ""Timestamp"", ""odata.etag"", ");
 
-        foreach (var item in classToGenerate.Members)
+        if (hasChangeTracking)
         {
-            sb.Append(@"""").Append(item.Name).Append(@""", ");
+            sb.Append(" .._changes");
         }
-        
-        sb.Append(@" };
-        public ICollection<object> Values => new object[] { ").Append(realParitionKey).Append(", ").Append(realRowKey).Append(", Timestamp, ETag.ToString(), ");
-
-        foreach (var item in classToGenerate.Members)
+        else
         {
-            if (item.TypeKind == TypeKind.Enum)
+            foreach (var item in classToGenerate.Members)
             {
-                sb.Append("(int");
+                sb.Append(@"""").Append(item.Name).Append(@""", ");
+            }
+        }
 
-                if (item.Type.EndsWith("?"))
+        sb.Append(@" ];
+        public ICollection<object> Values => [ ").Append(realParitionKey).Append(", ").Append(realRowKey).Append(", Timestamp, ETag.ToString(), ");
+
+        if (hasChangeTracking)
+        {
+            sb.Append(" .._changes.Select(x => this[x])");
+        }
+        else
+        {
+            foreach (var item in classToGenerate.Members)
+            {
+                if (item.TypeKind == TypeKind.Enum)
                 {
-                    sb.Append('?');
+                    sb.Append("(int");
+
+                    if (item.Type.EndsWith("?"))
+                    {
+                        sb.Append('?');
+                    }
+
+                    sb.Append(") ");
                 }
 
-                sb.Append(") ");
+                sb.Append(item.Name).Append(", ");
             }
-
-            sb.Append(item.Name).Append(", ");
         }
 
-        sb.Append(@" };
-        public int Count => ").Append(4 + classToGenerate.Members.Count).Append(@";
+        sb.Append(@" ];
+        public int Count => ");
+
+        if (hasChangeTracking)
+        {
+            sb.Append("4 + _changes.Count");
+        }
+        else
+        {
+            sb.Append(4 + classToGenerate.Members.Count);
+        }
+
+        sb.Append(@";
         public bool IsReadOnly => false;
 
         public void Add(string key, object value)

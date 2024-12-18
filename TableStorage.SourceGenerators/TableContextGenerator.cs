@@ -14,7 +14,7 @@ using System;
 
 namespace TableStorage
 {
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class TableContextAttribute : Attribute
     {
     }
@@ -133,7 +133,7 @@ namespace TableStorage
                     string? rowKeyProxy = rowKeyAttribute?.ConstructorArguments[0].Value?.ToString();
                     rowKeyProxy = rowKeyProxy is not null ? "\"" + rowKeyProxy + "\"" : "null";
 
-                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, partitionKeyProxy, rowKeyProxy));
+                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, partitionKeyProxy, rowKeyProxy, false));
                 }
             }
 

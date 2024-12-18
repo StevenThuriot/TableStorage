@@ -229,7 +229,7 @@ namespace TableStorage.Tests.Models
         public static string From(string value, string value2) => value + String() + value2;
     }
 
-    [TableSet]
+    [TableSet, TableSetChangeTracking]
     [TableSetProperty(typeof(int), "MyProperty1")]
     [TableSetProperty(typeof(string), "MyProperty2")]
     [TableSetProperty(typeof(ModelEnum), "MyProperty3")]
