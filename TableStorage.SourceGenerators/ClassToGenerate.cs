@@ -25,14 +25,15 @@ public readonly struct ClassToGenerate(string name, string @namespace, List<Memb
     }
 }
 
-public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty, string paritionKeyProxy, string rowKeyProxy)
+public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty, string partitionKeyProxy, string rowKeyProxy, bool withChangeTracking)
 {
     public readonly string Name = name;
     public readonly string Type = type;
     public readonly TypeKind TypeKind = typeKind;
     public readonly bool GenerateProperty = generateProperty;
-    public readonly string ParitionKeyProxy = paritionKeyProxy;
+    public readonly string PartitionKeyProxy = partitionKeyProxy;
     public readonly string RowKeyProxy = rowKeyProxy;
+    public readonly bool WithChangeTracking = generateProperty && withChangeTracking;
 }
 
 public readonly struct PrettyMemberToGenerate(string name, string proxy)

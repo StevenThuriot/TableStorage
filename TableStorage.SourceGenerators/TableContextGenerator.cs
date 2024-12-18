@@ -14,7 +14,7 @@ using System;
 
 namespace TableStorage
 {
-    [AttributeUsage(AttributeTargets.Class)]
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class TableContextAttribute : Attribute
     {
     }
@@ -83,8 +83,10 @@ namespace TableStorage
         if (classesToGenerate.Count > 0)
         {
             // generate the source code and add it to the output
-            string result = GenerateTableContextClasses(classesToGenerate);
-            context.AddSource("TableContexts.g.cs", SourceText.From(result, Encoding.UTF8));
+            foreach ((string name, string result) in GenerateTableContextClasses(classesToGenerate))
+            {
+                context.AddSource(name + ".g.cs", SourceText.From(result, Encoding.UTF8));
+            }
         }
     }
 
@@ -133,7 +135,7 @@ namespace TableStorage
                     string? rowKeyProxy = rowKeyAttribute?.ConstructorArguments[0].Value?.ToString();
                     rowKeyProxy = rowKeyProxy is not null ? "\"" + rowKeyProxy + "\"" : "null";
 
-                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, partitionKeyProxy, rowKeyProxy));
+                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, partitionKeyProxy, rowKeyProxy, false));
                 }
             }
 
@@ -144,20 +146,24 @@ namespace TableStorage
         return classesToGenerate;
     }
 
-    public static string GenerateTableContextClasses(List<ClassToGenerate> classesToGenerate)
+    public static IEnumerable<(string name, string content)> GenerateTableContextClasses(List<ClassToGenerate> classesToGenerate)
     {
-        StringBuilder contextBuilder = new(@"using Microsoft.Extensions.DependencyInjection;
+        StringBuilder contextBuilder = new();
+
+        foreach (ClassToGenerate classToGenerate in classesToGenerate)
+        {
+            contextBuilder.Clear();
+            contextBuilder.Append(@"using Microsoft.Extensions.DependencyInjection;
 using TableStorage;
 using System;
 
 #nullable disable
 ");
-        foreach (ClassToGenerate classToGenerate in classesToGenerate)
-        {
-            GenerateContext(contextBuilder, classToGenerate);
-        }
 
-        return contextBuilder.ToString();
+            GenerateContext(contextBuilder, classToGenerate);
+
+            yield return (classToGenerate.Namespace + "." + classToGenerate.Name, contextBuilder.ToString());
+        }
     }
 
     private static void GenerateContext(StringBuilder sb, ClassToGenerate classToGenerate)
@@ -204,7 +210,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             sb.Append(@"
             ").Append(item.Name).Append(" = creator.CreateSet<").Append(item.Type).Append(">(\"")
               .Append(item.Name)
-              .Append("\", ").Append(item.ParitionKeyProxy)
+              .Append("\", ").Append(item.PartitionKeyProxy)
               .Append(", ").Append(item.RowKeyProxy)
               .Append(");");
         }

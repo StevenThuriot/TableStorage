@@ -10,6 +10,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public string Name { get; }
     public Type Type => typeof(T);
     public string EntityType => Type.Name;
+    public bool HasChangeTracking { get; } = typeof(IChangeTracking).IsAssignableFrom(typeof(T));
 
     private readonly LazyAsync<TableClient> _lazyClient;
     private readonly TableOptions _options;
@@ -25,16 +26,25 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     }
 
     internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
-        : this (factory, tableName, options)
+        : this(factory, tableName, options)
     {
         PartitionKeyProxy = partitionKeyProxy;
         RowKeyProxy = rowKeyProxy;
+    }
+
+    private void AcceptChanges(T entity)
+    {
+        if (HasChangeTracking)
+        {
+            ((IChangeTracking)entity).AcceptChanges();
+        }
     }
 
     public async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
         await client.AddEntityAsync(entity, cancellationToken);
+        AcceptChanges(entity);
     }
 
     public Task DeleteEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => DeleteEntityAsync(partitionKey, rowKey, ETag.All, cancellationToken);
@@ -72,6 +82,11 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         {
             throw new NotSupportedException();
         }
+
+        foreach (var entity in transactionActions.Select(x => x.Entity).Cast<T>())
+        {
+            AcceptChanges(entity);
+        }
     }
 
     public Task UpdateEntityAsync(T entity, CancellationToken cancellationToken = default) => UpdateEntityAsync(entity, ETag.All, null, cancellationToken);
@@ -80,6 +95,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         var client = await _lazyClient;
         await client.UpdateEntityAsync(entity, ifMatch, mode ?? _options.TableMode, cancellationToken);
+        AcceptChanges(entity);
     }
 
     public Task UpsertEntityAsync(T entity, CancellationToken cancellationToken = default) => UpsertEntityAsync(entity, null, cancellationToken);
@@ -88,6 +104,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         var client = await _lazyClient;
         await client.UpsertEntityAsync(entity, mode ?? _options.TableMode, cancellationToken);
+        AcceptChanges(entity);
     }
 
     public Task<T?> GetEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => GetEntityAsync(partitionKey, rowKey, null, cancellationToken);
@@ -96,21 +113,34 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     {
         var client = await _lazyClient;
         var result = await client.GetEntityAsync<T>(partitionKey, rowKey, select, cancellationToken);
-        return result.Value;
+        var entity = result.Value;
+        AcceptChanges(entity);
+        return entity;
     }
 
     public Task<T?> GetEntityOrDefaultAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => GetEntityOrDefaultAsync(partitionKey, rowKey, null, cancellationToken);
 
     public async Task<T?> GetEntityOrDefaultAsync(string partitionKey, string rowKey, IEnumerable<string>? select, CancellationToken cancellationToken = default)
     {
-        try
+        var (_, entity) = await TryGetEntityAsync(partitionKey, rowKey, select, cancellationToken);
+        return entity;
+    }
+
+    public Task<(bool success, T? entity)> TryGetEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default) => TryGetEntityAsync(partitionKey, rowKey, null, cancellationToken);
+
+    public async Task<(bool success, T? entity)> TryGetEntityAsync(string partitionKey, string rowKey, IEnumerable<string>? select, CancellationToken cancellationToken = default)
+    {
+        var client = await _lazyClient;
+        var result = await client.GetEntityIfExistsAsync<T>(partitionKey, rowKey, select, cancellationToken);
+
+        if (result.HasValue)
         {
-            return await GetEntityAsync(partitionKey, rowKey, select, cancellationToken);
+            var entity = result.Value!;
+            AcceptChanges(entity);
+            return (true, entity);
         }
-        catch (RequestFailedException e) when (e.Status == 404)
-        {
-            return default;
-        }
+
+        return (false, default);
     }
 
     public IAsyncEnumerable<T> QueryAsync(CancellationToken cancellationToken = default) => QueryAsync((string?)null, null, null, cancellationToken);
@@ -120,9 +150,10 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public async IAsyncEnumerable<T> QueryAsync(string? filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-        await foreach (var item in client.QueryAsync<T>(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
+        await foreach (var entity in client.QueryAsync<T>(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
         {
-            yield return item;
+            AcceptChanges(entity);
+            yield return entity;
         }
     }
 
@@ -131,9 +162,10 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public async IAsyncEnumerable<T> QueryAsync(Expression<Func<T, bool>> filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-        await foreach (var item in client.QueryAsync(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
+        await foreach (var entity in client.QueryAsync(filter, maxPerPage ?? _options.PageSize, select, cancellationToken))
         {
-            yield return item;
+            AcceptChanges(entity);
+            yield return entity;
         }
     }
 
