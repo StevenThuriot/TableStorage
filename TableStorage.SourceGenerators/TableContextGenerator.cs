@@ -127,6 +127,7 @@ namespace TableStorage
                     ITypeSymbol tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
 
                     ImmutableArray<AttributeData> attributes = tableSetType.GetAttributes();
+
                     AttributeData? partitionKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "PartitionKeyAttribute");
                     string? partitionKeyProxy = partitionKeyAttribute?.ConstructorArguments[0].Value?.ToString();
                     partitionKeyProxy = partitionKeyProxy is not null ? "\"" + partitionKeyProxy + "\"" : "null";
@@ -135,7 +136,9 @@ namespace TableStorage
                     string? rowKeyProxy = rowKeyAttribute?.ConstructorArguments[0].Value?.ToString();
                     rowKeyProxy = rowKeyProxy is not null ? "\"" + rowKeyProxy + "\"" : "null";
 
-                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, partitionKeyProxy, rowKeyProxy, false));
+                    bool withChangeTracking = attributes.Any(a => a.AttributeClass?.Name == "TableSetChangeTrackingAttribute");
+
+                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, withChangeTracking, partitionKeyProxy, rowKeyProxy, withChangeTracking));
                 }
             }
 
@@ -192,12 +195,22 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         public TableSet<T> GetTableSet<T>(string tableName)
             where T : class, Azure.Data.Tables.ITableEntity, new()
         {
+            if (TableSet<T>.HasChangeTracking)
+            {
+                return ((dynamic) _creator).CreateSetWithChangeTracking<T>(tableName);
+            }
+
             return _creator.CreateSet<T>(tableName);
         }
 
         public TableSet<T> GetTableSet<T>(string tableName, string partitionKeyProxy = null, string rowKeyProxy = null)
             where T : class, Azure.Data.Tables.ITableEntity, new()
         {
+            if (TableSet<T>.HasChangeTracking)
+            {
+                return ((dynamic) _creator).CreateSetWithChangeTracking<T>(tableName);
+            }
+
             return _creator.CreateSet<T>(tableName, partitionKeyProxy, rowKeyProxy);
         }
 
@@ -208,7 +221,14 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         foreach (MemberToGenerate item in classToGenerate.Members)
         {
             sb.Append(@"
-            ").Append(item.Name).Append(" = creator.CreateSet<").Append(item.Type).Append(">(\"")
+            ").Append(item.Name).Append(" = creator.CreateSet");
+
+            if (item.WithChangeTracking)
+            {
+                sb.Append("WithChangeTracking");
+            }
+
+            sb.Append("<").Append(item.Type).Append(">(\"")
               .Append(item.Name)
               .Append("\", ").Append(item.PartitionKeyProxy)
               .Append(", ").Append(item.RowKeyProxy)

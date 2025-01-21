@@ -10,13 +10,14 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public string Name { get; }
     public Type Type => typeof(T);
     public string EntityType => Type.Name;
-    public bool HasChangeTracking { get; } = typeof(IChangeTracking).IsAssignableFrom(typeof(T));
 
     private readonly LazyAsync<TableClient> _lazyClient;
     private readonly TableOptions _options;
 
     internal string? PartitionKeyProxy { get; }
     internal string? RowKeyProxy { get; }
+
+    public static bool HasChangeTracking { get; } = typeof(IChangeTracking).IsAssignableFrom(typeof(T));
 
     internal TableSet(TableStorageFactory factory, string tableName, TableOptions options)
     {
@@ -38,6 +39,16 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
         {
             ((IChangeTracking)entity).AcceptChanges();
         }
+    }
+
+    private ITableEntity GetEntity(T entity)
+    {
+        if (HasChangeTracking && _options.ChangesOnly)
+        {
+            return ((IChangeTracking)entity).GetEntity();
+        }
+
+        return entity;
     }
 
     public async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
@@ -83,7 +94,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
             throw new NotSupportedException();
         }
 
-        foreach (var entity in transactionActions.Select(x => x.Entity).Cast<T>())
+        foreach (var entity in transactionActions.Select(x => x.Entity).OfType<T>())
         {
             AcceptChanges(entity);
         }
@@ -94,7 +105,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public async Task UpdateEntityAsync(T entity, ETag ifMatch, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-        await client.UpdateEntityAsync(entity, ifMatch, mode ?? _options.TableMode, cancellationToken);
+        await client.UpdateEntityAsync(GetEntity(entity), ifMatch, mode ?? _options.TableMode, cancellationToken);
         AcceptChanges(entity);
     }
 
@@ -103,7 +114,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
     public async Task UpsertEntityAsync(T entity, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         var client = await _lazyClient;
-        await client.UpsertEntityAsync(entity, mode ?? _options.TableMode, cancellationToken);
+        await client.UpsertEntityAsync(GetEntity(entity), mode ?? _options.TableMode, cancellationToken);
         AcceptChanges(entity);
     }
 
@@ -175,7 +186,7 @@ public sealed class TableSet<T> : IAsyncEnumerable<T>
 
     private Task ExecuteInBulkAsync(IEnumerable<T> entities, TableTransactionActionType tableTransactionActionType, CancellationToken cancellationToken)
     {
-        return SubmitTransactionAsync(entities.Select(x => new TableTransactionAction(tableTransactionActionType, x)), TransactionSafety.Enabled, cancellationToken);
+        return SubmitTransactionAsync(entities.Select(GetEntity).Select(x => new TableTransactionAction(tableTransactionActionType, x)), TransactionSafety.Enabled, cancellationToken);
     }
 
     public Task BulkInsertAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
