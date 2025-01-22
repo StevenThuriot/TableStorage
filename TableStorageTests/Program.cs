@@ -229,7 +229,7 @@ namespace TableStorage.Tests.Models
         public static string From(string value, string value2) => value + String() + value2;
     }
 
-    [TableSet, TableSetChangeTracking]
+    [TableSet(TrackChanges = true, PartitionKey = "PrettyName", RowKey = "PrettyRow")]
     [TableSetProperty(typeof(int), "MyProperty1")]
     [TableSetProperty(typeof(string), "MyProperty2")]
     [TableSetProperty(typeof(ModelEnum), "MyProperty3")]
@@ -238,15 +238,12 @@ namespace TableStorage.Tests.Models
     [TableSetProperty(typeof(HttpStatusCode), "MyProperty7")]
     [TableSetProperty(typeof(HttpStatusCode?), "MyProperty8")]
     [TableSetProperty(typeof(string), "MyProperty9")]
-    [PartitionKey("PrettyName")]
-    [RowKey("PrettyRow")]
     public partial class Model
     {
         [System.Runtime.Serialization.IgnoreDataMember] public ModelEnum? MyProperty5 { get; set; }
     }
 
-    [TableSet]
-    [RowKey("PrettyRow")]
+    [TableSet(RowKey = "PrettyRow")]
     public partial class Model2
     {
         public int MyProperty1 { get; set; }

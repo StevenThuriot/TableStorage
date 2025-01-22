@@ -18,6 +18,9 @@ namespace TableStorage
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class TableSetAttribute : Attribute
     {
+        public string PartitionKey { get; set; }
+        public string RowKey { get; set; }
+        public bool TrackChanges { get; set; }
     }
 
 
@@ -27,27 +30,6 @@ namespace TableStorage
         public TableSetPropertyAttribute(Type type, string name)
         {
         }
-    }
-
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class PartitionKeyAttribute : Attribute
-    {
-        public PartitionKeyAttribute(string name)
-        {
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class RowKeyAttribute : Attribute
-    {
-        public RowKeyAttribute(string name)
-        {
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class TableSetChangeTrackingAttribute : Attribute
-    {
     }
 }";
 
@@ -174,7 +156,8 @@ namespace TableStorage
             var members = new List<MemberToGenerate>(classMembers.Length);
             var prettyMembers = new List<PrettyMemberToGenerate>(2);
 
-            bool withChangeTracking = relevantSymbols.Any(x => x.fullName == "TableStorage.TableSetChangeTrackingAttribute");
+            var tablesetAttribute = relevantSymbols.First(x => x.fullName == "TableStorage.TableSetAttribute").attributeSyntax;
+            bool withChangeTracking = GetArgumentValue(tablesetAttribute, "TrackChanges") == "true";
 
             // Get all the properties from the class, and add their name to the list
             foreach (ISymbol member in classMembers)
@@ -203,32 +186,20 @@ namespace TableStorage
                 }
             }
 
-            string partitionKeyProxy;
-            var partitionKeyAttribute = relevantSymbols.Find(x => x.fullName == "TableStorage.PartitionKeyAttribute").attributeSyntax;
-            if (partitionKeyAttribute is not null)
+            string? partitionKeyProxy = GetArgumentValue(tablesetAttribute, "PartitionKey");
+            if (partitionKeyProxy is not null)
             {
-                // Generate additional fields
-                var nameSyntax = (LiteralExpressionSyntax)partitionKeyAttribute.ArgumentList!.Arguments[0].Expression;
-                var name = nameSyntax.Token.ValueText;
-
-                prettyMembers.Add(new(name, "PartitionKey"));
-                partitionKeyProxy = "\"" + name + "\"";
+                prettyMembers.Add(new(partitionKeyProxy.Trim('"'), "PartitionKey"));
             }
             else
             {
                 partitionKeyProxy = "null";
             }
 
-            string rowKeyProxy;
-            var rowKeyAttribute = relevantSymbols.Find(x => x.fullName == "TableStorage.RowKeyAttribute").attributeSyntax;
-            if (rowKeyAttribute is not null)
+            string? rowKeyProxy = GetArgumentValue(tablesetAttribute, "RowKey");
+            if (rowKeyProxy is not null)
             {
-                // Generate additional fields
-                var nameSyntax = (LiteralExpressionSyntax)rowKeyAttribute.ArgumentList!.Arguments[0].Expression;
-                var name = nameSyntax.Token.ValueText;
-
-                prettyMembers.Add(new(name, "RowKey"));
-                rowKeyProxy = "\"" + name + "\"";
+                prettyMembers.Add(new(rowKeyProxy.Trim('"'), "RowKey"));
             }
             else
             {
@@ -257,6 +228,13 @@ namespace TableStorage
         }
 
         return classesToGenerate;
+    }
+
+    private static string? GetArgumentValue(AttributeSyntax tablesetAttribute, string name)
+    {
+        return tablesetAttribute.ArgumentList?.Arguments.Where(x => x.NameEquals?.Name.NormalizeWhitespace().ToFullString() == name)
+                                                                                       .Select(x => x.Expression.NormalizeWhitespace().ToFullString())
+                                                                                       .FirstOrDefault();
     }
 
     private static TypeKind GetTypeKind(ITypeSymbol? type) => type switch

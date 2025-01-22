@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 
 namespace TableStorage.SourceGenerators;
@@ -128,16 +129,16 @@ namespace TableStorage
 
                     ImmutableArray<AttributeData> attributes = tableSetType.GetAttributes();
 
-                    AttributeData? partitionKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "PartitionKeyAttribute");
-                    string? partitionKeyProxy = partitionKeyAttribute?.ConstructorArguments[0].Value?.ToString();
-                    partitionKeyProxy = partitionKeyProxy is not null ? "\"" + partitionKeyProxy + "\"" : "null";
+                    AttributeData? tableSetAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "TableSetAttribute");
+                    if (tableSetAttribute is null)
+                    {
+                        continue;
+                    }
 
-                    AttributeData? rowKeyAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "RowKeyAttribute");
-                    string? rowKeyProxy = rowKeyAttribute?.ConstructorArguments[0].Value?.ToString();
-                    rowKeyProxy = rowKeyProxy is not null ? "\"" + rowKeyProxy + "\"" : "null";
+                    string? partitionKeyProxy = GetArgumentValue(tableSetAttribute, "PartitionKey") ?? "null";
+                    string? rowKeyProxy = GetArgumentValue(tableSetAttribute, "PartitionKey") ?? "null";
 
-                    bool withChangeTracking = attributes.Any(a => a.AttributeClass?.Name == "TableSetChangeTrackingAttribute");
-
+                    bool withChangeTracking = GetArgumentValue(tableSetAttribute, "TrackChanges") == "\"true\"";
                     members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, withChangeTracking, partitionKeyProxy, rowKeyProxy, withChangeTracking));
                 }
             }
@@ -147,6 +148,15 @@ namespace TableStorage
         }
 
         return classesToGenerate;
+    }
+
+    private static string? GetArgumentValue(AttributeData tablesetAttribute, string name)
+    {
+        return tablesetAttribute.NamedArguments.Where(x => x.Key == name)
+                                               .Select(x => x.Value.Value)
+                                               .Where(x => x is not null)
+                                               .Select(x => '"' + x!.ToString() + '"')
+                                               .FirstOrDefault();
     }
 
     public static IEnumerable<(string name, string content)> GenerateTableContextClasses(List<ClassToGenerate> classesToGenerate)
