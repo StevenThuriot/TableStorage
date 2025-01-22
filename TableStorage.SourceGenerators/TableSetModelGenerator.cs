@@ -299,7 +299,42 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         }
 
         sb.Append(@"
-    {");
+    {
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static TableSet<").Append(classToGenerate.Name).Append(@"> CreateSet(TableStorage.ICreator creator, string name)
+        {
+            return creator.CreateSet");
+
+        if (hasChangeTracking)
+        {
+            sb.Append("WithChangeTracking");
+        }
+
+        sb.Append('<').Append(classToGenerate.Name).Append(">(name, ");
+
+        if (hasPartitionKeyProxy)
+        {
+            sb.Append('"').Append(partitionKeyProxy.Name).Append('"');
+        }
+        else
+        {
+            sb.Append("null");
+        }
+
+        sb.Append(", ");
+
+        if (hasRowKeyProxy)
+        {
+            sb.Append('"').Append(rowKeyProxy.Name).Append('"');
+        }
+        else
+        {
+            sb.Append("null");
+        }
+
+        sb.Append(@");
+        }
+");
 
         if (hasChangeTracking)
         {

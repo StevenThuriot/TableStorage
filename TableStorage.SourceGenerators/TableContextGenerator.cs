@@ -126,20 +126,7 @@ namespace TableStorage
                 if (member is IPropertySymbol property && property.Type.Name == "TableSet")
                 {
                     ITypeSymbol tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
-
-                    ImmutableArray<AttributeData> attributes = tableSetType.GetAttributes();
-
-                    AttributeData? tableSetAttribute = attributes.FirstOrDefault(a => a.AttributeClass?.Name == "TableSetAttribute");
-                    if (tableSetAttribute is null)
-                    {
-                        continue;
-                    }
-
-                    string? partitionKeyProxy = GetArgumentValue(tableSetAttribute, "PartitionKey") ?? "null";
-                    string? rowKeyProxy = GetArgumentValue(tableSetAttribute, "PartitionKey") ?? "null";
-
-                    bool withChangeTracking = GetArgumentValue(tableSetAttribute, "TrackChanges") == "\"true\"";
-                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, withChangeTracking, partitionKeyProxy, rowKeyProxy, withChangeTracking));
+                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, "null", "null", false));
                 }
             }
 
@@ -148,15 +135,6 @@ namespace TableStorage
         }
 
         return classesToGenerate;
-    }
-
-    private static string? GetArgumentValue(AttributeData tablesetAttribute, string name)
-    {
-        return tablesetAttribute.NamedArguments.Where(x => x.Key == name)
-                                               .Select(x => x.Value.Value)
-                                               .Where(x => x is not null)
-                                               .Select(x => '"' + x!.ToString() + '"')
-                                               .FirstOrDefault();
     }
 
     public static IEnumerable<(string name, string content)> GenerateTableContextClasses(List<ClassToGenerate> classesToGenerate)
@@ -231,18 +209,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         foreach (MemberToGenerate item in classToGenerate.Members)
         {
             sb.Append(@"
-            ").Append(item.Name).Append(" = creator.CreateSet");
-
-            if (item.WithChangeTracking)
-            {
-                sb.Append("WithChangeTracking");
-            }
-
-            sb.Append("<").Append(item.Type).Append(">(\"")
-              .Append(item.Name)
-              .Append("\", ").Append(item.PartitionKeyProxy)
-              .Append(", ").Append(item.RowKeyProxy)
-              .Append(");");
+            ").Append(item.Name).Append(" = ").Append(item.Type).Append(".CreateSet(creator, \"").Append(item.Name).Append("\");");
         }
 
         sb.Append(@"
@@ -251,10 +218,10 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         public static void Register(IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null)
         {
             services.AddSingleton(s =>
-                    {
-                        TableStorage.ICreator creator = TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);
-                        return new ").Append(classToGenerate.Name).Append(@"(creator);
-                    });").Append(@"
+            {
+                TableStorage.ICreator creator = TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);
+                return new ").Append(classToGenerate.Name).Append(@"(creator);
+            });").Append(@"
         }
     }
 ");
