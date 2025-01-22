@@ -13,8 +13,8 @@ internal sealed class Creator(TableStorageFactory factory, TableOptions options)
     private readonly TableStorageFactory _factory = factory;
     private readonly TableOptions _options = options;
 
-    TableSet<T> ICreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options);
-    TableSet<T> ICreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy);
-    TableSet<T> ICreator.CreateSetWithChangeTracking<T>(string tableName) => new(_factory, tableName, _options);
-    TableSet<T> ICreator.CreateSetWithChangeTracking<T>(string tableName, string partitionKeyProxy, string rowKeyProxy) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy);
+    TableSet<T> ICreator.CreateSet<T>(string tableName) => new DefaultTableSet<T>(_factory, tableName, _options);
+    TableSet<T> ICreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy) => new DefaultTableSet<T>(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy);
+    TableSet<T> ICreator.CreateSetWithChangeTracking<T>(string tableName) => new ChangeTrackingTableSet<T>(_factory, tableName, _options);
+    TableSet<T> ICreator.CreateSetWithChangeTracking<T>(string tableName, string partitionKeyProxy, string rowKeyProxy) => new ChangeTrackingTableSet<T>(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy);
 }
