@@ -126,7 +126,7 @@ namespace TableStorage
                 if (member is IPropertySymbol property && property.Type.Name == "TableSet")
                 {
                     ITypeSymbol tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
-                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, "null", "null", false));
+                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, "null", "null", false, false));
                 }
             }
 

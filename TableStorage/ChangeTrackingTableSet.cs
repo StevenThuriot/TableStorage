@@ -72,9 +72,13 @@ internal sealed class ChangeTrackingTableSet<T> : TableSet<T>
         return result;
     }
 
-    public override IAsyncEnumerable<T> QueryAsync(string? filter, int? maxPerPage, IEnumerable<string>? select, CancellationToken cancellationToken = default)
+    public async override IAsyncEnumerable<T> QueryAsync(string? filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        return base.QueryAsync(filter, maxPerPage, select, cancellationToken);
+        await foreach (var entity in base.QueryAsync(filter, maxPerPage, select, cancellationToken))
+        {
+            entity.AcceptChanges();
+            yield return entity;
+        }
     }
 
     public async override IAsyncEnumerable<T> QueryAsync(Expression<Func<T, bool>> filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)

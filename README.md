@@ -29,6 +29,7 @@ public partial class Model
 
 Properties can also be defined using the `[TableSetProperty]` attribute. 
 This is particularly useful if you are planning on using dotnet 8+'s Native AOT, as the source generation will make sure any breaking reflection calls are avoided by the Azure.Core libraries.
+Starting C# 13, you can also mark them as partial.
 
 ```csharp
 [TableSet]
@@ -38,13 +39,23 @@ public partial class Model;
 ```
 
 Some times it's also nice to have a pretty name for your `PartitionKey` and `RowKey` properties, as the original names might not always make much sense when reading your code, at least not in a functional way.
-You can use the `[PartitionKeyAttribute]` and `[RowKeyAttribute]` attributes to create a proxy for these two properties.
+You can use the `PartitionKey` and `RowKey` properties of `TableSet` to create a proxy for these two properties.
+
+```csharp
+[TableSet(PartitionKey = "MyPrettyPartitionKey", RowKey = "MyPrettyRowKey")]
+public partial class Model;
+```
+
+`TableSet` also has `TrackChanges` property, default `false`, that will try to optimize what is being sent back to the server when making changes to an entity.
+When tracking changes, it's important to either use the `TableSetProperty` attribute to define your properties, or mark them as partial starting C# 13.
 
 ```csharp
 [TableSet]
-[PartitionKey("MyPrettyPartitionKey")]
-[RowKey("MyPrettyRowKey")]
-public partial class Model;
+[TableSetProperty(typeof(string), "Data")]
+public partial class Model
+{
+    public partial bool Enabled { get; set; }
+}
 ```
 
 Place your tables on your TableContext. The sample below will create 2 tables in table storage, named Models1 and Models2.
