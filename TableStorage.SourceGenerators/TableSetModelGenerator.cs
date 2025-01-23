@@ -341,22 +341,22 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             sb.Append(@"
         private readonly HashSet<string> _changes = [];
 
-        void TableStorage.IChangeTracking.AcceptChanges()
+        public void AcceptChanges()
         {
             _changes.Clear();
         }
 
-        bool TableStorage.IChangeTracking.IsChanged()
+        public bool IsChanged()
         {
             return _changes.Count is not 0;
         }
 
-        bool TableStorage.IChangeTracking.IsChanged(string field)
+        public bool IsChanged(string field)
         {
             return _changes.Contains(field);
         }
 
-        Azure.Data.Tables.ITableEntity TableStorage.IChangeTracking.GetEntity()
+        public Azure.Data.Tables.ITableEntity GetEntity()
         {
             var result = new Azure.Data.Tables.TableEntity(").Append(realParitionKey).Append(", ").Append(realRowKey).Append(@");
 
@@ -368,28 +368,20 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             return result;
         }
 
-        void TableStorage.IChangeTracking.SetChanged(string field)
+        public void SetChanged(string field)
         {
             _changes.Add(field);
         }
 
-        void TableStorage.IChangeTracking.SetChanged()
-        {
-            _changes.UnionWith([");
+        public void SetChanged()
+        {");
 
-            for (int i = 0; i < classToGenerate.Members.Count; i++)
+            foreach (MemberToGenerate member in classToGenerate.Members)
             {
-                MemberToGenerate member = classToGenerate.Members[i];
-                sb.AppendLine().Append("                \"" + member.Name + "\"");
-                
-                if (i < classToGenerate.Members.Count - 1)
-                {
-                    sb.Append(",");
-                }
+                sb.AppendLine().Append("            _changes.Add(\"" + member.Name + "\");");
             }
 
             sb.Append(@"
-            ]);
         }
 ");
         }
@@ -399,7 +391,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         if (hasPartitionKeyProxy)
         {
-            sb.Append("[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] string Azure.Data.Tables.ITableEntity.PartitionKey { get => ").Append(partitionKeyProxy.Name).Append("; set => ").Append(partitionKeyProxy.Name).Append(" = value; }");
+            sb.Append("string Azure.Data.Tables.ITableEntity.PartitionKey { get => ").Append(partitionKeyProxy.Name).Append("; set => ").Append(partitionKeyProxy.Name).Append(" = value; }");
         }
         else
         {
@@ -411,7 +403,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         if (hasRowKeyProxy)
         {
-            sb.Append("[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)] string Azure.Data.Tables.ITableEntity.RowKey { get => ").Append(rowKeyProxy.Name).Append("; set => ").Append(rowKeyProxy.Name).Append(" = value; }");
+            sb.Append("string Azure.Data.Tables.ITableEntity.RowKey { get => ").Append(rowKeyProxy.Name).Append("; set => ").Append(rowKeyProxy.Name).Append(" = value; }");
         }
         else
         {
@@ -544,22 +536,22 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         public ICollection<string> Keys => [ ""PartitionKey"", ""RowKey"", ""Timestamp"", ""odata.etag"", ");
 
-        IEnumerable<MemberToGenerate> keysAndValuesToGenerate = classToGenerate.Members;
+        IReadOnlyList<MemberToGenerate> keysAndValuesToGenerate = classToGenerate.Members;
 
-        if (hasChangeTracking)
-        {
-            keysAndValuesToGenerate = keysAndValuesToGenerate.Where(x => !x.WithChangeTracking);
-        }
+        //if (hasChangeTracking)
+        //{
+        //    keysAndValuesToGenerate = keysAndValuesToGenerate.Where(x => !x.WithChangeTracking).ToList();
+        //}
 
-        foreach (var item in classToGenerate.Members)
+        foreach (var item in keysAndValuesToGenerate)
         {
             sb.Append(@"""").Append(item.Name).Append(@""", ");
         }
 
-        if (hasChangeTracking)
-        {
-            sb.Append(" .._changes");
-        }
+        //if (hasChangeTracking)
+        //{
+        //    sb.Append(" .._changes");
+        //}
 
         sb.Append(@" ];
         public ICollection<object> Values => [ ").Append(realParitionKey).Append(", ").Append(realRowKey).Append(", Timestamp, ETag.ToString(), ");
@@ -581,58 +573,70 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             sb.Append(item.Name).Append(", ");
         }
 
-        if (hasChangeTracking)
-        {
-            sb.Append(@" .._changes.Select<string, object>(x => x switch
-        {
-");
+//        if (hasChangeTracking)
+//        {
+//            sb.Append(@" .._changes.Select<string, object>(x => x switch
+//        {
+//");
 
-            foreach (var item in classToGenerate.Members.Where(x => x.WithChangeTracking))
-            {
-                sb.Append("            \"").Append(item.Name).Append("\" => ");
+//            foreach (var item in classToGenerate.Members.Where(x => x.WithChangeTracking))
+//            {
+//                sb.Append("            \"").Append(item.Name).Append("\" => ");
 
-                if (item.TypeKind == TypeKind.Enum)
-                {
-                    sb.Append("(int");
+//                if (item.TypeKind == TypeKind.Enum)
+//                {
+//                    sb.Append("(int");
 
-                    if (item.Type.EndsWith("?"))
-                    {
-                        sb.Append('?');
-                    }
+//                    if (item.Type.EndsWith("?"))
+//                    {
+//                        sb.Append('?');
+//                    }
 
-                    sb.Append(") ");
-                }
+//                    sb.Append(") ");
+//                }
 
-                sb.Append(item.Name).AppendLine(", ");
-            }
+//                sb.Append(item.Name).AppendLine(", ");
+//            }
 
-            sb.Append(@"            _ => throw new System.ArgumentException()
-        })");
-        }
+//            sb.Append(@"            _ => throw new System.ArgumentException()
+//        })");
+//        }
 
         sb.Append(@" ];
-        public int Count => ");
+        public int Count => ").Append(4 + keysAndValuesToGenerate.Count);
 
-        if (hasChangeTracking)
-        {
-            sb.Append("4 + _changes.Count");
-        }
-        else
-        {
-            sb.Append(4 + classToGenerate.Members.Count);
-        }
+        //if (hasChangeTracking)
+        //{
+        //    sb.Append(" + _changes.Count");
+        //}
 
         sb.Append(@";
         public bool IsReadOnly => false;
 
         public void Add(string key, object value)
         {
-            this[key] = value;
+            this[key] = value;");
+
+        if (hasChangeTracking)
+        {
+            sb.Append(@"
+            _changes.Add(key);");
+        }
+
+        sb.Append(@"
         }
 
         public void Add(KeyValuePair<string, object> item)
         {
-            this[item.Key] = item.Value;
+            this[item.Key] = item.Value;");
+
+        if (hasChangeTracking)
+        {
+            sb.Append(@"
+            _changes.Add(item.Key);");
+        }
+
+        sb.Append(@"
         }
 
         public void Clear()
