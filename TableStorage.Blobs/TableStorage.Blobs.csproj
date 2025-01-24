@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Company>Steven Thuriot</Company>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryUrl>https://github.com/StevenThuriot/TableStorage</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/StevenThuriot/TableStorage</PackageProjectUrl>
+		<Copyright>Steven Thuriot</Copyright>
+		<Authors>Steven Thuriot</Authors>
+		<Version>5.0.0-preview.1</Version>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>TableStorage.png</PackageIcon>
+		<RootNamespace>TableStorage</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="TableStorage.png">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Azure.Storage.Blobs" Version="[12.13.0,)" />
+		<PackageReference Include="System.Text.Json" Version="[8.0.5,)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Azure" />
+		<Using Include="Azure.Storage.Blobs" />
+		<Using Include="System.Text.Json" />
+	</ItemGroup>
+</Project>
