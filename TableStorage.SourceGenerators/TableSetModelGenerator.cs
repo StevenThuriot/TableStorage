@@ -21,6 +21,7 @@ namespace TableStorage
         public string PartitionKey { get; set; }
         public string RowKey { get; set; }
         public bool TrackChanges { get; set; }
+        public bool SupportBlobs { get; set; }
     }
 
 
@@ -158,6 +159,7 @@ namespace TableStorage
 
             var tablesetAttribute = relevantSymbols.First(x => x.fullName == "TableStorage.TableSetAttribute").attributeSyntax;
             bool withChangeTracking = GetArgumentValue(tablesetAttribute, "TrackChanges") == "true";
+            bool withBlobSupport = GetArgumentValue(tablesetAttribute, "SupportBlobs") == "true";
 
             // Get all the properties from the class, and add their name to the list
             foreach (ISymbol member in classMembers)
@@ -224,7 +226,7 @@ namespace TableStorage
             }
 
             // Create an ClassToGenerate for use in the generation phase
-            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members, prettyMembers));
+            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members, prettyMembers, withBlobSupport));
         }
 
         return classesToGenerate;
@@ -298,10 +300,15 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             sb.Append(", TableStorage.IChangeTracking");
         }
 
+        if (classToGenerate.WithBlobSupport)
+        {
+            sb.Append(", TableStorage.IBlobEntity");
+        }
+
         sb.Append(@"
     {
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static TableSet<").Append(classToGenerate.Name).Append(@"> CreateSet(TableStorage.ICreator creator, string name)
+        public static TableSet<").Append(classToGenerate.Name).Append(@"> CreateTableSet(TableStorage.ICreator creator, string name)
         {
             return creator.CreateSet");
 
@@ -335,6 +342,52 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         sb.Append(@");
         }
 ");
+
+        if (classToGenerate.WithBlobSupport)
+        {
+            if (hasPartitionKeyProxy)
+            {
+                sb.Append(@"
+        string IBlobEntity.PartitionKey => ").Append(realParitionKey).Append(';');
+            }
+
+            if (hasRowKeyProxy)
+            {
+                sb.Append(@"
+        string IBlobEntity.RowKey => ").Append(realRowKey).Append(';');
+            }
+
+            sb.Append(@"
+
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static BlobSet<").Append(classToGenerate.Name).Append(@"> CreateBlobSet(TableStorage.IBlobCreator creator, string name)
+        {
+            return creator.CreateSet<").Append(classToGenerate.Name).Append(@">(name, ");
+
+            if (hasPartitionKeyProxy)
+            {
+                sb.Append('"').Append(partitionKeyProxy.Name).Append('"');
+            }
+            else
+            {
+                sb.Append("null");
+            }
+
+            sb.Append(", ");
+
+            if (hasRowKeyProxy)
+            {
+                sb.Append('"').Append(rowKeyProxy.Name).Append('"');
+            }
+            else
+            {
+                sb.Append("null");
+            }
+
+            sb.Append(@");
+        }
+");
+        }
 
         if (hasChangeTracking)
         {
@@ -566,6 +619,8 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             }
 
             sb.Append(item.Name).Append(" = (");
+
+            //value is System.Text.Json.JsonElement jsonElement ? jsonElement.GetDateTimeOffset() : value
 
             if (item.Type == typeof(DateTime).FullName)
             {

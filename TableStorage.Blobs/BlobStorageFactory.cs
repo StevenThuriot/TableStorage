@@ -1,26 +1,19 @@
 ﻿namespace TableStorage;
 
-internal class BlobStorageFactory(string connectionString)
+internal class BlobStorageFactory(string connectionString, bool autoCreate)
 {
     private readonly BlobServiceClient _client = new(connectionString ?? throw new ArgumentNullException(nameof(connectionString)));
+    private readonly bool _autoCreate = autoCreate;
 
-    public BlobContainerClient GetClient(string container)
+    public async Task<BlobContainerClient> GetClient(string container)
     {
-        return _client.GetBlobContainerClient(container ?? throw new ArgumentNullException(nameof(container)));
-    }
+        var client = _client.GetBlobContainerClient(container ?? throw new ArgumentNullException());
 
-    public BlobContainerClient GetClient(string container, string partitionKey)
-    {
-        return GetClient(container + "/" + (partitionKey ?? throw new ArgumentNullException(nameof(partitionKey))));
-    }
+        if (_autoCreate && !await client.ExistsAsync())
+        {
+            await client.CreateAsync();
+        }
 
-    public BlobClient GetClient(string container, string partitionKey, string rowKey)
-    {
-        return GetClient(container, partitionKey).GetBlobClient(rowKey ?? throw new ArgumentNullException(nameof(rowKey)));
-    }
-
-    public BlobClient GetClient(string container, IBlobEntity entity)
-    {
-        return GetClient(container, entity.PartitionKey, entity.RowKey);
+        return client;
     }
 }

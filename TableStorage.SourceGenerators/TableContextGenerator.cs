@@ -77,7 +77,7 @@ namespace TableStorage
         }
 
         // Convert each ClassDeclarationSyntax to a ClassToGenerate
-        List<ClassToGenerate> classesToGenerate = GetTypesToGenerate(compilation, classes.Distinct(), context.CancellationToken);
+        List<ContextClassToGenerate> classesToGenerate = GetTypesToGenerate(compilation, classes.Distinct(), context.CancellationToken);
 
         // If there were errors in the ClassDeclarationSyntax, we won't create an
         // ClassToGenerate for it, so make sure we have something to generate
@@ -91,10 +91,10 @@ namespace TableStorage
         }
     }
 
-    private static List<ClassToGenerate> GetTypesToGenerate(Compilation compilation, IEnumerable<ClassDeclarationSyntax> classes, CancellationToken ct)
+    private static List<ContextClassToGenerate> GetTypesToGenerate(Compilation compilation, IEnumerable<ClassDeclarationSyntax> classes, CancellationToken ct)
     {
         // Create a list to hold our output
-        var classesToGenerate = new List<ClassToGenerate>();
+        var classesToGenerate = new List<ContextClassToGenerate>();
 
         // Get the semantic representation of our marker attribute 
         INamedTypeSymbol? contextAttribute = compilation.GetTypeByMetadataName("TableStorage.TableContextAttribute");
@@ -118,30 +118,33 @@ namespace TableStorage
 
             // Get all the members in the class
             ImmutableArray<ISymbol> classMembers = classSymbol.GetMembers();
-            var members = new List<MemberToGenerate>(classMembers.Length);
+            var members = new List<ContextMemberToGenerate>(classMembers.Length);
 
             // Get all the properties from the class, and add their name to the list
             foreach (ISymbol member in classMembers)
             {
-                if (member is IPropertySymbol property && property.Type.Name == "TableSet")
+                if (member is IPropertySymbol property)
                 {
-                    ITypeSymbol tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
-                    members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, false, "null", "null", false, false));
+                    if (property.Type.Name is "TableSet" or "BlobSet")
+                    {
+                        ITypeSymbol tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
+                        members.Add(new(member.Name, tableSetType.ToDisplayString(), property.Type.TypeKind, property.Type.Name));
+                    }
                 }
             }
 
             // Create an ClassToGenerate for use in the generation phase
-            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members, []));
+            classesToGenerate.Add(new(classSymbol.Name, classSymbol.ContainingNamespace.ToDisplayString(), members));
         }
 
         return classesToGenerate;
     }
 
-    public static IEnumerable<(string name, string content)> GenerateTableContextClasses(List<ClassToGenerate> classesToGenerate)
+    public static IEnumerable<(string name, string content)> GenerateTableContextClasses(List<ContextClassToGenerate> classesToGenerate)
     {
         StringBuilder contextBuilder = new();
 
-        foreach (ClassToGenerate classToGenerate in classesToGenerate)
+        foreach (ContextClassToGenerate classToGenerate in classesToGenerate)
         {
             contextBuilder.Clear();
             contextBuilder.Append(@"using Microsoft.Extensions.DependencyInjection;
@@ -157,7 +160,7 @@ using System;
         }
     }
 
-    private static void GenerateContext(StringBuilder sb, ClassToGenerate classToGenerate)
+    private static void GenerateContext(StringBuilder sb, ContextClassToGenerate classToGenerate)
     {
         if (!string.IsNullOrEmpty(classToGenerate.Namespace))
         {
@@ -178,7 +181,30 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
     partial class ").Append(classToGenerate.Name).Append(@"
     {
-        private TableStorage.ICreator _creator { get; init; }
+        private TableStorage.ICreator _creator { get; init; }");
+
+        bool hasBlobSets = classToGenerate.Members.Any(x => x.SetType is "BlobSet");
+
+        if (hasBlobSets)
+        {
+
+            sb.Append(@"
+        private TableStorage.IBlobCreator _blobCreator { get; init; }
+
+        public BlobSet<T> GetBlobSet<T>(string tableName)
+            where T : class, TableStorage.IBlobEntity, new()
+        {
+            return _blobCreator.CreateSet<T>(tableName);
+        }
+
+        public BlobSet<T> GetBlobSet<T>(string tableName, string partitionKeyProxy = null, string rowKeyProxy = null)
+            where T : class, TableStorage.IBlobEntity, new()
+        {
+            return _blobCreator.CreateSet<T>(tableName, partitionKeyProxy, rowKeyProxy);
+        }");
+        }
+
+        sb.Append(@"
 
         public TableSet<T> GetTableSet<T>(string tableName)
             where T : class, Azure.Data.Tables.ITableEntity, new()
@@ -202,25 +228,73 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             return _creator.CreateSet<T>(tableName, partitionKeyProxy, rowKeyProxy);
         }
 
-        private ").Append(classToGenerate.Name).Append(@"(TableStorage.ICreator creator)
+        private ").Append(classToGenerate.Name).Append(@"(TableStorage.ICreator creator");
+
+        if (hasBlobSets)
+        {
+            sb.Append(@", TableStorage.IBlobCreator blobCreator");
+        }
+
+        sb.Append(@")
         {
             _creator = creator;");
 
-        foreach (MemberToGenerate item in classToGenerate.Members)
+        if (hasBlobSets)
         {
             sb.Append(@"
-            ").Append(item.Name).Append(" = ").Append(item.Type).Append(".CreateSet(creator, \"").Append(item.Name).Append("\");");
+            _blobCreator = blobCreator;");
+        }
+
+        foreach (ContextMemberToGenerate item in classToGenerate.Members)
+        {
+            sb.Append(@"
+            ").Append(item.Name).Append(" = ").Append(item.Type).Append(".Create").Append(item.SetType).Append("(");
+
+            var name = item.Name;
+            if (item.SetType is "BlobSet")
+            {
+                sb.Append("blobC");
+                name = name.ToLowerInvariant();
+            }
+            else
+            {
+                sb.Append("c");
+            }
+
+            sb.Append("reator, \"").Append(name).Append("\");");
         }
 
         sb.Append(@"
         }
 
-        public static void Register(IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null)
+        public static void Register(IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null");
+
+        if (hasBlobSets)
+        {
+            sb.Append(", Action<TableStorage.BlobOptions> configureBlobs = null");
+        }
+        
+        sb.Append(@")
         {
             services.AddSingleton(s =>
             {
-                TableStorage.ICreator creator = TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);
-                return new ").Append(classToGenerate.Name).Append(@"(creator);
+                TableStorage.ICreator creator = TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);");
+
+        if (hasBlobSets)
+        {
+            sb.Append(@"
+                TableStorage.IBlobCreator blobCreator = TableStorage.BlobStorageSetup.BuildCreator(connectionString, configureBlobs);");
+        }
+
+        sb.Append(@"
+                return new ").Append(classToGenerate.Name).Append(@"(creator");
+        
+        if (hasBlobSets)
+        {
+            sb.Append(@", blobCreator");
+        }
+
+        sb.Append(@");
             });").Append(@"
         }
     }
