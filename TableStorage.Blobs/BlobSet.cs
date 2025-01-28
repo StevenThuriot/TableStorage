@@ -1,5 +1,7 @@
 ﻿using Azure.Storage.Blobs.Models;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using TableStorage.Visitors;
 
 namespace TableStorage;
 
@@ -11,13 +13,17 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
     public string EntityType => Type.Name;
 
     private readonly BlobOptions _options;
+    private readonly string? _partitionKeyProxy;
+    private readonly string? _rowKeyProxy;
     private readonly LazyAsync<BlobContainerClient> _containerClient;
 
-    internal BlobSet(BlobStorageFactory factory, string tableName, BlobOptions options)
+    internal BlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, string? partitionKeyProxy, string? rowKeyProxy)
     {
         Name = tableName;
         _options = options;
-        _containerClient = new(() => factory.GetClient(Name));
+        _partitionKeyProxy = partitionKeyProxy;
+        _rowKeyProxy = rowKeyProxy;
+        _containerClient = new(() => factory.GetClient(tableName));
     }
 
     private async Task<BlobClient> GetClient(string partitionKey, string rowKey)
@@ -87,7 +93,7 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
     }
 
     public Task DeleteEntityAsync(T entity, CancellationToken cancellationToken = default) => DeleteEntityAsync(entity.PartitionKey, entity.RowKey, cancellationToken);
-    
+
     public async Task DeleteEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default)
     {
         var blob = await GetClient(partitionKey, rowKey);
@@ -96,13 +102,38 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
 
     public async Task DeleteAllEntitiesAsync(string partitionKey, CancellationToken cancellationToken = default)
     {
-        partitionKey = partitionKey ?? throw new ArgumentNullException(nameof(partitionKey));
+        if (partitionKey is null)
+        {
+            throw new ArgumentNullException(nameof(partitionKey));
+        }
 
         var container = await _containerClient;
 
-        await foreach (var blob in container.FindBlobsByTagsAsync($"partition='{partitionKey}'", cancellationToken))
+        if (_options.IsHierarchical)
         {
-            var blobClient = container.GetBlobClient(blob.BlobName);
+            string prefix = partitionKey + '/';
+
+            await foreach (var blob in container.GetBlobsByHierarchyAsync(prefix: prefix, delimiter: "/", cancellationToken: cancellationToken))
+            {
+                if (!blob.IsBlob || blob.Blob.Deleted)
+                {
+                    continue;
+                }
+
+                await Delete(container, blob.Blob.Name, cancellationToken);
+            }
+        }
+        else
+        {
+            await foreach (var blob in container.FindBlobsByTagsAsync($"partition='{partitionKey}'", cancellationToken))
+            {
+                await Delete(container, blob.BlobName, cancellationToken);
+            }
+        }
+
+        static async Task Delete(BlobContainerClient container, string name, CancellationToken cancellationToken)
+        {
+            var blobClient = container.GetBlobClient(name);
             await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
         }
     }
@@ -114,11 +145,14 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
 
         await blob.UploadAsync(data, true, cancellationToken);
 
-        await blob.SetTagsAsync(new Dictionary<string, string>
+        if (!_options.IsHierarchical)
         {
-            ["partition"] = entity.PartitionKey,
-            ["row"] = entity.RowKey
-        }, cancellationToken: cancellationToken);
+            await blob.SetTagsAsync(new Dictionary<string, string>
+            {
+                ["partition"] = entity.PartitionKey,
+                ["row"] = entity.RowKey
+            }, cancellationToken: cancellationToken);
+        }
     }
 
     private async Task<T?> Download(BlobClient blob, CancellationToken cancellationToken)
@@ -129,30 +163,158 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
 
     public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
+        await foreach (var (_, lazyEntity) in QueryInternalAsync(null, cancellationToken))
+        {
+            var entity = await lazyEntity;
+
+            if (entity is not null)
+            {
+                yield return entity;
+            }
+        }
+    }
+
+    internal IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> QueryInternalAsync(Expression<Func<T, bool>>? filter, CancellationToken cancellationToken = default)
+    {
+        if (filter is null)
+        {
+            return IterateAllBlobs(cancellationToken);
+        }
+        
+        BlobQueryVisitor visitor = new(_partitionKeyProxy, _rowKeyProxy);
+        LazyFilteringExpression<T> compiledFilter = visitor.VisitAndConvert(filter, nameof(QueryInternalAsync));
+
+        if (!_options.IsHierarchical)
+        {
+            if (!visitor.Error)
+            {
+                if (visitor.SimpleFilter)
+                {
+                    return IterateBlobsByTag(visitor.Filter!, cancellationToken);
+                }
+
+                return IterateBlobsByTagAndComplexFilter(visitor.Filter!, compiledFilter, cancellationToken);
+            }
+        }
+
+        if (!visitor.Error)
+        {
+            return IterateFilteredOnPartitionAndRowKeys(visitor.PartitionKeys, visitor.RowKeys, filter, cancellationToken);
+        }
+
+        return IterateFilteredAtRuntime(filter, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> IterateAllBlobs([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         var container = await _containerClient;
 
-        await foreach (var blob in IterateBlobs(container, cancellationToken))
+        await foreach (var blob in container.GetBlobsAsync(cancellationToken: cancellationToken))
         {
-            var blobClient = container.GetBlobClient(blob.Name);
-            var result = await Download(blobClient, cancellationToken);
+            if (!blob.Deleted)
+            {
+                var client = container.GetBlobClient(blob.Name);
+                yield return (client, new(() => Download(client, cancellationToken)));
+            }
+        }
+    }
 
-            if (result is not null)
+    private async IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> IterateBlobsByTag(string filter, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var container = await _containerClient;
+
+        if (_options.IsHierarchical)
+        {
+            throw new NotSupportedException("Hierarchical namespaces aren't supported in this method");
+        }
+
+        await foreach (var blob in container.FindBlobsByTagsAsync(filter, cancellationToken))
+        {
+            var client = container.GetBlobClient(blob.BlobName);
+            yield return (client, new(() => Download(client, cancellationToken)));
+        }
+    }
+
+    private async IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> IterateBlobsByTagAndComplexFilter(string filter, LazyFilteringExpression<T> compiledFilter, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await foreach (var result in IterateBlobsByTag(filter, cancellationToken))
+        {
+            var entity = await result.entity;
+            if (entity is not null && compiledFilter.Invoke(entity))
             {
                 yield return result;
             }
         }
     }
 
-    private async IAsyncEnumerable<BlobItem> IterateBlobs(BlobContainerClient container, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> IterateFilteredOnPartitionAndRowKeys(IReadOnlyCollection<string> partitionKeys, IReadOnlyCollection<string> rowKeys, LazyFilteringExpression<T> filterInstance, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        await foreach (var blob in container.GetBlobsAsync(cancellationToken: cancellationToken))
+        var container = await _containerClient;
+
+        if (partitionKeys.Count is 0)
         {
-            if (blob.Deleted)
+            await foreach (var result in IterateAllBlobs(cancellationToken))
             {
-                continue;
+                if (!IsRowKeyMatch(result.client.Name))
+                {
+                    continue;
+                }
+
+                var entity = await result.entity;
+                if (entity is not null && filterInstance.Invoke(entity))
+                {
+                    yield return result!;
+                }
+            }
+        }
+        else
+        {
+            foreach (var partitionKey in partitionKeys)
+            {
+                string prefix = partitionKey + '/';
+
+                await foreach (var blob in container.GetBlobsByHierarchyAsync(prefix: prefix, delimiter: "/", cancellationToken: cancellationToken))
+                {
+                    if (!blob.IsBlob || blob.Blob.Deleted || !IsRowKeyMatch(blob.Blob.Name))
+                    {
+                        continue;
+                    }
+
+                    var client = container.GetBlobClient(blob.Blob.Name);
+                    var entity = await Download(client, cancellationToken);
+
+                    if (entity is not null && filterInstance.Invoke(entity))
+                    {
+                        yield return (client, new(() => Task.FromResult<T?>(entity)));
+                    }
+                }
+            }
+        }
+
+        bool IsRowKeyMatch(string name)
+        {
+            if (rowKeys.Count is 0)
+            {
+                return true;
             }
 
-            yield return blob;
+            var lastSlash = name.LastIndexOf('/') + 1;
+            var rowKey = name.Substring(lastSlash);
+            return rowKeys.Contains(rowKey);
+        }
+    }
+
+    private async IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> IterateFilteredAtRuntime(Expression<Func<T, bool>> filter, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        LazyFilteringExpression<T> compiledFilter = filter;
+
+        await foreach (var result in IterateAllBlobs(cancellationToken))
+        {
+            var entity = await result.entity;
+            if (entity is not null && compiledFilter.Invoke(entity))
+            {
+                yield return result;
+            }
         }
     }
 }

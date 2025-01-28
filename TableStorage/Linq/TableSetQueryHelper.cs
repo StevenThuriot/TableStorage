@@ -17,48 +17,26 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     private Expression<Func<T, bool>>? _filter;
     private int? _amount;
 
-    public async Task<T> FirstAsync(CancellationToken token)
-    {
-        T? result = await FirstOrDefaultAsync(token);
-        return result ?? throw new InvalidOperationException("No element satisfies the condition in predicate. -or- The source sequence is empty.");
-    }
-
-    public async Task<T?> FirstOrDefaultAsync(CancellationToken token)
+    public Task<T> FirstAsync(CancellationToken token)
     {
         _amount = 1;
-        await foreach (var item in this.WithCancellation(token))
-        {
-            return item;
-        }
-
-        return default;
+        return Helpers.FirstAsync(this, token);
     }
 
-    public async Task<T> SingleAsync(CancellationToken token)
+    public Task<T?> FirstOrDefaultAsync(CancellationToken token)
     {
-        var result = await SingleOrDefaultAsync(token);
-        return result ?? throw new InvalidOperationException("No element satisfies the condition in predicate. -or- The source sequence is empty.");
+        _amount = 1;
+        return Helpers.FirstOrDefaultAsync(this, token);
     }
 
-    public async Task<T?> SingleOrDefaultAsync(CancellationToken token)
+    public Task<T> SingleAsync(CancellationToken token = default)
     {
-        T? result = default;
-        bool gotOne = false;
+        return Helpers.SingleAsync(this, token);
+    }
 
-        _amount = 2;
-
-        await foreach (var item in this.WithCancellation(token))
-        {
-            if (gotOne)
-            {
-                throw new InvalidOperationException("The input sequence contains more than one element.");
-            }
-
-            result = item;
-            gotOne = true;
-        }
-
-        return result;
+    public Task<T?> SingleOrDefaultAsync(CancellationToken token = default)
+    {
+        return Helpers.SingleOrDefaultAsync(this, token);
     }
 
     public async Task<int> BatchDeleteAsync(CancellationToken token)
@@ -321,38 +299,8 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #region ExistsIn
     internal TableSetQueryHelper<T> AddExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
     {
-        if (elements is null)
-        {
-            throw new ArgumentNullException(nameof(elements));
-        }
-
-        Expression filter = BuildFilterExpression();
-
-        var lambda = Expression.Lambda<Func<T, bool>>(filter, predicate.Parameters);
+        var lambda = predicate.CreateExistsInFilter(elements);
         return AddFilter(lambda);
-
-        Expression BuildFilterExpression()
-        {
-            using var enumerator = elements.GetEnumerator();
-
-            if (!enumerator.MoveNext())
-            {
-                return Expression.Constant(false);
-            }
-
-            var filter = GetFilterForElement();
-            while (enumerator.MoveNext())
-            {
-                filter = Expression.OrElse(filter, GetFilterForElement());
-            }
-
-            return filter;
-
-            BinaryExpression GetFilterForElement()
-            {
-                return Expression.Equal(predicate.Body, Expression.Constant(enumerator.Current));
-            }
-        }
     }
 
     ISelectedTableQueryable<T> ISelectedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
@@ -367,38 +315,8 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #region NotExistsIn
     internal TableSetQueryHelper<T> AddNotExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
     {
-        if (elements is null)
-        {
-            throw new ArgumentNullException(nameof(elements));
-        }
-
-        Expression filter = BuildFilterExpression();
-
-        var lambda = Expression.Lambda<Func<T, bool>>(filter, predicate.Parameters);
+        var lambda = predicate.CreateNotExistsInFilter(elements);
         return AddFilter(lambda);
-
-        Expression BuildFilterExpression()
-        {
-            using var enumerator = elements.GetEnumerator();
-
-            if (!enumerator.MoveNext())
-            {
-                return Expression.Constant(true);
-            }
-
-            var filter = GetFilterForElement();
-            while (enumerator.MoveNext())
-            {
-                filter = Expression.AndAlso(filter, GetFilterForElement());
-            }
-
-            return filter;
-
-            BinaryExpression GetFilterForElement()
-            {
-                return Expression.NotEqual(predicate.Body, Expression.Constant(enumerator.Current));
-            }
-        }
     }
 
     ISelectedTableQueryable<T> ISelectedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);

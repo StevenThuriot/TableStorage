@@ -265,6 +265,11 @@ using System;
                 modelBuilder.AppendLine("using System.Linq;");
             }
 
+            if (classToGenerate.WithBlobSupport)
+            {
+                modelBuilder.AppendLine("using System.Text.Json;");
+            }
+
             modelBuilder.Append(@"
 
 #nullable disable
@@ -605,7 +610,18 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
                 {
                     case ""PartitionKey"": ").Append(realParitionKey).Append(@" = value?.ToString(); break;
                     case ""RowKey"": ").Append(realRowKey).Append(@" = value?.ToString(); break;
-                    case ""Timestamp"": Timestamp = (System.DateTimeOffset?)value; break;
+                    case ""Timestamp"": Timestamp = ");
+        
+        if (classToGenerate.WithBlobSupport)
+        {
+            sb.Append("(value is System.Text.Json.JsonElement _TimestampJsonElement ? _TimestampJsonElement.Deserialize<System.DateTimeOffset>() : (System.DateTimeOffset?)value)");
+        }
+        else
+        {
+            sb.Append("(System.DateTimeOffset?)value");
+        }
+
+        sb.Append(@"; break;
                     case ""odata.etag"": ETag = new Azure.ETag(value?.ToString()); break;");
 
         foreach (var item in classToGenerate.Members)
@@ -620,18 +636,35 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
             sb.Append(item.Name).Append(" = (");
 
-            //value is System.Text.Json.JsonElement jsonElement ? jsonElement.GetDateTimeOffset() : value
-
             if (item.Type == typeof(DateTime).FullName)
             {
-                sb.Append("(DateTimeOffset)value).DateTime");
+                if (classToGenerate.WithBlobSupport)
+                {
+                    sb.Append("value is System.Text.Json.JsonElement _").Append(item.Name).Append("JsonElement ? _").Append(item.Name).Append("JsonElement.Deserialize<DateTimeOffset>() : (DateTimeOffset)value).DateTime");
+                }
+                else
+                {
+                    sb.Append("(DateTimeOffset)value).DateTime");
+                }
             }
             else if (item.Type == typeof(DateTime).FullName + "?")
             {
-                sb.Append("value as DateTimeOffset?)?.DateTime");
+                if (classToGenerate.WithBlobSupport)
+                {
+                    sb.Append("value is System.Text.Json.JsonElement _").Append(item.Name).Append("JsonElement ? _").Append(item.Name).Append("JsonElement.Deserialize<DateTimeOffset>() : value as DateTimeOffset?)?.DateTime");
+                }
+                else
+                {
+                    sb.Append("value as DateTimeOffset?)?.DateTime");
+                }
             }
             else if (item.TypeKind == TypeKind.Enum)
             {
+                if (classToGenerate.WithBlobSupport)
+                {
+                    sb.Append("value is System.Text.Json.JsonElement _").Append(item.Name).Append("JsonElement ? _").Append(item.Name).Append("JsonElement.Deserialize<").Append(item.Type).Append(">() : ");
+                }
+
                 sb.Append("value is int _").Append(item.Name).Append("Integer ? (").Append(item.Type).Append(") _").Append(item.Name).Append("Integer : ")
                   .Append("Enum.TryParse(value?.ToString(), out ")
                   .Append(item.Type.TrimEnd('?'))
@@ -645,7 +678,14 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             }
             else
             {
-                sb.Append(item.Type).Append(") value");
+                if (classToGenerate.WithBlobSupport)
+                {
+                    sb.Append("value is System.Text.Json.JsonElement _").Append(item.Name).Append("JsonElement ? _").Append(item.Name).Append("JsonElement.Deserialize<").Append(item.Type).Append(">() : (").Append(item.Type).Append(") value)");
+                }
+                else
+                {
+                    sb.Append(item.Type).Append(") value");
+                }
             }
 
             sb.Append("; break;");

@@ -1,4 +1,6 @@
-﻿namespace TableStorage;
+﻿using System.Text.Json.Serialization;
+
+namespace TableStorage;
 
 public static class BlobStorageSetup
 {
@@ -11,6 +13,14 @@ public static class BlobStorageSetup
             configure(options);
         }
 
+        if (options.SerializerOptions is null)
+        {
+            options.SerializerOptions = new(JsonSerializerDefaults.Web)
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+        }
+
         BlobStorageFactory factory = new(connectionString, options.CreateTableIfNotExists);
         return new BlobSetCreator(factory, options);
     }
@@ -20,13 +30,8 @@ public static class BlobStorageSetup
         private readonly BlobStorageFactory _factory = factory;
         private readonly BlobOptions _options = options;
 
-        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options);
+        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options, null, null);
 
-        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy)
-        {
-            // TODO: partitionKeyProxy;
-            // TODO: rowKeyProxy;
-            return new(_factory, tableName, _options);
-        }
+        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy);
     }
 }

@@ -30,17 +30,17 @@ internal sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProx
         else if (node.Expression.NodeType is ExpressionType.Constant)
         {
             object container = ((ConstantExpression)node.Expression).Value;
-            var member = node.Member;
+            var memberInfo = node.Member;
 
-            if (member.MemberType is MemberTypes.Field)
+            if (memberInfo.MemberType is MemberTypes.Field)
             {
-                object value = ((FieldInfo)member).GetValue(container);
+                object value = ((FieldInfo)memberInfo).GetValue(container);
                 return Expression.Constant(value);
             }
 
-            if (member.MemberType is MemberTypes.Property)
+            if (memberInfo.MemberType is MemberTypes.Property)
             {
-                object value = ((PropertyInfo)member).GetValue(container, null);
+                object value = ((PropertyInfo)memberInfo).GetValue(container, null);
                 return Expression.Constant(value);
             }
         }

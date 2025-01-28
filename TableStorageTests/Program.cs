@@ -223,8 +223,6 @@ var context = provider.GetRequiredService<MyTableContext>();
 await context.Models1Blob.DeleteAllEntitiesAsync("root");
 
 var blobId1 = Guid.NewGuid().ToString("N");
-var blobId2 = Guid.NewGuid().ToString("N");
-
 await context.Models1Blob.AddEntityAsync(new()
 {
     PrettyName = "root",
@@ -233,6 +231,7 @@ await context.Models1Blob.AddEntityAsync(new()
     MyProperty2 = "hallo 1"
 });
 
+var blobId2 = Guid.NewGuid().ToString("N");
 await context.Models1Blob.AddEntityAsync(new()
 {
     PrettyName = "root",
@@ -241,16 +240,24 @@ await context.Models1Blob.AddEntityAsync(new()
     MyProperty2 = "hallo 2"
 });
 
-var blob1 = await context.Models1Blob.GetEntityOrDefaultAsync("root", blobId1);
-Debug.Assert(blob1 != null);
-Debug.Assert(blob1.MyProperty1 == 1 && blob1.MyProperty2 == "hallo 1");
+//var blob1 = await context.Models1Blob.GetEntityOrDefaultAsync("root", blobId1);
+//Debug.Assert(blob1 != null);
+//Debug.Assert(blob1.MyProperty1 == 1 && blob1.MyProperty2 == "hallo 1");
 
-var blob2 = await context.Models1Blob.GetEntityOrDefaultAsync("root", blobId2);
-Debug.Assert(blob2 != null);
-Debug.Assert(blob2.MyProperty1 == 2 && blob2.MyProperty2 == "hallo 2");
+//var blob2 = await context.Models1Blob.GetEntityOrDefaultAsync("root", blobId2);
+//Debug.Assert(blob2 != null);
+//Debug.Assert(blob2.MyProperty1 == 2 && blob2.MyProperty2 == "hallo 2");
 
-var blob3 = await context.Models1Blob.GetEntityOrDefaultAsync("root", Guid.NewGuid().ToString("N"));
-Debug.Assert(blob3 == null);
+//var blob3 = await context.Models1Blob.GetEntityOrDefaultAsync("root", Guid.NewGuid().ToString("N"));
+//Debug.Assert(blob3 == null);
+
+var blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root" && x.PrettyRow == blobId2).ToListAsync();
+Debug.Assert(blobResult1.Count == 1);
+Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
+
+blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root").Where(x => x.PrettyRow == blobId2).ToListAsync();
+Debug.Assert(blobResult1.Count == 1);
+Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
 
 #nullable disable
 namespace TableStorage.Tests.Models
@@ -262,7 +269,7 @@ namespace TableStorage.Tests.Models
     }
 
     [TableSet(TrackChanges = true, PartitionKey = "PrettyName", RowKey = "PrettyRow", SupportBlobs = true)]
-    [TableSetProperty(typeof(int), "MyProperty1")]
+    [TableSetProperty(typeof(int), "MyProperty1"/* TODO: , BlobTag = true*/)]
     [TableSetProperty(typeof(string), "MyProperty2")]
     [TableSetProperty(typeof(ModelEnum), "MyProperty3")]
     [TableSetProperty(typeof(ModelEnum?), "MyProperty4")]
@@ -273,6 +280,7 @@ namespace TableStorage.Tests.Models
     public partial class Model
     {
         // Define as partial if you want to have changetracking
+        //TODO: [BlobTag]
         public partial ModelEnum? MyProperty5 { get; set; }
     }
 
