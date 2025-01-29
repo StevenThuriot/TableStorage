@@ -41,7 +41,7 @@ public readonly struct ClassToGenerate(string name, string @namespace, List<Memb
     }
 }
 
-public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty, string partitionKeyProxy, string rowKeyProxy, bool withChangeTracking, bool isPartial)
+public readonly struct MemberToGenerate(string name, string type, TypeKind typeKind, bool generateProperty, string partitionKeyProxy, string rowKeyProxy, bool withChangeTracking, bool isPartial, bool tagBlob)
 {
     public readonly string Name = name;
     public readonly string Type = type;
@@ -51,6 +51,7 @@ public readonly struct MemberToGenerate(string name, string type, TypeKind typeK
     public readonly string RowKeyProxy = rowKeyProxy;
     public readonly bool WithChangeTracking = (generateProperty || isPartial) && withChangeTracking;
     public readonly bool IsPartial = isPartial;
+    public readonly bool TagBlob = tagBlob;
 }
 
 public readonly struct PrettyMemberToGenerate(string name, string proxy)

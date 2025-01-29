@@ -172,9 +172,25 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         sb.Append(@"
     public static class ").Append(classToGenerate.Name).Append(@"Extensions
     {
-        public static IServiceCollection Add").Append(classToGenerate.Name).Append(@"(this IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null)
+        public static IServiceCollection Add").Append(classToGenerate.Name).Append(@"(this IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null");
+
+        bool hasBlobSets = classToGenerate.Members.Any(x => x.SetType is "BlobSet");
+
+        if (hasBlobSets)
         {
-            ").Append(classToGenerate.Name).Append(@".Register(services, connectionString, configure);
+            sb.Append(", Action<TableStorage.BlobOptions> configureBlobs = null");
+        }
+        
+        sb.Append(@")
+        {
+            ").Append(classToGenerate.Name).Append(@".Register(services, connectionString, configure");
+
+        if (hasBlobSets)
+        {
+            sb.Append(", configureBlobs");
+        }
+        
+        sb.Append(@");
             return services;
         }
     }
@@ -182,8 +198,6 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
     partial class ").Append(classToGenerate.Name).Append(@"
     {
         private TableStorage.ICreator _creator { get; init; }");
-
-        bool hasBlobSets = classToGenerate.Members.Any(x => x.SetType is "BlobSet");
 
         if (hasBlobSets)
         {
@@ -267,11 +281,11 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         sb.Append(@"
         }
 
-        public static void Register(IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure = null");
+        public static void Register(IServiceCollection services, string connectionString, Action<TableStorage.TableOptions> configure");
 
         if (hasBlobSets)
         {
-            sb.Append(", Action<TableStorage.BlobOptions> configureBlobs = null");
+            sb.Append(", Action<TableStorage.BlobOptions> configureBlobs");
         }
         
         sb.Append(@")

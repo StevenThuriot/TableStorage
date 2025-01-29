@@ -1,11 +1,10 @@
-﻿using Azure.Storage.Blobs.Models;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using TableStorage.Visitors;
 
 namespace TableStorage;
 
-public sealed class BlobSet<T> : IAsyncEnumerable<T>
+public sealed class BlobSet<T> : IStorageSet<T>
     where T : IBlobEntity
 {
     public string Name { get; }
@@ -15,14 +14,16 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
     private readonly BlobOptions _options;
     private readonly string? _partitionKeyProxy;
     private readonly string? _rowKeyProxy;
+    private readonly IReadOnlyCollection<string> _tags;
     private readonly LazyAsync<BlobContainerClient> _containerClient;
 
-    internal BlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, string? partitionKeyProxy, string? rowKeyProxy)
+    internal BlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, string? partitionKeyProxy, string? rowKeyProxy, IReadOnlyCollection<string> tags)
     {
         Name = tableName;
         _options = options;
         _partitionKeyProxy = partitionKeyProxy;
         _rowKeyProxy = rowKeyProxy;
+        _tags = tags;
         _containerClient = new(() => factory.GetClient(tableName));
     }
 
@@ -52,14 +53,21 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
 
     public async Task<T?> GetEntityOrDefaultAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default)
     {
+        var (_, result) = await TryGetEntityAsync(partitionKey, rowKey, cancellationToken);
+        return result;
+    }
+
+    public async Task<(bool success, T? entity)> TryGetEntityAsync(string partitionKey, string rowKey, CancellationToken cancellationToken = default)
+    {
         var blob = await GetClient(partitionKey, rowKey);
 
         if (!await blob.ExistsAsync(cancellationToken))
         {
-            return default;
+            return (false, default);
         }
 
-        return await Download(blob, cancellationToken);
+        var result = await Download(blob, cancellationToken);
+        return (result is not null, result);
     }
 
     public async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
@@ -147,11 +155,23 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
 
         if (!_options.IsHierarchical)
         {
-            await blob.SetTagsAsync(new Dictionary<string, string>
+            Dictionary<string, string> tags = new ()
             {
                 ["partition"] = entity.PartitionKey,
                 ["row"] = entity.RowKey
-            }, cancellationToken: cancellationToken);
+            };
+
+            foreach (var tag in _tags)
+            {
+                var tagValue = entity[tag];
+
+                if (tagValue is not null)
+                {
+                    tags[tag] = tagValue.ToString();
+                }
+            }
+
+            await blob.SetTagsAsync(tags, cancellationToken: cancellationToken);
         }
     }
 
@@ -161,12 +181,15 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
         return JsonSerializer.Deserialize<T>(stream, _options.SerializerOptions);
     }
 
-    public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => QueryAsync(cancellationToken).GetAsyncEnumerator();
+
+    public IAsyncEnumerable<T> QueryAsync(CancellationToken cancellationToken = default) => QueryAsync(null!, cancellationToken);
+
+    public async IAsyncEnumerable<T> QueryAsync(Expression<Func<T, bool>> filter, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (_, lazyEntity) in QueryInternalAsync(null, cancellationToken))
+        await foreach (var (_, lazyEntity) in QueryInternalAsync(filter, cancellationToken))
         {
             var entity = await lazyEntity;
-
             if (entity is not null)
             {
                 yield return entity;
@@ -181,8 +204,9 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
             return IterateAllBlobs(cancellationToken);
         }
         
-        BlobQueryVisitor visitor = new(_partitionKeyProxy, _rowKeyProxy);
-        LazyFilteringExpression<T> compiledFilter = visitor.VisitAndConvert(filter, nameof(QueryInternalAsync));
+        BlobQueryVisitor visitor = new(_partitionKeyProxy, _rowKeyProxy, _tags);
+        var visitedFilter = visitor.VisitAndConvert(filter, nameof(QueryInternalAsync));
+        LazyFilteringExpression<T> compiledFilter = filter;
 
         if (!_options.IsHierarchical)
         {
@@ -199,9 +223,14 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
 
         if (!visitor.Error)
         {
-            return IterateFilteredOnPartitionAndRowKeys(visitor.PartitionKeys, visitor.RowKeys, filter, cancellationToken);
-        }
+            // Usecase: PartitionKey = 'a' and (RowKey = 'b' or RowKey = 'c')
+            var lookup = visitor.Tags.ToLookup();
 
+            var partitionKeys = lookup["partition"].ToList();
+            var rowKeys = lookup["row"].ToList();
+
+            return IterateHierarchicalFilteredOnPartitionAndRowKeys(partitionKeys, rowKeys, visitor.Tags.HasOthersThanDefaultKeys() ? compiledFilter : null, cancellationToken);
+        }
         return IterateFilteredAtRuntime(filter, cancellationToken);
     }
 
@@ -247,7 +276,7 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
         }
     }
 
-    private async IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> IterateFilteredOnPartitionAndRowKeys(IReadOnlyCollection<string> partitionKeys, IReadOnlyCollection<string> rowKeys, LazyFilteringExpression<T> filterInstance, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<(BlobClient client, LazyAsync<T?> entity)> IterateHierarchicalFilteredOnPartitionAndRowKeys(IReadOnlyCollection<string> partitionKeys, IReadOnlyCollection<string> rowKeys, LazyFilteringExpression<T>? filterInstance, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var container = await _containerClient;
 
@@ -261,7 +290,7 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
                 }
 
                 var entity = await result.entity;
-                if (entity is not null && filterInstance.Invoke(entity))
+                if (entity is not null && (filterInstance?.Invoke(entity) != false))
                 {
                     yield return result!;
                 }
@@ -283,7 +312,7 @@ public sealed class BlobSet<T> : IAsyncEnumerable<T>
                     var client = container.GetBlobClient(blob.Blob.Name);
                     var entity = await Download(client, cancellationToken);
 
-                    if (entity is not null && filterInstance.Invoke(entity))
+                    if (entity is not null && (filterInstance?.Invoke(entity) != false))
                     {
                         yield return (client, new(() => Task.FromResult<T?>(entity)));
                     }

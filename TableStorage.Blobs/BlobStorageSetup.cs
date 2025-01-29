@@ -30,8 +30,9 @@ public static class BlobStorageSetup
         private readonly BlobStorageFactory _factory = factory;
         private readonly BlobOptions _options = options;
 
-        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options, null, null);
+        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName) => new(_factory, tableName, _options, null, null, []);
+        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, params IReadOnlyCollection<string> tags) => new(_factory, tableName, _options, null, null, tags);
 
-        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy);
+        BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy, params IReadOnlyCollection<string> tags) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy, tags);
     }
 }

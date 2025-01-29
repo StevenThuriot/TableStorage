@@ -31,6 +31,14 @@ namespace TableStorage
         public TableSetPropertyAttribute(Type type, string name)
         {
         }
+
+        public bool Tag { get; set; }
+    }
+
+
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+    public sealed class TagAttribute : Attribute
+    {
     }
 }";
 
@@ -182,7 +190,10 @@ namespace TableStorage
                         default:
                             ITypeSymbol type = property.Type;
                             TypeKind typeKind = GetTypeKind(type);
-                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false, "null", "null", withChangeTracking, property.IsPartialDefinition));
+
+                            var tagBlob = property.GetAttributes().Any(x => x.AttributeClass?.ToDisplayString() is "TableStorage.TagAttribute");
+
+                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false, "null", "null", withChangeTracking, property.IsPartialDefinition, tagBlob));
                             break;
                     }
                 }
@@ -222,7 +233,9 @@ namespace TableStorage
                 string type = typeInfo.Type?.ToDisplayString() ?? typeSyntax.ToFullString();
                 TypeKind typeKind = GetTypeKind(typeInfo.Type);
 
-                members.Add(new(name, type, typeKind, true, partitionKeyProxy, rowKeyProxy, withChangeTracking, false));
+                bool tagBlob = GetArgumentValue(tableSetPropertyAttribute, "Tag") == "true";
+
+                members.Add(new(name, type, typeKind, true, partitionKeyProxy, rowKeyProxy, withChangeTracking, false, tagBlob));
             }
 
             // Create an ClassToGenerate for use in the generation phase
@@ -389,7 +402,14 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
                 sb.Append("null");
             }
 
-            sb.Append(@");
+            sb.Append(", [");
+
+            foreach (var tag in classToGenerate.Members.Where(x => x.TagBlob).Select(x => x.Name))
+            {
+                sb.Append('"').Append(tag).Append("\", ");
+            }
+
+            sb.Append(@"]);
         }
 ");
         }

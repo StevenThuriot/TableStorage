@@ -4,7 +4,7 @@ using TableStorage.Visitors;
 
 namespace TableStorage;
 
-public abstract class TableSet<T> : IAsyncEnumerable<T>
+public abstract class TableSet<T> : IStorageSet<T> 
     where T : class, ITableEntity, new()
 {
     public string Name { get; }

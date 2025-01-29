@@ -3,30 +3,84 @@ using System.Reflection;
 
 namespace TableStorage.Visitors;
 
-internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+internal readonly struct TagCollection
+{
+    private readonly Dictionary<string, HashSet<string>> _tags;
+
+    public TagCollection()
+    {
+        _tags = [];
+    }
+
+    public void Set(string tag, string value)
+    {
+        if (!_tags.TryGetValue(tag, out var count))
+        {
+            _tags[tag] = count = [];
+        }
+
+        count.Add(value);
+    }
+
+    public bool IsUnique() => _tags.Values.All(x => x.Count is 1);
+
+    public bool HasOthersThanDefaultKeys() => _tags.Keys.Any(x => x is not "partition" and not "row");
+
+    public ILookup<string, string> ToLookup() => _tags.ToLookup(x => x.Key, x => x.Value.First());
+}
+
+internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKeyProxy, IReadOnlyCollection<string> tags) : ExpressionVisitor
 {
     private readonly string _partitionKeyName = partitionKeyProxy ?? nameof(IBlobEntity.PartitionKey);
     private readonly string _rowKeyName = rowKeyProxy ?? nameof(IBlobEntity.RowKey);
+    private readonly IReadOnlyCollection<string> _tags = tags;
 
     private bool _simpleFilter = true;
     public bool SimpleFilter
     {
-        get => _simpleFilter && _partitionKeyValues.Count < 2 && _rowKeyValues.Count < 2;
+        get => _simpleFilter && Tags.IsUnique();
     }
-
-    public IReadOnlyCollection<string> PartitionKeys => _partitionKeyValues;
-    public IReadOnlyCollection<string> RowKeys => _rowKeyValues;
 
     public bool Error { get; private set; }
     public string? Filter { get; private set; }
 
-    private readonly HashSet<string> _partitionKeyValues = [];
-    private readonly HashSet<string> _rowKeyValues = [];
+    public TagCollection Tags { get; } = new();
     private readonly Dictionary<Expression, string> _filters = [];
+
+    protected override Expression VisitMember(MemberExpression node)
+    {
+        if (node.Expression is ConstantExpression constant)
+        {
+            var container = constant.Value;
+            var memberInfo = node.Member;
+
+            if (memberInfo.MemberType is MemberTypes.Field)
+            {
+                return Expression.Constant(((FieldInfo)memberInfo).GetValue(container));
+            }
+
+            if (memberInfo.MemberType is MemberTypes.Property)
+            {
+                return Expression.Constant(((PropertyInfo)memberInfo).GetValue(container, null));
+            }
+        }
+
+        return base.VisitMember(node);
+    }
+
+    protected override Expression VisitInvocation(InvocationExpression node)
+    {
+        if (node.Expression is LambdaExpression lambda)
+        {
+            return Visit(lambda.Body);
+        }
+
+        return base.VisitInvocation(node);
+    }
 
     protected override Expression VisitBinary(BinaryExpression node)
     {
-        var result = base.VisitBinary(node);
+        node = (BinaryExpression)base.VisitBinary(node);
 
         if (node.Left is not BinaryExpression && node.Right is not BinaryExpression)
         {
@@ -35,26 +89,38 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
 
             if (success)
             {
-                _filters[node] = filter!;
+                _filters[node] = Filter = filter!;
             }
             else
             {
-                Error = true;
+                _filters[node] = "";
+                _simpleFilter = false;
             }
         }
         else
         {
             if (_filters.TryGetValue(node.Left, out var left) && _filters.TryGetValue(node.Right, out var right))
             {
-                _filters[node] = Filter = $"{left} {ToSqlOperand(node.NodeType)} {right}";
+                if (left is "")
+                {
+                    _filters[node] = Filter = right;
+                }
+                else if (right is "")
+                {
+                    _filters[node] = Filter = left;
+                }
+                else
+                {
+                    _filters[node] = Filter = $"{left} {ToSqlOperand(node.NodeType)} {right}";
+                }
             }
-            else
+            else if (_simpleFilter)
             {
                 Error = true;
             }
         }
 
-        return result;
+        return node;
     }
 
     private bool TryGetFilterFor(Expression left, Expression right, ExpressionType type, out string? filter)
@@ -67,7 +133,7 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
                 if (value is not null)
                 {
                     filter = $"partition {ToSqlOperand(type)} '{value}'";
-                    _partitionKeyValues.Add(value);
+                    Tags.Set("partition", value);
                     return true;
                 }
             }
@@ -76,19 +142,24 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
                 var value = GetValue(right)?.ToString();
                 if (value is not null)
                 {
-                    filter = $"row {ToSqlOperand(type)} '{GetValue(right)}'";
-                    _rowKeyValues.Add(value);
+                    filter = $"row {ToSqlOperand(type)} '{value}'";
+                    Tags.Set("row", value);
                     return true;
                 }
             }
-            //TODO:
-            //else if (_tagList.Contains(member.Member.Name))
-            //{
-            //    filter = $"""
-            //        "{member.Member.Name}" {ToSqlOperand(type)} '{GetValue(right)}'
-            //        """;
-            //    return true;
-            //}
+            else if (_tags.Contains(member.Member.Name))
+            {
+                var value = GetValue(right)?.ToString();
+                if (value is not null)
+                {
+                    filter = $"""
+                    "{member.Member.Name}" {ToSqlOperand(type)} '{value}'
+                    """;
+
+                    Tags.Set(member.Member.Name, value);
+                    return true;
+                }
+            }
             else
             {
                 _simpleFilter = false;

@@ -251,11 +251,22 @@ await context.Models1Blob.AddEntityAsync(new()
 //var blob3 = await context.Models1Blob.GetEntityOrDefaultAsync("root", Guid.NewGuid().ToString("N"));
 //Debug.Assert(blob3 == null);
 
-var blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root" && x.PrettyRow == blobId2).ToListAsync();
+var blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root")
+                                       .Where(x => x.PrettyRow == blobId2)
+                                       .Where(x => x.MyProperty1 == 2)
+                                       .Where(x => x.MyProperty2 == "hallo 2")
+                                       .ToListAsync(); // Iterate by Tags and Complex Filter
 Debug.Assert(blobResult1.Count == 1);
 Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
 
-blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root").Where(x => x.PrettyRow == blobId2).ToListAsync();
+blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root")
+                                       .Where(x => x.PrettyRow == blobId2)
+                                       .Where(x => x.MyProperty1 == 2)
+                                       .ToListAsync(); // Iterate By Tags
+Debug.Assert(blobResult1.Count == 1);
+Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
+
+blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root" && x.PrettyRow == blobId2).ToListAsync();
 Debug.Assert(blobResult1.Count == 1);
 Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
 
@@ -269,7 +280,7 @@ namespace TableStorage.Tests.Models
     }
 
     [TableSet(TrackChanges = true, PartitionKey = "PrettyName", RowKey = "PrettyRow", SupportBlobs = true)]
-    [TableSetProperty(typeof(int), "MyProperty1"/* TODO: , BlobTag = true*/)]
+    [TableSetProperty(typeof(int), "MyProperty1", Tag = true)]
     [TableSetProperty(typeof(string), "MyProperty2")]
     [TableSetProperty(typeof(ModelEnum), "MyProperty3")]
     [TableSetProperty(typeof(ModelEnum?), "MyProperty4")]
@@ -280,7 +291,7 @@ namespace TableStorage.Tests.Models
     public partial class Model
     {
         // Define as partial if you want to have changetracking
-        //TODO: [BlobTag]
+        [Tag]
         public partial ModelEnum? MyProperty5 { get; set; }
     }
 

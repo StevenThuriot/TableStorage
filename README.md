@@ -47,7 +47,7 @@ public partial class Model;
 ```
 
 `TableSet` also has `TrackChanges` property, default `false`, that will try to optimize what is being sent back to the server when making changes to an entity.
-When tracking changes, it's important to either use the `TableSetProperty` attribute to define your properties, or mark them as partial starting C# 13.
+When tracking changes, it's important to either use the `TableSetProperty` attribute to define your properties, or mark them as partial starting C# 13, otherwise they will not be tracked.
 
 ```csharp
 [TableSet]
@@ -58,13 +58,27 @@ public partial class Model
 }
 ```
 
-Place your tables on your TableContext. The sample below will create 2 tables in table storage, named Models1 and Models2.
+Besides tracking changes, you can also mark the model for Blob storage support. You can do this by setting `SupportBlobs` on the `TableSet` attribute to `true`.
+When working with blobs, you can mark certain properties to be used as blob tags, either by decorating the property with `[Tag]` or by setting `Tag` to `true` on the `TableSetProperty` attribute.
+
+```csharp
+[TableSet(SupportBlobs = true)]
+[TableSetProperty(typeof(string), "Data", Tag = true)]
+public partial class Model
+{
+    [Tag]
+    public partial bool Enabled { get; set; }
+}
+```
+
+Place your tables on your TableContext. The sample below will create 2 tables in table storage, named Models1 and Models2. It will also create a blob container named BlobModels1.
 
 ```csharp
 [TableContext]
 public partial class MyTableContext
 {
     public TableSet<Model> Models1 { get; set; }
+    public BlobSet<Model> BlobModels1 { get; set; }
     public TableSet<Model> Models2 { get; set; }
 }
 ```
@@ -82,8 +96,23 @@ builder.Services.AddMyTableContext(builder.Configuration.GetConnectionString("My
 
 static void Configure(TableOptions options)
 {
-    options.AutoTimestamps = true;
     options.TableMode = TableUpdateMode.Merge;
+}
+```
+
+If you have defined any `BlobSets`, a third parameter becomes available to configure the blob service.
+
+```csharp
+builder.Services.AddMyTableContext(builder.Configuration.GetConnectionString("MyConnectionString"), ConfigureTables, ConfigureBlobs);
+
+static void ConfigureTables(TableOptions options)
+{
+    options.TableMode = TableUpdateMode.Merge;
+}
+
+static void ConfigureBlobs(BlobOptions options)
+{
+    options.IsHierarchical = true;
 }
 ```
 
