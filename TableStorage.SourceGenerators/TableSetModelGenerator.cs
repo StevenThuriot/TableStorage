@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
 
 namespace TableStorage.SourceGenerators;
@@ -256,7 +257,9 @@ namespace TableStorage
     {
         null => TypeKind.Unknown,
         INamedTypeSymbol namedTypeSymbol when type.NullableAnnotation == NullableAnnotation.Annotated || //Sometimes it's nullable yet not annoted
-                                              namedTypeSymbol.ConstructedFrom.ToDisplayString() == "System.Nullable<T>" => namedTypeSymbol.TypeArguments[0].TypeKind,
+                                              namedTypeSymbol.ConstructedFrom.ToDisplayString() == "System.Nullable<T>" => namedTypeSymbol.TypeArguments.Length is not 0
+                                                                                                                           ? namedTypeSymbol.TypeArguments[0].TypeKind
+                                                                                                                           : namedTypeSymbol.ConstructedFrom.TypeKind,
         _ => type.TypeKind,
     };
 

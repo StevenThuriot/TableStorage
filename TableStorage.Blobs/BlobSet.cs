@@ -178,7 +178,7 @@ public sealed class BlobSet<T> : IStorageSet<T>
     private async Task<T?> Download(BlobClient blob, CancellationToken cancellationToken)
     {
         using var stream = await blob.OpenReadAsync(cancellationToken: cancellationToken);
-        return _options.Serializer.Deserialize<T>(stream);
+        return await _options.Serializer.DeserializeAsync<T>(stream);
     }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => QueryAsync(cancellationToken).GetAsyncEnumerator();
