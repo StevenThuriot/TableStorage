@@ -148,7 +148,7 @@ public sealed class BlobSet<T> : IStorageSet<T>
 
     private async Task Upload(BlobClient blob, T entity, CancellationToken cancellationToken)
     {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(entity, _options.SerializerOptions);
+        var bytes = _options.Serializer.Serialize(entity);
         BinaryData data = new(bytes);
 
         await blob.UploadAsync(data, true, cancellationToken);
@@ -178,7 +178,7 @@ public sealed class BlobSet<T> : IStorageSet<T>
     private async Task<T?> Download(BlobClient blob, CancellationToken cancellationToken)
     {
         using var stream = await blob.OpenReadAsync(cancellationToken: cancellationToken);
-        return JsonSerializer.Deserialize<T>(stream, _options.SerializerOptions);
+        return _options.Serializer.Deserialize<T>(stream);
     }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => QueryAsync(cancellationToken).GetAsyncEnumerator();

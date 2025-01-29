@@ -13,12 +13,9 @@ public static class BlobStorageSetup
             configure(options);
         }
 
-        if (options.SerializerOptions is null)
+        if (options.Serializer is null)
         {
-            options.SerializerOptions = new(JsonSerializerDefaults.Web)
-            {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
-            };
+            options.Serializer = JsonBlobSerializer.Instance;
         }
 
         BlobStorageFactory factory = new(connectionString, options.CreateTableIfNotExists);
@@ -34,5 +31,21 @@ public static class BlobStorageSetup
         BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, params IReadOnlyCollection<string> tags) => new(_factory, tableName, _options, null, null, tags);
 
         BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy, params IReadOnlyCollection<string> tags) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy, tags);
+    }
+
+    private sealed class JsonBlobSerializer : BlobSerializer
+    {
+        public static readonly BlobSerializer Instance = new JsonBlobSerializer();
+
+        private JsonBlobSerializer() { }
+
+        private readonly JsonSerializerOptions _options = new(JsonSerializerDefaults.Web)
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+        };
+
+        public override byte[] Serialize<T>(T entity) => JsonSerializer.SerializeToUtf8Bytes(entity, _options);
+
+        public override T? Deserialize<T>(Stream stream) where T : default => JsonSerializer.Deserialize<T>(stream, _options);
     }
 }
