@@ -46,6 +46,6 @@ public static class BlobStorageSetup
 
         public override byte[] Serialize<T>(T entity) => JsonSerializer.SerializeToUtf8Bytes(entity, _options);
 
-        public async override Task<T?> DeserializeAsync<T>(Stream stream) where T : default => await JsonSerializer.DeserializeAsync<T>(stream, _options);
+        public override ValueTask<T?> DeserializeAsync<T>(Stream stream) where T : default => JsonSerializer.DeserializeAsync<T>(stream, _options);
     }
 }

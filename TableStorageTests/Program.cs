@@ -1,15 +1,27 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using ProtoBuf;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
+using System.Threading.Tasks;
 using TableStorage;
 using TableStorage.Linq;
 using TableStorage.Tests.Contexts;
 using TableStorage.Tests.Models;
 
 ServiceCollection services = new();
-services.AddMyTableContext("UseDevelopmentStorage=true");
+services.AddMyTableContext("UseDevelopmentStorage=true",
+    configure: x =>
+    {
+        x.CreateTableIfNotExists = true;
+    },
+    configureBlobs: x =>
+    {
+        x.Serializer = new HybridSerializer();
+    });
 var provider = services.BuildServiceProvider();
 
 var context = provider.GetRequiredService<MyTableContext>();
@@ -220,21 +232,21 @@ var context = provider.GetRequiredService<MyTableContext>();
 //    MyProperty6 = ModelEnum.No
 //});
 
-await context.Models1Blob.DeleteAllEntitiesAsync("root");
+await context.Models4Blob.DeleteAllEntitiesAsync("root");
 
 var blobId1 = Guid.NewGuid().ToString("N");
-await context.Models1Blob.AddEntityAsync(new()
+await context.Models4Blob.AddEntityAsync(new()
 {
-    PrettyName = "root",
+    PrettyPartition = "root",
     PrettyRow = blobId1,
     MyProperty1 = 1,
     MyProperty2 = "hallo 1"
 });
 
 var blobId2 = Guid.NewGuid().ToString("N");
-await context.Models1Blob.AddEntityAsync(new()
+await context.Models4Blob.AddEntityAsync(new()
 {
-    PrettyName = "root",
+    PrettyPartition = "root",
     PrettyRow = blobId2,
     MyProperty1 = 2,
     MyProperty2 = "hallo 2"
@@ -251,7 +263,7 @@ await context.Models1Blob.AddEntityAsync(new()
 //var blob3 = await context.Models1Blob.GetEntityOrDefaultAsync("root", Guid.NewGuid().ToString("N"));
 //Debug.Assert(blob3 == null);
 
-var blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root")
+var blobResult1 = await context.Models4Blob.Where(x => x.PrettyPartition == "root")
                                        .Where(x => x.PrettyRow == blobId2)
                                        .Where(x => x.MyProperty1 == 2)
                                        .Where(x => x.MyProperty2 == "hallo 2")
@@ -259,14 +271,14 @@ var blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root")
 Debug.Assert(blobResult1.Count == 1);
 Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
 
-blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root")
+blobResult1 = await context.Models4Blob.Where(x => x.PrettyPartition == "root")
                                        .Where(x => x.PrettyRow == blobId2)
                                        .Where(x => x.MyProperty1 == 2)
                                        .ToListAsync(); // Iterate By Tags
 Debug.Assert(blobResult1.Count == 1);
 Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
 
-blobResult1 = await context.Models1Blob.Where(x => x.PrettyName == "root" && x.PrettyRow == blobId2).ToListAsync();
+blobResult1 = await context.Models4Blob.Where(x => x.PrettyPartition == "root" && x.PrettyRow == blobId2).ToListAsync();
 Debug.Assert(blobResult1.Count == 1);
 Debug.Assert(blobResult1[0].MyProperty1 == 2 && blobResult1[0].MyProperty2 == "hallo 2");
 
@@ -319,6 +331,46 @@ namespace TableStorage.Tests.Models
     public partial class Model3
     {
     }
+
+#nullable enable
+    [TableSet(PartitionKey = "PrettyPartition", RowKey = "PrettyRow", SupportBlobs = true)]
+    [ProtoContract(Surrogate = typeof(Model4Proto), IgnoreListHandling = true)]
+    public partial class Model4
+    {
+        public partial int MyProperty1 { get; set; }
+        public partial string MyProperty2 { get; set; }
+        public partial string? MyNullableProperty2 { get; set; }
+    }
+
+    [ProtoContract(Name = nameof(Model4))]
+    struct Model4Proto
+    {
+        private Model4 _model = default!;
+
+        public Model4Proto()
+        {
+        }
+
+        [ProtoMember(1)] public string PrettyPartition { get => _model.PrettyPartition; set => _model.PrettyPartition = value; }
+        [ProtoMember(2)] public string PrettyRow { get => _model.PrettyRow; set => _model.PrettyRow = value; }
+        [ProtoMember(3)] public int MyProperty1 { get => _model.MyProperty1; set => _model.MyProperty1 = value; }
+        [ProtoMember(4)] public string MyProperty2 { get => _model.MyProperty2; set => _model.MyProperty2 = value; }
+        [ProtoMember(5)] public string? MyNullableProperty2 { get => _model.MyNullableProperty2; set => _model.MyNullableProperty2 = value; }
+
+        public static implicit operator Model4Proto(Model4 value)
+        {
+            return new()
+            {
+                _model = value ?? []
+            };
+        }
+
+        public static implicit operator Model4(Model4Proto value)
+        {
+            return value._model;
+        }
+    }
+#nullable disable
 }
 
 namespace TableStorage.Tests.Contexts
@@ -335,6 +387,7 @@ namespace TableStorage.Tests.Contexts
         public TableSet<Model3> Models5 { get; init; }
 
         public BlobSet<Model> Models1Blob { get; set; }
+        public BlobSet<Model4> Models4Blob { get; set; }
         public BlobSet<Model2> Models2Blob { get; set; }
     }
 }
@@ -358,5 +411,30 @@ public static class Mapper
     public static TestTransformAndSelect Map(this TableStorage.Tests.Models.Model model)
     {
         return new(model.MyProperty1, model.MyProperty2);
+    }
+}
+
+public sealed class HybridSerializer : BlobSerializer
+{
+    public override ValueTask<T> DeserializeAsync<T>(Stream entity) where T : default
+    {
+        if (typeof(T) == typeof(Model4))
+        {
+            return ValueTask.FromResult(Serializer.Deserialize<T>(entity));
+        }
+
+        return JsonSerializer.DeserializeAsync<T>(entity);
+    }
+
+    public override byte[] Serialize<T>(T entity)
+    {
+        if (entity is Model4 model)
+        {
+            using MemoryStream stream = new();
+            Serializer.Serialize(stream, model);
+            return stream.ToArray();
+        }
+
+        return JsonSerializer.SerializeToUtf8Bytes(entity);
     }
 }

@@ -15,5 +15,5 @@ public sealed class BlobOptions
 public abstract class BlobSerializer
 {
     public abstract byte[] Serialize<T>(T entity) where T : IBlobEntity;
-    public abstract Task<T?> DeserializeAsync<T>(Stream entity) where T : IBlobEntity;
+    public abstract ValueTask<T?> DeserializeAsync<T>(Stream entity) where T : IBlobEntity;
 }
