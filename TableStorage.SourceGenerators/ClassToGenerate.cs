@@ -46,10 +46,10 @@ public readonly struct MemberToGenerate(string name, string type, TypeKind typeK
     public readonly string Name = name;
     public readonly string Type = type;
     public readonly TypeKind TypeKind = typeKind;
-    public readonly bool GenerateProperty = generateProperty || isPartial;
+    public readonly bool GenerateProperty = generateProperty;
     public readonly string PartitionKeyProxy = partitionKeyProxy;
     public readonly string RowKeyProxy = rowKeyProxy;
-    public readonly bool WithChangeTracking = (generateProperty || isPartial) && withChangeTracking;
+    public readonly bool WithChangeTracking = generateProperty && withChangeTracking;
     public readonly bool IsPartial = isPartial;
     public readonly bool TagBlob = tagBlob;
 }

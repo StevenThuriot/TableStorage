@@ -333,42 +333,15 @@ namespace TableStorage.Tests.Models
     }
 
 #nullable enable
-    [TableSet(PartitionKey = "PrettyPartition", RowKey = "PrettyRow", SupportBlobs = true)]
-    [ProtoContract(Surrogate = typeof(Model4Proto), IgnoreListHandling = true)]
+    [TableSet(PartitionKey = "PrettyPartition", RowKey = "PrettyRow", SupportBlobs = true, TrackChanges = true)]
+    [ProtoContract(IgnoreListHandling = true)] // Important to ignore list handling because we are generating an IDictionary implementation that is not supported by protobuf
     public partial class Model4
     {
-        public partial int MyProperty1 { get; set; }
-        public partial string MyProperty2 { get; set; }
-        public partial string? MyNullableProperty2 { get; set; }
-    }
-
-    [ProtoContract(Name = nameof(Model4))]
-    struct Model4Proto
-    {
-        private Model4 _model = default!;
-
-        public Model4Proto()
-        {
-        }
-
-        [ProtoMember(1)] public string PrettyPartition { get => _model.PrettyPartition; set => _model.PrettyPartition = value; }
-        [ProtoMember(2)] public string PrettyRow { get => _model.PrettyRow; set => _model.PrettyRow = value; }
-        [ProtoMember(3)] public int MyProperty1 { get => _model.MyProperty1; set => _model.MyProperty1 = value; }
-        [ProtoMember(4)] public string MyProperty2 { get => _model.MyProperty2; set => _model.MyProperty2 = value; }
-        [ProtoMember(5)] public string? MyNullableProperty2 { get => _model.MyNullableProperty2; set => _model.MyNullableProperty2 = value; }
-
-        public static implicit operator Model4Proto(Model4 value)
-        {
-            return new()
-            {
-                _model = value ?? []
-            };
-        }
-
-        public static implicit operator Model4(Model4Proto value)
-        {
-            return value._model;
-        }
+        [ProtoMember(1)] public partial string PrettyPartition { get; set; } // We can partial the PK and RowKey to enable custom serialization attributes
+        [ProtoMember(2)] public partial string PrettyRow { get; set; }
+        [ProtoMember(3)] public partial int MyProperty1 { get; set; }
+        [ProtoMember(4)] public partial string MyProperty2 { get; set; }
+        [ProtoMember(5)] public partial string? MyNullableProperty2 { get; set; }
     }
 #nullable disable
 }

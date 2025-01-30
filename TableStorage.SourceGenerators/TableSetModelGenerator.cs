@@ -170,6 +170,26 @@ namespace TableStorage
             bool withChangeTracking = GetArgumentValue(tablesetAttribute, "TrackChanges") == "true";
             bool withBlobSupport = GetArgumentValue(tablesetAttribute, "SupportBlobs") == "true";
 
+            string? partitionKeyProxy = GetArgumentValue(tablesetAttribute, "PartitionKey");
+            if (partitionKeyProxy is not null)
+            {
+                prettyMembers.Add(new(partitionKeyProxy.Trim('"'), "PartitionKey"));
+            }
+            else
+            {
+                partitionKeyProxy = "null";
+            }
+
+            string? rowKeyProxy = GetArgumentValue(tablesetAttribute, "RowKey");
+            if (rowKeyProxy is not null)
+            {
+                prettyMembers.Add(new(rowKeyProxy.Trim('"'), "RowKey"));
+            }
+            else
+            {
+                rowKeyProxy = "null";
+            }
+
             // Get all the properties from the class, and add their name to the list
             foreach (ISymbol member in classMembers)
             {
@@ -194,30 +214,13 @@ namespace TableStorage
 
                             var tagBlob = property.GetAttributes().Any(x => x.AttributeClass?.ToDisplayString() is "TableStorage.TagAttribute");
 
-                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, false, "null", "null", withChangeTracking, property.IsPartialDefinition, tagBlob));
+                            var generate = property.IsPartialDefinition &&
+                                           !prettyMembers.Any(x => x.Name == property.Name);
+
+                            members.Add(new(member.Name, type.ToDisplayString(), typeKind, generate, "null", "null", withChangeTracking, property.IsPartialDefinition, tagBlob));
                             break;
                     }
                 }
-            }
-
-            string? partitionKeyProxy = GetArgumentValue(tablesetAttribute, "PartitionKey");
-            if (partitionKeyProxy is not null)
-            {
-                prettyMembers.Add(new(partitionKeyProxy.Trim('"'), "PartitionKey"));
-            }
-            else
-            {
-                partitionKeyProxy = "null";
-            }
-
-            string? rowKeyProxy = GetArgumentValue(tablesetAttribute, "RowKey");
-            if (rowKeyProxy is not null)
-            {
-                prettyMembers.Add(new(rowKeyProxy.Trim('"'), "RowKey"));
-            }
-            else
-            {
-                rowKeyProxy = "null";
             }
 
             foreach (var (_, tableSetPropertyAttribute) in relevantSymbols.Where(x => x.fullName == "TableStorage.TableSetPropertyAttribute"))
@@ -510,7 +513,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         public void SetChanged()
         {");
 
-            foreach (MemberToGenerate member in classToGenerate.Members)
+            foreach (MemberToGenerate member in classToGenerate.Members.Where(x => x.GenerateProperty))
             {
                 sb.AppendLine().Append("            SetChanged(\"" + member.Name + "\");");
             }
@@ -591,15 +594,40 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
 
         foreach (var item in classToGenerate.PrettyMembers)
         {
+            bool partial = classToGenerate.Members.Any(x => x.IsPartial && x.Name == item.Name);
             if (item.Proxy is "PartitionKey" or "RowKey")
             {
                 sb.Append(@"
-        [System.Runtime.Serialization.IgnoreDataMember] public string ").Append(item.Name).Append(" { get; set; }");
+        [System.Runtime.Serialization.IgnoreDataMember] public ");
+
+                if (partial)
+                {
+                    sb.Append("partial ");
+                }
+
+                sb.Append("string ").Append(item.Name);
+
+                if (partial)
+                {
+                    sb.Append(" { get => _").Append(item.Name).Append("; set => _").Append(item.Name).AppendLine(" = value; }")
+                      .Append("        private string _").Append(item.Name).Append(';');
+                }
+                else
+                {
+                    sb.Append(" { get; set; }");
+                }
             }
             else
             {
                 sb.Append(@"
-        [System.Runtime.Serialization.IgnoreDataMember] public string ").Append(item.Name).Append(" { get => ").Append(item.Proxy).Append("; set => ").Append(item.Proxy).Append(" = value; }");
+        [System.Runtime.Serialization.IgnoreDataMember] public ");
+
+                if (partial)
+                {
+                    sb.Append("partial ");
+                }
+
+                sb.Append("string ").Append(item.Name).Append(" { get => ").Append(item.Proxy).Append("; set => ").Append(item.Proxy).Append(" = value; }");
             }
         }
 
