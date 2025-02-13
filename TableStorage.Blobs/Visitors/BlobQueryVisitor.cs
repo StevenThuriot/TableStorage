@@ -26,14 +26,14 @@ internal readonly struct TagCollection
 
     public bool HasOthersThanDefaultKeys() => _tags.Keys.Any(x => x is not "partition" and not "row");
 
-    public ILookup<string, string> ToLookup() => _tags.ToLookup(x => x.Key, x => x.Value.First());
+    public ILookup<string, string> ToLookup() => _tags.SelectMany(x => x.Value.Select(value => (x.Key, value))).ToLookup(x => x.Key, x => x.value);
 }
 
-internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKeyProxy, IReadOnlyCollection<string> tags) : ExpressionVisitor
+internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKeyProxy, IEnumerable<string> tags) : ExpressionVisitor
 {
     private readonly string _partitionKeyName = partitionKeyProxy ?? nameof(IBlobEntity.PartitionKey);
     private readonly string _rowKeyName = rowKeyProxy ?? nameof(IBlobEntity.RowKey);
-    private readonly IReadOnlyCollection<string> _tags = tags;
+    private readonly IEnumerable<string> _tags = tags;
 
     private bool _simpleFilter = true;
     public bool SimpleFilter

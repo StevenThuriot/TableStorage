@@ -131,11 +131,22 @@ public sealed class BlobSet<T> : IStorageSet<T>
                 await Delete(container, blob.Blob.Name, cancellationToken);
             }
         }
-        else
+        else if (_options.UseTags)
         {
             await foreach (var blob in container.FindBlobsByTagsAsync($"partition='{partitionKey}'", cancellationToken))
             {
                 await Delete(container, blob.BlobName, cancellationToken);
+            }
+        }
+        else
+        {
+            var prefix = partitionKey + '/';
+            await foreach (var blob in container.GetBlobsAsync(cancellationToken: cancellationToken))
+            {
+                if (!blob.Deleted && blob.Name.StartsWith(prefix))
+                {
+                    await Delete(container, blob.Name, cancellationToken);
+                }
             }
         }
 
@@ -153,26 +164,28 @@ public sealed class BlobSet<T> : IStorageSet<T>
 
         await blob.UploadAsync(data, true, cancellationToken);
 
-        if (!_options.IsHierarchical)
+        if (!_options.UseTags || _options.IsHierarchical)
         {
-            Dictionary<string, string> tags = new ()
-            {
-                ["partition"] = entity.PartitionKey,
-                ["row"] = entity.RowKey
-            };
-
-            foreach (var tag in _tags)
-            {
-                var tagValue = entity[tag];
-
-                if (tagValue is not null)
-                {
-                    tags[tag] = tagValue.ToString();
-                }
-            }
-
-            await blob.SetTagsAsync(tags, cancellationToken: cancellationToken);
+            return;
         }
+
+        Dictionary<string, string> tags = new(2 + _tags.Count)
+        {
+            ["partition"] = entity.PartitionKey,
+            ["row"] = entity.RowKey
+        };
+
+        foreach (var tag in _tags)
+        {
+            var tagValue = entity[tag];
+
+            if (tagValue is not null)
+            {
+                tags[tag] = tagValue.ToString();
+            }
+        }
+
+        await blob.SetTagsAsync(tags, cancellationToken: cancellationToken);
     }
 
     private async Task<T?> Download(BlobClient blob, CancellationToken cancellationToken)
@@ -203,14 +216,14 @@ public sealed class BlobSet<T> : IStorageSet<T>
         {
             return IterateAllBlobs(cancellationToken);
         }
-        
+
         BlobQueryVisitor visitor = new(_partitionKeyProxy, _rowKeyProxy, _tags);
         var visitedFilter = visitor.VisitAndConvert(filter, nameof(QueryInternalAsync));
         LazyFilteringExpression<T> compiledFilter = filter;
 
-        if (!_options.IsHierarchical)
+        if (!visitor.Error)
         {
-            if (!visitor.Error)
+            if (_options.UseTags && !_options.IsHierarchical)
             {
                 if (visitor.SimpleFilter)
                 {
@@ -219,18 +232,18 @@ public sealed class BlobSet<T> : IStorageSet<T>
 
                 return IterateBlobsByTagAndComplexFilter(visitor.Filter!, compiledFilter, cancellationToken);
             }
-        }
 
-        if (!visitor.Error)
-        {
             // Usecase: PartitionKey = 'a' and (RowKey = 'b' or RowKey = 'c')
+
             var lookup = visitor.Tags.ToLookup();
 
             var partitionKeys = lookup["partition"].ToList();
             var rowKeys = lookup["row"].ToList();
 
-            return IterateHierarchicalFilteredOnPartitionAndRowKeys(partitionKeys, rowKeys, visitor.Tags.HasOthersThanDefaultKeys() ? compiledFilter : null, cancellationToken);
+            var iterationFilter = !visitor.SimpleFilter || visitor.Tags.HasOthersThanDefaultKeys() ? compiledFilter : null;
+            return IterateHierarchicalFilteredOnPartitionAndRowKeys(partitionKeys, rowKeys, iterationFilter, cancellationToken);
         }
+
         return IterateFilteredAtRuntime(filter, cancellationToken);
     }
 
@@ -255,6 +268,11 @@ public sealed class BlobSet<T> : IStorageSet<T>
         if (_options.IsHierarchical)
         {
             throw new NotSupportedException("Hierarchical namespaces aren't supported in this method");
+        }
+
+        if (!_options.UseTags)
+        {
+            throw new InvalidOperationException("Tags is disabled yet we ended up in a tags call");
         }
 
         await foreach (var blob in container.FindBlobsByTagsAsync(filter, cancellationToken))

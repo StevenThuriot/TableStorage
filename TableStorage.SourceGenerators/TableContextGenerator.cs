@@ -2,7 +2,6 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Text;
 
 namespace TableStorage.SourceGenerators;
@@ -10,8 +9,7 @@ namespace TableStorage.SourceGenerators;
 [Generator]
 public class TableContextGenerator : IIncrementalGenerator
 {
-    private const string TableContextAttribute = @"
-using System;
+    private const string TableContextAttribute = Header.Value + @"using System;
 
 namespace TableStorage
 {
@@ -147,11 +145,9 @@ namespace TableStorage
         foreach (ContextClassToGenerate classToGenerate in classesToGenerate)
         {
             contextBuilder.Clear();
-            contextBuilder.Append(@"using Microsoft.Extensions.DependencyInjection;
+            contextBuilder.Append(Header.Value).Append(@"using Microsoft.Extensions.DependencyInjection;
 using TableStorage;
 using System;
-
-#nullable disable
 ");
 
             GenerateContext(contextBuilder, classToGenerate);

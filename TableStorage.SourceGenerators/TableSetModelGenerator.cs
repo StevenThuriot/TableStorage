@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Text;
 
 namespace TableStorage.SourceGenerators;
@@ -11,8 +10,7 @@ namespace TableStorage.SourceGenerators;
 [Generator]
 public class TableSetModelGenerator : IIncrementalGenerator
 {
-    private const string TableAttributes = @"
-using System;
+    private const string TableAttributes = Header.Value + @"using System;
 
 namespace TableStorage
 {
@@ -273,7 +271,7 @@ namespace TableStorage
         foreach (var classToGenerate in classesToGenerate)
         {
             modelBuilder.Clear();
-            modelBuilder.Append(@"using Microsoft.Extensions.DependencyInjection;
+            modelBuilder.Append(Header.Value).Append(@"using Microsoft.Extensions.DependencyInjection;
 using TableStorage;
 using System.Collections.Generic;
 using System;
@@ -288,11 +286,6 @@ using System;
             {
                 modelBuilder.AppendLine("using System.Text.Json;");
             }
-
-            modelBuilder.Append(@"
-
-#nullable disable
-");
 
             GenerateModel(modelBuilder, classToGenerate);
 

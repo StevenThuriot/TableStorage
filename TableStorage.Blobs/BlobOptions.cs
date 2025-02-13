@@ -10,6 +10,8 @@ public sealed class BlobOptions
     public BlobSerializer Serializer { get; set; } = default!;
 
     public bool IsHierarchical { get; set; }
+
+    public bool UseTags { get; set; } = true;
 }
 
 public abstract class BlobSerializer
