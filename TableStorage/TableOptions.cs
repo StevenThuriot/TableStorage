@@ -28,4 +28,6 @@ public sealed class TableOptions
             _transactionChunkSize = value;
         }
     }
+
+    public bool ChangesOnly { get; set; }
 }

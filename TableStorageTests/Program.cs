@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -146,7 +147,7 @@ Debug.Assert(firstTransformed11?.value != null); // Should only get 3 props and 
 var firstTransformed12 = await context.Models1.Select(x => new StringFormatted2($"{x.PrettyRow} - {x.MyProperty1 + 1 * 4}, {x.MyProperty2}_test", null, x.Timestamp.GetValueOrDefault())).ToListAsync();
 Debug.Assert(firstTransformed12?.All(x => x.Value != null) == true); // Should only get 4 props and transform into a string
 
-var firstTransformed13 = await context.Models1.Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", x.PrettyRow, x.MyProperty1 + (1 * 4), x.MyProperty2, x.Timestamp.GetValueOrDefault()), null, x.Timestamp.GetValueOrDefault())).ToListAsync();
+var firstTransformed13 = await context.Models1.Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", new object[] { x.PrettyRow, x.MyProperty1 + (1 * 4), x.MyProperty2, x.Timestamp.GetValueOrDefault() }), null, x.Timestamp.GetValueOrDefault())).ToListAsync();
 Debug.Assert(firstTransformed13?.All(x => x.Value != null && x.OtherValue == null && x.TimeStamp != default) == true); // Should only get 4 props and transform into a string
 
 var unknown = context.GetTableSet<Model>("randomname");
@@ -229,7 +230,7 @@ namespace TableStorage.Tests.Models
         public static string From(string value, string value2) => value + String() + value2;
     }
 
-    [TableSet]
+    [TableSet(TrackChanges = true, PartitionKey = "PrettyName", RowKey = "PrettyRow")]
     [TableSetProperty(typeof(int), "MyProperty1")]
     [TableSetProperty(typeof(string), "MyProperty2")]
     [TableSetProperty(typeof(ModelEnum), "MyProperty3")]
@@ -238,18 +239,16 @@ namespace TableStorage.Tests.Models
     [TableSetProperty(typeof(HttpStatusCode), "MyProperty7")]
     [TableSetProperty(typeof(HttpStatusCode?), "MyProperty8")]
     [TableSetProperty(typeof(string), "MyProperty9")]
-    [PartitionKey("PrettyName")]
-    [RowKey("PrettyRow")]
     public partial class Model
     {
-        [System.Runtime.Serialization.IgnoreDataMember] public ModelEnum? MyProperty5 { get; set; }
+        // Define as partial if you want to have changetracking
+        public partial ModelEnum? MyProperty5 { get; set; }
     }
 
-    [TableSet]
-    [RowKey("PrettyRow")]
+    [TableSet(RowKey = "PrettyRow")]
     public partial class Model2
     {
-        public int MyProperty1 { get; set; }
+        public partial int MyProperty1 { get; set; }
         public string MyProperty2 { get; set; }
         public System.DateTimeOffset? MyProperty3 { get; set; }
         public System.Guid? MyProperty4 { get; set; }
