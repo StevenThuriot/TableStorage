@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.IO;
+using System.Text.Json.Serialization;
 
 namespace TableStorage;
 
@@ -33,9 +34,9 @@ public static class BlobStorageSetup
         BlobSet<T> IBlobCreator.CreateSet<T>(string tableName, string partitionKeyProxy, string rowKeyProxy, params IReadOnlyCollection<string> tags) => new(_factory, tableName, _options, partitionKeyProxy, rowKeyProxy, tags);
     }
 
-    private sealed class JsonBlobSerializer : BlobSerializer
+    private sealed class JsonBlobSerializer : IBlobSerializer
     {
-        public static readonly BlobSerializer Instance = new JsonBlobSerializer();
+        public static readonly IBlobSerializer Instance = new JsonBlobSerializer();
 
         private JsonBlobSerializer() { }
 
@@ -44,8 +45,12 @@ public static class BlobStorageSetup
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
         };
 
-        public override byte[] Serialize<T>(T entity) => JsonSerializer.SerializeToUtf8Bytes(entity, _options);
+        public BinaryData Serialize<T>(T entity) where T : IBlobEntity => BinaryData.FromObjectAsJson(entity, _options);
 
-        public override ValueTask<T?> DeserializeAsync<T>(Stream stream) where T : default => JsonSerializer.DeserializeAsync<T>(stream, _options);
+        public async ValueTask<T?> DeserializeAsync<T>(Stream entity, CancellationToken cancellationToken) where T : IBlobEntity
+        {
+            var data = await BinaryData.FromStreamAsync(entity, cancellationToken);
+            return data.ToObjectFromJson<T>(_options);
+        }
     }
 }

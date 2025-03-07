@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using TableStorage;
 using TableStorage.Linq;
@@ -387,27 +388,28 @@ public static class Mapper
     }
 }
 
-public sealed class HybridSerializer : BlobSerializer
+public sealed class HybridSerializer : IBlobSerializer
 {
-    public override ValueTask<T> DeserializeAsync<T>(Stream entity) where T : default
+    public async ValueTask<T> DeserializeAsync<T>(Stream entity, CancellationToken cancellationToken) where T : IBlobEntity
     {
         if (typeof(T) == typeof(Model4))
         {
-            return ValueTask.FromResult(Serializer.Deserialize<T>(entity));
+            return Serializer.Deserialize<T>(entity);
         }
 
-        return JsonSerializer.DeserializeAsync<T>(entity);
+        var data = await BinaryData.FromStreamAsync(entity, cancellationToken);
+        return data.ToObjectFromJson<T>();
     }
 
-    public override byte[] Serialize<T>(T entity)
+    public BinaryData Serialize<T>(T entity) where T : IBlobEntity
     {
         if (entity is Model4 model)
         {
             using MemoryStream stream = new();
             Serializer.Serialize(stream, model);
-            return stream.ToArray();
+            return new(stream.ToArray());
         }
 
-        return JsonSerializer.SerializeToUtf8Bytes(entity);
+        return BinaryData.FromObjectAsJson(entity);
     }
 }

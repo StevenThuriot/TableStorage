@@ -7,15 +7,15 @@ public sealed class BlobOptions
 
     public bool CreateTableIfNotExists { get; set; } = true;
 
-    public BlobSerializer Serializer { get; set; } = default!;
+    public IBlobSerializer Serializer { get; set; } = default!;
 
     public bool IsHierarchical { get; set; }
 
     public bool UseTags { get; set; } = true;
 }
 
-public abstract class BlobSerializer
+public interface IBlobSerializer
 {
-    public abstract byte[] Serialize<T>(T entity) where T : IBlobEntity;
-    public abstract ValueTask<T?> DeserializeAsync<T>(Stream entity) where T : IBlobEntity;
+    public abstract BinaryData Serialize<T>(T entity) where T : IBlobEntity;
+    public abstract ValueTask<T?> DeserializeAsync<T>(Stream entity, CancellationToken cancellationToken) where T : IBlobEntity;
 }

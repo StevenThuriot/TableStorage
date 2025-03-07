@@ -7,6 +7,9 @@ namespace TableStorage;
 public sealed class BlobSet<T> : IStorageSet<T>
     where T : IBlobEntity
 {
+    private const string PartitionTagConstant = "partition";
+    private const string RowTagConstant = "row";
+
     public string Name { get; }
     public Type Type => typeof(T);
     public string EntityType => Type.Name;
@@ -159,8 +162,7 @@ public sealed class BlobSet<T> : IStorageSet<T>
 
     private async Task Upload(BlobClient blob, T entity, CancellationToken cancellationToken)
     {
-        var bytes = _options.Serializer.Serialize(entity);
-        BinaryData data = new(bytes);
+        BinaryData data = _options.Serializer.Serialize(entity);
 
         await blob.UploadAsync(data, true, cancellationToken);
 
@@ -171,8 +173,8 @@ public sealed class BlobSet<T> : IStorageSet<T>
 
         Dictionary<string, string> tags = new(2 + _tags.Count)
         {
-            ["partition"] = entity.PartitionKey,
-            ["row"] = entity.RowKey
+            [PartitionTagConstant] = entity.PartitionKey,
+            [RowTagConstant] = entity.RowKey
         };
 
         foreach (var tag in _tags)
@@ -191,7 +193,7 @@ public sealed class BlobSet<T> : IStorageSet<T>
     private async Task<T?> Download(BlobClient blob, CancellationToken cancellationToken)
     {
         using var stream = await blob.OpenReadAsync(cancellationToken: cancellationToken);
-        return await _options.Serializer.DeserializeAsync<T>(stream);
+        return await _options.Serializer.DeserializeAsync<T>(stream, cancellationToken);
     }
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default) => QueryAsync(cancellationToken).GetAsyncEnumerator();
@@ -237,10 +239,10 @@ public sealed class BlobSet<T> : IStorageSet<T>
 
             var lookup = visitor.Tags.ToLookup();
 
-            var partitionKeys = lookup["partition"].ToList();
-            var rowKeys = lookup["row"].ToList();
-
+            var partitionKeys = lookup[PartitionTagConstant].ToList();
+            var rowKeys = lookup[RowTagConstant].ToList();
             var iterationFilter = !visitor.SimpleFilter || visitor.Tags.HasOthersThanDefaultKeys() ? compiledFilter : null;
+
             return IterateHierarchicalFilteredOnPartitionAndRowKeys(partitionKeys, rowKeys, iterationFilter, cancellationToken);
         }
 
