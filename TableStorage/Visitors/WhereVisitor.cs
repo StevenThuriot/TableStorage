@@ -15,7 +15,7 @@ internal sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProx
         {
             if (node.Expression.Type == _entityType)
             {
-                var name = node.Member.Name;
+                string name = node.Member.Name;
 
                 if (name == _partitionKeyProxy)
                 {
@@ -30,7 +30,7 @@ internal sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProx
         else if (node.Expression.NodeType is ExpressionType.Constant)
         {
             object container = ((ConstantExpression)node.Expression).Value;
-            var memberInfo = node.Member;
+            MemberInfo memberInfo = node.Member;
 
             if (memberInfo.MemberType is MemberTypes.Field)
             {

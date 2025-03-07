@@ -14,7 +14,7 @@ internal readonly struct TagCollection
 
     public void Set(string tag, string value)
     {
-        if (!_tags.TryGetValue(tag, out var count))
+        if (!_tags.TryGetValue(tag, out HashSet<string>? count))
         {
             _tags[tag] = count = [];
         }
@@ -51,8 +51,8 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
     {
         if (node.Expression is ConstantExpression constant)
         {
-            var container = constant.Value;
-            var memberInfo = node.Member;
+            object container = constant.Value;
+            MemberInfo memberInfo = node.Member;
 
             if (memberInfo.MemberType is MemberTypes.Field)
             {
@@ -84,7 +84,7 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
 
         if (node.Left is not BinaryExpression && node.Right is not BinaryExpression)
         {
-            bool success = TryGetFilterFor(node.Left, node.Right, node.NodeType, out var filter) ||
+            bool success = TryGetFilterFor(node.Left, node.Right, node.NodeType, out string? filter) ||
                             TryGetFilterFor(node.Right, node.Left, node.NodeType, out filter);
 
             if (success)
@@ -99,7 +99,7 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
         }
         else
         {
-            if (_filters.TryGetValue(node.Left, out var left) && _filters.TryGetValue(node.Right, out var right))
+            if (_filters.TryGetValue(node.Left, out string? left) && _filters.TryGetValue(node.Right, out string? right))
             {
                 if (left is "")
                 {
@@ -129,7 +129,7 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
         {
             if (member.Member.Name == _partitionKeyName)
             {
-                var value = GetValue(right)?.ToString();
+                string? value = GetValue(right)?.ToString();
                 if (value is not null)
                 {
                     filter = $"partition {ToSqlOperand(type)} '{value}'";
@@ -139,7 +139,7 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
             }
             else if (member.Member.Name == _rowKeyName)
             {
-                var value = GetValue(right)?.ToString();
+                string? value = GetValue(right)?.ToString();
                 if (value is not null)
                 {
                     filter = $"row {ToSqlOperand(type)} '{value}'";
@@ -149,7 +149,7 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
             }
             else if (_tags.Contains(member.Member.Name))
             {
-                var value = GetValue(right)?.ToString();
+                string? value = GetValue(right)?.ToString();
                 if (value is not null)
                 {
                     filter = $"""
@@ -178,8 +178,8 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
         }
         else if (node is MemberExpression member && member.Expression is ConstantExpression constant2)
         {
-            var container = constant2.Value;
-            var memberInfo = member.Member;
+            object container = constant2.Value;
+            MemberInfo memberInfo = member.Member;
 
             if (memberInfo.MemberType is MemberTypes.Field)
             {

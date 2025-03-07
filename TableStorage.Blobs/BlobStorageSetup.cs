@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace TableStorage;
 
@@ -14,10 +13,7 @@ public static class BlobStorageSetup
             configure(options);
         }
 
-        if (options.Serializer is null)
-        {
-            options.Serializer = JsonBlobSerializer.Instance;
-        }
+        options.Serializer ??= JsonBlobSerializer.Instance;
 
         BlobStorageFactory factory = new(connectionString, options.CreateTableIfNotExists);
         return new BlobSetCreator(factory, options);
@@ -49,7 +45,7 @@ public static class BlobStorageSetup
 
         public async ValueTask<T?> DeserializeAsync<T>(Stream entity, CancellationToken cancellationToken) where T : IBlobEntity
         {
-            var data = await BinaryData.FromStreamAsync(entity, cancellationToken);
+            BinaryData data = await BinaryData.FromStreamAsync(entity, cancellationToken);
             return data.ToObjectFromJson<T>(_options);
         }
     }

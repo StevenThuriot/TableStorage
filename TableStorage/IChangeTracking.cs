@@ -2,10 +2,10 @@
 
 public interface IChangeTracking
 {
-    bool IsChanged();
-    bool IsChanged(string field);
-    void AcceptChanges();
-    void SetChanged();
-    void SetChanged(string field);
-    ITableEntity GetEntity();
+    public bool IsChanged();
+    public bool IsChanged(string field);
+    public void AcceptChanges();
+    public void SetChanged();
+    public void SetChanged(string field);
+    public ITableEntity GetEntity();
 }

@@ -14,19 +14,19 @@ internal sealed class DefaultTableSet<T> : TableSet<T>
 
     public override async Task AddEntityAsync(T entity, CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
+        TableClient client = await LazyClient;
         await client.AddEntityAsync(entity, cancellationToken);
     }
 
     public override async Task UpdateEntityAsync(T entity, ETag ifMatch, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
+        TableClient client = await LazyClient;
         await client.UpdateEntityAsync(entity, ifMatch, mode ?? Options.TableMode, cancellationToken);
     }
 
     public override async Task UpsertEntityAsync(T entity, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
+        TableClient client = await LazyClient;
         await client.UpsertEntityAsync(entity, mode ?? Options.TableMode, cancellationToken);
     }
 

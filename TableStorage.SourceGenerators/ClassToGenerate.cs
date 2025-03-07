@@ -27,7 +27,7 @@ public readonly struct ClassToGenerate(string name, string @namespace, List<Memb
 
     public bool TryGetPrettyMember(string proxy, out PrettyMemberToGenerate prettyMemberToGenerate)
     {
-        foreach (var member in PrettyMembers)
+        foreach (PrettyMemberToGenerate member in PrettyMembers)
         {
             if (member.Proxy == proxy)
             {

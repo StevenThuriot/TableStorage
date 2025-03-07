@@ -1,5 +1,4 @@
 ﻿using System.Linq.Expressions;
-using System.Threading;
 
 namespace TableStorage.Linq;
 
@@ -22,9 +21,9 @@ internal sealed class BlobSetQueryHelper<T>(BlobSet<T> table) :
         return Iterate();
         async IAsyncEnumerator<T> Iterate()
         {
-            await foreach (var result in _table.QueryInternalAsync(_filter, cancellationToken))
+            await foreach ((BlobClient client, LazyAsync<T?> entity) result in _table.QueryInternalAsync(_filter, cancellationToken))
             {
-                var entity = await result.entity;
+                T? entity = await result.entity;
 
                 if (entity is not null)
                 {
@@ -38,7 +37,7 @@ internal sealed class BlobSetQueryHelper<T>(BlobSet<T> table) :
     {
         int count = 0;
 
-        await foreach (var (client, _) in _table.QueryInternalAsync(_filter, token))
+        await foreach ((BlobClient client, LazyAsync<T?> _) in _table.QueryInternalAsync(_filter, token))
         {
             await client.DeleteIfExistsAsync(cancellationToken: token);
             count++;
@@ -52,9 +51,9 @@ internal sealed class BlobSetQueryHelper<T>(BlobSet<T> table) :
         int count = 0;
 
         LazyExpression<T> compiledUpdate = update;
-        await foreach (var entity in this.WithCancellation(token))
+        await foreach (T? entity in this.WithCancellation(token))
         {
-            var updatedEntity = compiledUpdate.Invoke(entity);
+            T updatedEntity = compiledUpdate.Invoke(entity);
             await _table.UpsertEntityAsync(updatedEntity, token);
             count++;
         }
@@ -64,13 +63,13 @@ internal sealed class BlobSetQueryHelper<T>(BlobSet<T> table) :
 
     public IFilteredBlobQueryable<T> ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
     {
-        var lambda = predicate.CreateExistsInFilter(elements);
+        Expression<Func<T, bool>> lambda = predicate.CreateExistsInFilter(elements);
         return Where(lambda);
     }
 
     public IFilteredBlobQueryable<T> NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
     {
-        var lambda = predicate.CreateNotExistsInFilter(elements);
+        Expression<Func<T, bool>> lambda = predicate.CreateNotExistsInFilter(elements);
         return Where(lambda);
     }
 
@@ -102,7 +101,7 @@ internal sealed class BlobSetQueryHelper<T>(BlobSet<T> table) :
         }
         else
         {
-            var invokedExpr = Expression.Invoke(predicate, _filter.Parameters);
+            InvocationExpression invokedExpr = Expression.Invoke(predicate, _filter.Parameters);
             BinaryExpression combinedExpression = Expression.AndAlso(_filter.Body, invokedExpr);
             _filter = Expression.Lambda<Func<T, bool>>(combinedExpression, _filter.Parameters);
         }

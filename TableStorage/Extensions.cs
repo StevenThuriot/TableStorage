@@ -29,7 +29,7 @@ internal static class Extensions
 
     private static IEnumerable<IEnumerable<T>> EnumerableChunkIterator<T>(IEnumerable<T> source, int size)
     {
-        using var enumerator = source.GetEnumerator();
+        using IEnumerator<T> enumerator = source.GetEnumerator();
         while (enumerator.MoveNext())
         {
             yield return GetChunk(enumerator, size);

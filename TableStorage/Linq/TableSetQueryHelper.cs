@@ -43,7 +43,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     {
         _fields = [nameof(ITableEntity.PartitionKey), nameof(ITableEntity.RowKey)];
 
-        await using var enumerator = GetAsyncEnumerator(token);
+        await using IAsyncEnumerator<T> enumerator = GetAsyncEnumerator(token);
 
         int result = 0;
 
@@ -63,7 +63,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
         List<TableTransactionAction> entities = [];
 
-        await using var enumerator = GetAsyncEnumerator(token);
+        await using IAsyncEnumerator<T> enumerator = GetAsyncEnumerator(token);
 
         while (await enumerator.MoveNextAsync())
         {
@@ -77,11 +77,11 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
     public async Task<int> BatchUpdateAsync(Expression<Func<T, T>> update, CancellationToken token = default)
     {
-        var (visitor, compiledUpdate) = PrepareExpression(update);
+        (MergeVisitor visitor, LazyExpression<T> compiledUpdate) = PrepareExpression(update);
 
         int result = 0;
 
-        await using var enumerator = GetAsyncEnumerator(token);
+        await using IAsyncEnumerator<T> enumerator = GetAsyncEnumerator(token);
 
         while (await enumerator.MoveNextAsync())
         {
@@ -97,11 +97,11 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
     public async Task<int> BatchUpdateTransactionAsync(Expression<Func<T, T>> update, CancellationToken token)
     {
-        var (visitor, compiledUpdate) = PrepareExpression(update);
+        (MergeVisitor visitor, LazyExpression<T> compiledUpdate) = PrepareExpression(update);
 
         List<TableTransactionAction> entities = [];
 
-        await using var enumerator = GetAsyncEnumerator(token);
+        await using IAsyncEnumerator<T> enumerator = GetAsyncEnumerator(token);
 
         while (await enumerator.MoveNextAsync())
         {
@@ -132,7 +132,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
                 return current;
             }
 
-            foreach (var member in visitor.ComplexMembers)
+            foreach (string member in visitor.ComplexMembers)
             {
                 entity[member] = currentEntity[member];
             }
@@ -180,7 +180,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
-        var query = _filter is null
+        IAsyncEnumerable<T> query = _filter is null
                     ? _table.QueryAsync((string?)null, _amount, _fields, cancellationToken)
                     : _table.QueryAsync(_filter, _amount, _fields, cancellationToken);
 
@@ -194,7 +194,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         async IAsyncEnumerable<T> IterateWithAmount(IAsyncEnumerable<T> values)
         {
             int count = _amount.GetValueOrDefault();
-            await foreach (var item in values)
+            await foreach (T item in values)
             {
                 yield return item;
 
@@ -234,7 +234,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
     internal TransformedTableSetQueryHelper<T, TResult> SetFieldsAndTransform<TResult>(Expression<Func<T, TResult>> exp)
     {
-        var helper = SetFields(ref exp, throwIfNoArgumentsFound: false);
+        TableSetQueryHelper<T> helper = SetFields(ref exp, throwIfNoArgumentsFound: false);
         return new TransformedTableSetQueryHelper<T, TResult>(helper, exp);
     }
 
@@ -279,7 +279,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         }
         else
         {
-            var invokedExpr = Expression.Invoke(predicate, _filter.Parameters);
+            InvocationExpression invokedExpr = Expression.Invoke(predicate, _filter.Parameters);
             BinaryExpression combinedExpression = Expression.AndAlso(_filter.Body, invokedExpr);
             _filter = Expression.Lambda<Func<T, bool>>(combinedExpression, _filter.Parameters);
         }
@@ -299,7 +299,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #region ExistsIn
     internal TableSetQueryHelper<T> AddExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
     {
-        var lambda = predicate.CreateExistsInFilter(elements);
+        Expression<Func<T, bool>> lambda = predicate.CreateExistsInFilter(elements);
         return AddFilter(lambda);
     }
 
@@ -315,7 +315,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #region NotExistsIn
     internal TableSetQueryHelper<T> AddNotExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
     {
-        var lambda = predicate.CreateNotExistsInFilter(elements);
+        Expression<Func<T, bool>> lambda = predicate.CreateNotExistsInFilter(elements);
         return AddFilter(lambda);
     }
 

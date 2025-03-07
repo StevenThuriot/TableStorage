@@ -108,7 +108,7 @@ namespace TableStorage
 
             // Get the semantic representation of the class syntax
             SemanticModel semanticModel = compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
-            if (semanticModel.GetDeclaredSymbol(classDeclarationSyntax) is not INamedTypeSymbol classSymbol)
+            if (semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken: ct) is not INamedTypeSymbol classSymbol)
             {
                 // something went wrong, bail out
                 continue;
@@ -258,9 +258,9 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         foreach (ContextMemberToGenerate item in classToGenerate.Members)
         {
             sb.Append(@"
-            ").Append(item.Name).Append(" = ").Append(item.Type).Append(".Create").Append(item.SetType).Append("(");
+            ").Append(item.Name).Append(" = ").Append(item.Type).Append(".Create").Append(item.SetType).Append('(');
 
-            var name = item.Name;
+            string name = item.Name;
             if (item.SetType is "BlobSet")
             {
                 sb.Append("blobC");
@@ -268,7 +268,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             }
             else
             {
-                sb.Append("c");
+                sb.Append('c');
             }
 
             sb.Append("reator, \"").Append(name).Append("\");");

@@ -23,12 +23,12 @@ internal sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProx
 
     protected override Expression VisitMember(MemberExpression memberExpression)
     {
-        var expression = Visit(memberExpression.Expression);
+        Expression expression = Visit(memberExpression.Expression);
 
         if (expression is ConstantExpression constantExpression)
         {
             object container = constantExpression.Value;
-            var member = memberExpression.Member;
+            MemberInfo member = memberExpression.Member;
 
             if (member.MemberType is MemberTypes.Field)
             {
@@ -52,12 +52,12 @@ internal sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProx
 
         if (result is MethodCallExpression call)
         {
-            var visitor = _usesParameterVisitor.Value.Reset();
+            UsesParameterVisitor visitor = _usesParameterVisitor.Value.Reset();
             _ = visitor.Visit(call);
 
             if (!visitor.UsesParameter)
             {
-                var value = Expression.Lambda(call, visitor.Parameters).CompileFast().DynamicInvoke();
+                object value = Expression.Lambda(call, visitor.Parameters).CompileFast().DynamicInvoke();
                 return Expression.Constant(value);
             }
         }

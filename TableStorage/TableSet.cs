@@ -38,7 +38,7 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public async Task DeleteEntityAsync(string partitionKey, string rowKey, ETag ifMatch, CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
+        TableClient client = await LazyClient;
         await client.DeleteEntityAsync(partitionKey, rowKey, ifMatch, cancellationToken);
     }
 
@@ -49,13 +49,13 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public virtual async Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
+        TableClient client = await LazyClient;
 
         if (transactionSafety is TransactionSafety.Enabled)
         {
-            foreach (var partition in transactionActions.GroupBy(x => x.Entity.PartitionKey))
+            foreach (IGrouping<string, TableTransactionAction>? partition in transactionActions.GroupBy(x => x.Entity.PartitionKey))
             {
-                foreach (var chunk in partition.Chunk(Options.TransactionChunkSize))
+                foreach (IEnumerable<TableTransactionAction> chunk in partition.Chunk(Options.TransactionChunkSize))
                 {
                     await client.SubmitTransactionAsync(chunk, cancellationToken);
                 }
@@ -83,8 +83,8 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public virtual async Task<T?> GetEntityAsync(string partitionKey, string rowKey, IEnumerable<string>? select, CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
-        var result = await client.GetEntityAsync<T>(partitionKey, rowKey, select, cancellationToken);
+        TableClient client = await LazyClient;
+        Response<T> result = await client.GetEntityAsync<T>(partitionKey, rowKey, select, cancellationToken);
         return result.Value;
     }
 
@@ -92,7 +92,7 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public async Task<T?> GetEntityOrDefaultAsync(string partitionKey, string rowKey, IEnumerable<string>? select, CancellationToken cancellationToken = default)
     {
-        var (_, entity) = await TryGetEntityAsync(partitionKey, rowKey, select, cancellationToken);
+        (bool _, T? entity) = await TryGetEntityAsync(partitionKey, rowKey, select, cancellationToken);
         return entity;
     }
 
@@ -100,12 +100,12 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public virtual async Task<(bool success, T? entity)> TryGetEntityAsync(string partitionKey, string rowKey, IEnumerable<string>? select, CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
-        var result = await client.GetEntityIfExistsAsync<T>(partitionKey, rowKey, select, cancellationToken);
+        TableClient client = await LazyClient;
+        NullableResponse<T> result = await client.GetEntityIfExistsAsync<T>(partitionKey, rowKey, select, cancellationToken);
 
         if (result.HasValue)
         {
-            var entity = result.Value!;
+            T entity = result.Value!;
             return (true, entity);
         }
 
@@ -118,8 +118,8 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public virtual async IAsyncEnumerable<T> QueryAsync(string? filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
-        await foreach (var entity in client.QueryAsync<T>(filter, maxPerPage ?? Options.PageSize, select, cancellationToken))
+        TableClient client = await LazyClient;
+        await foreach (T entity in client.QueryAsync<T>(filter, maxPerPage ?? Options.PageSize, select, cancellationToken))
         {
             yield return entity;
         }
@@ -129,8 +129,8 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public virtual async IAsyncEnumerable<T> QueryAsync(Expression<Func<T, bool>> filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var client = await LazyClient;
-        await foreach (var entity in client.QueryAsync(filter, maxPerPage ?? Options.PageSize, select, cancellationToken))
+        TableClient client = await LazyClient;
+        await foreach (T entity in client.QueryAsync(filter, maxPerPage ?? Options.PageSize, select, cancellationToken))
         {
             yield return entity;
         }
@@ -200,7 +200,7 @@ public abstract class TableSet<T> : IStorageSet<T>
         MergeVisitor visitor = new(PartitionKeyProxy, RowKeyProxy);
         _ = visitor.Visit(exp);
 
-        var entity = visitor.Entity;
+        TableEntity entity = visitor.Entity;
 
         if (entity.Count == 0 || visitor.IsComplex)
         {
@@ -222,13 +222,13 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     internal async Task UpdateAsync(ITableEntity entity, CancellationToken cancellationToken)
     {
-        var client = await LazyClient;
+        TableClient client = await LazyClient;
         await client.UpdateEntityAsync(entity, ETag.All, TableUpdateMode.Merge, cancellationToken);
     }
 
     internal async Task UpsertAsync(ITableEntity entity, CancellationToken cancellationToken)
     {
-        var client = await LazyClient;
+        TableClient client = await LazyClient;
         await client.UpsertEntityAsync(entity, TableUpdateMode.Merge, cancellationToken);
     }
     #endregion Merge Operations

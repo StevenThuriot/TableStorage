@@ -2,7 +2,7 @@
 
 public interface IBlobEntity
 {
-    string PartitionKey { get; }
-    string RowKey { get; }
-    object this[string key] { get; }
+    public string PartitionKey { get; }
+    public string RowKey { get; }
+    public object this[string key] { get; }
 }

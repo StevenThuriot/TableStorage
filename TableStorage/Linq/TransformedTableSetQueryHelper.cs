@@ -11,13 +11,13 @@ internal class TransformedTableSetQueryHelper<T, TResult>(TableSetQueryHelper<T>
 
     public async Task<TResult> FirstAsync(CancellationToken token = default)
     {
-        var result = await _helper.FirstAsync(token);
+        T result = await _helper.FirstAsync(token);
         return _transform(result);
     }
 
     public async Task<TResult?> FirstOrDefaultAsync(CancellationToken token = default)
     {
-        var result = await _helper.FirstOrDefaultAsync(token);
+        T? result = await _helper.FirstOrDefaultAsync(token);
 
         if (result is null)
         {
@@ -29,13 +29,13 @@ internal class TransformedTableSetQueryHelper<T, TResult>(TableSetQueryHelper<T>
 
     public async Task<TResult> SingleAsync(CancellationToken token = default)
     {
-        var result = await _helper.SingleAsync(token);
+        T result = await _helper.SingleAsync(token);
         return _transform(result);
     }
 
     public async Task<TResult?> SingleOrDefaultAsync(CancellationToken token = default)
     {
-        var result = await _helper.SingleOrDefaultAsync(token);
+        T? result = await _helper.SingleOrDefaultAsync(token);
 
         if (result is null)
         {
@@ -47,7 +47,7 @@ internal class TransformedTableSetQueryHelper<T, TResult>(TableSetQueryHelper<T>
 
     public async IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        await foreach (var item in _helper)
+        await foreach (T item in _helper)
         {
             yield return _transform(item);
         }

@@ -16,14 +16,14 @@ internal static class Helpers
 
         Expression BuildFilterExpression()
         {
-            using var enumerator = elements.GetEnumerator();
+            using IEnumerator<TElement> enumerator = elements.GetEnumerator();
 
             if (!enumerator.MoveNext())
             {
                 return Expression.Constant(false);
             }
 
-            var filter = GetFilterForElement();
+            BinaryExpression filter = GetFilterForElement();
             while (enumerator.MoveNext())
             {
                 filter = Expression.OrElse(filter, GetFilterForElement());
@@ -51,14 +51,14 @@ internal static class Helpers
 
         Expression BuildFilterExpression()
         {
-            using var enumerator = elements.GetEnumerator();
+            using IEnumerator<TElement> enumerator = elements.GetEnumerator();
 
             if (!enumerator.MoveNext())
             {
                 return Expression.Constant(true);
             }
 
-            var filter = GetFilterForElement();
+            BinaryExpression filter = GetFilterForElement();
             while (enumerator.MoveNext())
             {
                 filter = Expression.AndAlso(filter, GetFilterForElement());
@@ -81,7 +81,7 @@ internal static class Helpers
 
     public static async Task<T?> FirstOrDefaultAsync<T>(IAsyncEnumerable<T> table, CancellationToken token)
     {
-        await foreach (var item in table.WithCancellation(token))
+        await foreach (T? item in table.WithCancellation(token))
         {
             return item;
         }
@@ -91,7 +91,7 @@ internal static class Helpers
 
     public static async Task<T> SingleAsync<T>(IAsyncEnumerable<T> table, CancellationToken token = default)
     {
-        var result = await SingleOrDefaultAsync(table, token);
+        T? result = await SingleOrDefaultAsync(table, token);
         return result ?? throw new InvalidOperationException("No element satisfies the condition in predicate. -or- The source sequence is empty.");
     }
 
@@ -100,7 +100,7 @@ internal static class Helpers
         T? result = default;
         bool gotOne = false;
 
-        await foreach (var item in table.WithCancellation(token))
+        await foreach (T? item in table.WithCancellation(token))
         {
             if (gotOne)
             {

@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿#pragma warning disable IDE0065 // Misplaced using directive
+#pragma warning disable CA1050 // Declare types in namespaces
+#pragma warning disable IDE1006 // Naming Styles
+
+using Microsoft.Extensions.DependencyInjection;
 using ProtoBuf;
 using System;
 using System.Diagnostics;
@@ -23,9 +27,9 @@ services.AddMyTableContext("UseDevelopmentStorage=true",
     {
         x.Serializer = new HybridSerializer();
     });
-var provider = services.BuildServiceProvider();
+ServiceProvider provider = services.BuildServiceProvider();
 
-var context = provider.GetRequiredService<MyTableContext>();
+MyTableContext context = provider.GetRequiredService<MyTableContext>();
 
 //await context.Models1.Where(x => true).BatchDeleteAsync();
 //await context.Models2.Where(x => true).BatchDeleteAsync();
@@ -235,7 +239,7 @@ var context = provider.GetRequiredService<MyTableContext>();
 
 await context.Models4Blob.DeleteAllEntitiesAsync("root");
 
-var blobId1 = Guid.NewGuid().ToString("N");
+string blobId1 = Guid.NewGuid().ToString("N");
 await context.Models4Blob.AddEntityAsync(new()
 {
     PrettyPartition = "root",
@@ -244,7 +248,7 @@ await context.Models4Blob.AddEntityAsync(new()
     MyProperty2 = "hallo 1"
 });
 
-var blobId2 = Guid.NewGuid().ToString("N");
+string blobId2 = Guid.NewGuid().ToString("N");
 await context.Models4Blob.AddEntityAsync(new()
 {
     PrettyPartition = "root",
@@ -264,7 +268,7 @@ await context.Models4Blob.AddEntityAsync(new()
 //var blob3 = await context.Models1Blob.GetEntityOrDefaultAsync("root", Guid.NewGuid().ToString("N"));
 //Debug.Assert(blob3 == null);
 
-var blobResult1 = await context.Models4Blob.Where(x => x.PrettyPartition == "root")
+List<Model4> blobResult1 = await context.Models4Blob.Where(x => x.PrettyPartition == "root")
                                        .Where(x => x.PrettyRow == blobId2)
                                        .Where(x => x.MyProperty1 == 2)
                                        .Where(x => x.MyProperty2 == "hallo 2")
@@ -397,7 +401,7 @@ public sealed class HybridSerializer : IBlobSerializer
             return Serializer.Deserialize<T>(entity);
         }
 
-        var data = await BinaryData.FromStreamAsync(entity, cancellationToken);
+        BinaryData data = await BinaryData.FromStreamAsync(entity, cancellationToken);
         return data.ToObjectFromJson<T>();
     }
 

@@ -15,14 +15,17 @@ public sealed class FuncComparer<T, TResult>(Func<T, TResult> selector, IEqualit
 
     public bool Equals(T? x, T? y)
     {
-        if (x is null) return y is null;
-        if (y is null) return false;
-        return _equalityComparer.Equals(_selector(x), _selector(y));
+        if (x is null)
+        {
+            return y is null;
+        }
+
+        return y is not null && _equalityComparer.Equals(_selector(x), _selector(y));
     }
 
     public int GetHashCode(T obj)
     {
-        var selection = _selector(obj);
+        TResult? selection = _selector(obj);
         return selection is null ? 0 : selection.GetHashCode();
     }
 }
