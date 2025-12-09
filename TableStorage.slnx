@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="LICENSE" />
+    <File Path="nuget.config" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="TableStorage.Blobs.RuntimeCompilations/TableStorage.Blobs.RuntimeCompilations.csproj" />
+  <Project Path="TableStorage.Blobs/TableStorage.Blobs.csproj" />
+  <Project Path="TableStorage.Core/TableStorage.Core.csproj">
+    <BuildDependency Project="TableStorage.SourceGenerators/TableStorage.SourceGenerators.csproj" />
+  </Project>
+  <Project Path="TableStorage.Fluent/TableStorage.Fluent.csproj" />
+  <Project Path="TableStorage.RuntimeCompilations/TableStorage.RuntimeCompilations.csproj" />
+  <Project Path="TableStorage.SourceGenerators/TableStorage.SourceGenerators.csproj" />
+  <Project Path="TableStorage.Tests/TableStorage.Tests.csproj" />
+  <Project Path="TableStorage/TableStorage.csproj">
+    <BuildDependency Project="TableStorage.SourceGenerators/TableStorage.SourceGenerators.csproj" />
+  </Project>
+</Solution>
