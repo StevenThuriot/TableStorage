@@ -7,7 +7,7 @@ public static class TableQueryHelper
     public static ISelectedTableQueryable<T> SelectFields<T, TResult>(this TableSet<T> table, Expression<Func<T, TResult>> selector)
         where T : class, ITableEntity, new()
     {
-        return TableSetQueryHelper.From(table).SetFields(ref selector);
+        return TableSetQueryHelper.From(table).SetFields(selector);
     }
 
     public static ITakenTableQueryable<T> Take<T>(this TableSet<T> table, int amount)

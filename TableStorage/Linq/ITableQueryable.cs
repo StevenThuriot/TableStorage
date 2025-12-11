@@ -10,7 +10,7 @@ public interface ICanTakeOneTableQueryable<T>
     public Task<T?> SingleOrDefaultAsync(CancellationToken token = default);
 }
 
-public interface ITableAsyncEnumerable<T> : IAsyncEnumerable<T>
+public interface ITableAsyncEnumerable<out T> : IAsyncEnumerable<T>
     where T : class, ITableEntity, new()
 {
     public Task<int> BatchDeleteAsync(CancellationToken token = default);

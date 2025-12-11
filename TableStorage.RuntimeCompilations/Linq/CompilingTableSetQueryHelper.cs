@@ -20,7 +20,7 @@ internal sealed class CompilingTableSetQueryHelper<T>
 
     public TransformedTableSetQueryHelper<T, TResult> SetFieldsAndTransform<TResult>(Expression<Func<T, TResult>> exp)
     {
-        TableSetQueryHelper<T> helper = _helper.SetFields(ref exp, throwIfNoArgumentsFound: false);
+        TableSetQueryHelper<T> helper = _helper.SetFields(exp, throwIfNoArgumentsFound: false);
         return new TransformedTableSetQueryHelper<T, TResult>(helper, exp);
     }
 

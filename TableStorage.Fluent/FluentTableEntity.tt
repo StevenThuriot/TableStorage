@@ -172,6 +172,8 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
         _ => null
     };
 
+    internal object GetRawValue() => _backingDictionary;
+
     public object GetValue() => _backingType switch
     {
         FluentBackingType.NotInitialized => throw new InvalidOperationException(),
