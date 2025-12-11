@@ -3,6 +3,11 @@ using TableStorage.Visitors;
 
 namespace TableStorage.Linq;
 
+internal static class TableSetQueryHelper
+{
+    public static TableSetQueryHelper<T> From<T>(TableSet<T> table) where T : class, ITableEntity, new() => new(table);
+}
+
 internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     IAsyncEnumerable<T>,
     ISelectedTableQueryable<T>,

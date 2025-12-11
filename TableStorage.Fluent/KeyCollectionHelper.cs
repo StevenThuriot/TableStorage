@@ -27,15 +27,8 @@ internal readonly struct KeyCollectionHelper(IDictionary<string, object> backing
 
     public void CopyTo(string[] array, int arrayIndex)
     {
-        if (array is null)
-        {
-            throw new ArgumentNullException(nameof(array));
-        }
-
-        if (arrayIndex < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-        }
+        ArgumentNullException.ThrowIfNull(array);
+        ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
 
         if (array.Length - arrayIndex < Count)
         {

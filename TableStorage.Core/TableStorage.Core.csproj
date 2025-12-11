@@ -27,6 +27,7 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="TableStorage" />
 		<InternalsVisibleTo Include="TableStorage.RuntimeCompilations" />
+		<InternalsVisibleTo Include="TableStorage.Fluent" />
 		<InternalsVisibleTo Include="TableStorage.Blobs" />
 		<InternalsVisibleTo Include="TableStorage.Blobs.RuntimeCompilations" />
 	</ItemGroup>

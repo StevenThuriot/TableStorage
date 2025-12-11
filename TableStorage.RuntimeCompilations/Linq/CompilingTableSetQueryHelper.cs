@@ -10,7 +10,7 @@ internal sealed class CompilingTableSetQueryHelper<T>
 
     public CompilingTableSetQueryHelper(TableSet<T> table)
     {
-        _helper = new TableSetQueryHelper<T>(table);
+        _helper = TableSetQueryHelper.From(table);
     }
 
     public CompilingTableSetQueryHelper(TableSetQueryHelper<T> table)

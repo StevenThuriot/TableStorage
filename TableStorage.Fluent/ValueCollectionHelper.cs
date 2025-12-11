@@ -27,15 +27,8 @@ internal readonly struct ValueCollectionHelper(IDictionary<string, object> backi
 
     public void CopyTo(object[] array, int arrayIndex)
     {
-        if (array is null)
-        {
-            throw new ArgumentNullException(nameof(array));
-        }
-
-        if (arrayIndex < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-        }
+        ArgumentNullException.ThrowIfNull(array);
+        ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
 
         if (array.Length - arrayIndex < Count)
         {

@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
 		<GeneratePackageOnBuild Condition="$(Configuration) == 'Release'">True</GeneratePackageOnBuild>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>TableStorage.png</PackageIcon>
@@ -38,6 +39,10 @@
 		<None Include="TableStorage.props" Pack="true" PackagePath="build\TableStorage.props" />
 		<Using Include="Azure" />
 		<Using Include="Azure.Data.Tables" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
 	</ItemGroup>
 
 </Project>
