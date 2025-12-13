@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <GeneratePackageOnBuild Condition="$(Configuration) == 'Release'">True</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>TableStorage.png</PackageIcon>
+    <RootNamespace>TableStorage.Fluent</RootNamespace>
+    <VersionPrefix>$(MajorMinorVersion).0</VersionPrefix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="TableStorage.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="TableStorage.props" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FastExpressionCompiler" Version="[5.1.1,)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TableStorage.Fluent\TableStorage.Fluent.csproj" PackageVersion="[^,$)" />
+    <ProjectReference Include="..\TableStorage.RuntimeCompilations\TableStorage.RuntimeCompilations.csproj" PackageVersion="[^,$)" />
+    <ProjectReference Include="..\TableStorage\TableStorage.csproj" PackageVersion="[^,$)" />
+    <Using Include="Azure" />
+    <Using Include="Azure.Data.Tables" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+<Project>
+	<PropertyGroup>
+		<DefineConstants>$(DefineConstants);TABLESTORAGE;TABLESTORAGE_FLUENT;TABLESTORAGE_RUNTIME</DefineConstants>
+	</PropertyGroup>
+</Project>

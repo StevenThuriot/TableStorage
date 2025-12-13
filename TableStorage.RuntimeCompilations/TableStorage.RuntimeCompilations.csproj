@@ -9,6 +9,7 @@
 	</PropertyGroup>
 	
 	<ItemGroup>
+		<InternalsVisibleTo Include="TableStorage.Fluent.RuntimeCompilations" />
 		<None Update="README.md">
 		  <Pack>True</Pack>
 		  <PackagePath>\</PackagePath>
