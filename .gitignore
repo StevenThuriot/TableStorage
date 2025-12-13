@@ -353,4 +353,4 @@ MigrationBackup/
 /azurite/
 
 # Generated FluentTableEntity file
-/TableStorage.Fluent/**/*.g.cs
+/TableStorage.Fluent*/**/*.g.cs

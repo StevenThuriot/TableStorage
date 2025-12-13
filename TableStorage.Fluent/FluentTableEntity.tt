@@ -3,19 +3,18 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Linq" #>
 <#@ output extension=".g.cs" #>
+<#@ parameter type="System.Boolean" name="ExtendedClasses" #>
 <#
     // Configuration
-    int minGenerics = 2;
-    int maxGenerics = 16;
+    int minGenerics = ExtendedClasses ? 5 : 2;
+    int maxGenerics = ExtendedClasses ? 16 : 4;
 #>
 using System.Collections;
 using System.ComponentModel;
 
-#nullable enable
+#nullable disable
 
 namespace TableStorage.Fluent;
-
-#nullable disable
 <# for (int genericCount = minGenerics; genericCount <= maxGenerics; genericCount++) { 
     GenerateClass("FluentTableEntity", "$type", true, genericCount);
     GenerateClass("FluentPartitionTableEntity", "PartitionKey", false, genericCount);

@@ -8,34 +8,13 @@
 		<VersionPrefix>$(MajorMinorVersion).0</VersionPrefix>
 	</PropertyGroup>
 
-
 	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" Version="[12.8.3,)" />
 		<ProjectReference Include="..\TableStorage\TableStorage.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Update="FluentTableEntity.tt">
-			<LastGenOutput>FluentTableEntity.g.cs</LastGenOutput>
-			<Generator>TextTemplatingFileGenerator</Generator>
-		</None>
-		<Compile Update="FluentTableEntity.g.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>FluentTableEntity.tt</DependentUpon>
-		</Compile>
-		<None Update="Linq\FluentTableQueryHelper.tt">
-			<Generator>TextTemplatingFileGenerator</Generator>
-			<LastGenOutput>FluentTableQueryHelper.g.cs</LastGenOutput>
-		</None>
-		<Compile Update="Linq\FluentTableQueryHelper.g.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>FluentTableQueryHelper.tt</DependentUpon>
-		</Compile>
-	</ItemGroup>
-
-	<ItemGroup>
+		<InternalsVisibleTo Include="TableStorage.Fluent.Extended" />
 		<None Include="README.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
@@ -45,9 +24,13 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="TableStorage.props" Pack="true" PackagePath="build\TableStorage.props" />
+		<None Include="TableStorage.props" Pack="true" PackagePath="build\TableStorage.Fluent.props" />
 		<Using Include="Azure" />
 		<Using Include="Azure.Data.Tables" />
 	</ItemGroup>
 
+	<Target Name="TextTemplateTransform" BeforeTargets="BeforeBuild">
+		<Exec WorkingDirectory="$(ProjectDir)" Command="dotnet t4 .\FluentTableEntity.tt -p ExtendedClasses=false" />
+		<Exec WorkingDirectory="$(ProjectDir)" Command="dotnet t4 .\Linq\FluentTableQueryHelper.tt -p ExtendedClasses=false" />
+	</Target>
 </Project>

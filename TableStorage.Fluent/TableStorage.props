@@ -1,5 +1,5 @@
 <Project>
 	<PropertyGroup>
-		<DefineConstants>$(DefineConstants);TABLESTORAGE</DefineConstants>
+		<DefineConstants>$(DefineConstants);TABLESTORAGE;TABLESTORAGE_FLUENT</DefineConstants>
 	</PropertyGroup>
 </Project>

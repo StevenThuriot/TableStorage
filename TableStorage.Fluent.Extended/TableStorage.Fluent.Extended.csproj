@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <GeneratePackageOnBuild Condition="$(Configuration) == 'Release'">True</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>TableStorage.png</PackageIcon>
+    <VersionPrefix>$(MajorMinorVersion).0</VersionPrefix>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Data.Tables" Version="[12.8.3,)" />
+    <ProjectReference Include="..\TableStorage.Fluent\TableStorage.Fluent.csproj" />
+    <ProjectReference Include="..\TableStorage\TableStorage.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="TableStorage.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="TableStorage.props" Pack="true" PackagePath="build\TableStorage.Fluent.Extended.props" />
+    <Using Include="Azure" />
+    <Using Include="Azure.Data.Tables" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <Target Name="TextTemplateTransform" BeforeTargets="BeforeBuild">
+    <Exec WorkingDirectory="$(ProjectDir)" Command="dotnet t4 ..\TableStorage.Fluent\FluentTableEntity.tt -p ExtendedClasses=true -o FluentTableEntity" />
+    <Exec WorkingDirectory="$(ProjectDir)" Command="dotnet t4 ..\TableStorage.Fluent\Linq\FluentTableQueryHelper.tt -p ExtendedClasses=true -o FluentTableQueryHelper" />
+  </Target>
+
+</Project>

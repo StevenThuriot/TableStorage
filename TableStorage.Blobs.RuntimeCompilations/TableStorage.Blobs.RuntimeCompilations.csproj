@@ -18,7 +18,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Include="..\TableStorage.Blobs.props" Pack="true" PackagePath="build\TableStorage.Blobs.RuntimeCompilations.props" />
+		<None Include="TableStorage.Blobs.props" Pack="true" PackagePath="build\TableStorage.Blobs.RuntimeCompilations.props" />
 	</ItemGroup>
 
 	<ItemGroup>

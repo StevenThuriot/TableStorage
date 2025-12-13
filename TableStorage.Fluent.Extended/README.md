@@ -1,13 +1,13 @@
-# TableStorage.Fluent
+# TableStorage.Fluent.Extended
 
 Provides fluent entity types for storing multiple entity types in a single Azure Table Storage table. This package enables polymorphic table storage by allowing you to store different entity types in the same table using a discriminator pattern.
 
-This package supports **2 to 4 generic type parameters**. For support of 5 to 16 generic type parameters, see [TableStorage.Fluent.Extended](#related-packages).
+This package supports **5 to 16 generic type parameters**. For support of 2 to 4 generic type parameters, see [TableStorage.Fluent](#related-packages).
 
 ## Features
 - Store multiple entity types in a single table
 - Type-safe discriminated union entities
-- Support for 2 to 4 different entity types per table
+- Support for 5 to 16 different entity types per table
 - Three discriminator strategies: `$type`, `PartitionKey`, and `RowKey`
 - Implicit conversion operators for seamless type handling
 - Pattern matching with `SwitchCase` and `SwitchCaseOrDefault` methods
@@ -17,7 +17,7 @@ This package supports **2 to 4 generic type parameters**. For support of 5 to 16
 ```bash
 dotnet add package TableStorage.Core
 dotnet add package TableStorage
-dotnet add package TableStorage.Fluent
+dotnet add package TableStorage.Fluent.Extended
 ```
 
 ## Usage
@@ -182,6 +182,6 @@ Fluent entities are ideal for scenarios where:
 
 ## Related Packages
 
-- **[TableStorage.Fluent.Extended](https://www.nuget.org/packages/TableStorage.Fluent.Extended)** - Extended support for 5 to 16 generic type parameters
+- **[TableStorage.Fluent](https://www.nuget.org/packages/TableStorage.Fluent)** - Base package supporting 2 to 4 generic type parameters
 - [TableStorage](https://www.nuget.org/packages/TableStorage)
 - [TableStorage.Core](https://www.nuget.org/packages/TableStorage.Core)

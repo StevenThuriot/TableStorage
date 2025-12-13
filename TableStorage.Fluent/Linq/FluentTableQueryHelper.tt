@@ -3,10 +3,11 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Linq" #>
 <#@ output extension=".g.cs" #>
+<#@ parameter type="System.Boolean" name="ExtendedClasses" #>
 <#
     // Configuration
-    int minGenerics = 2;
-    int maxGenerics = 16;
+    int minGenerics = ExtendedClasses ? 5 : 2;
+    int maxGenerics = ExtendedClasses ? 16 : 4;
     
     var fluentTypes = new[]
     {

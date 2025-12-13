@@ -30,6 +30,7 @@
 	<ItemGroup>
 		<InternalsVisibleTo Include="TableStorage.RuntimeCompilations" />
 		<InternalsVisibleTo Include="TableStorage.Fluent" />
+		<InternalsVisibleTo Include="TableStorage.Fluent.Extended" />
 		<ProjectReference Include="..\TableStorage.Core\TableStorage.Core.csproj" PackageVersion="[^,$)" />
 		<Using Include="Azure" />
 		<Using Include="Azure.Data.Tables" />
