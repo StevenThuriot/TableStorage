@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="[12.8.3,)" />
-    <ProjectReference Include="..\TableStorage.Fluent\TableStorage.Fluent.csproj" />
-    <ProjectReference Include="..\TableStorage\TableStorage.csproj" />
+    <ProjectReference Include="..\TableStorage.Fluent\TableStorage.Fluent.csproj" PackageVersion="[^,$)" />
+    <ProjectReference Include="..\TableStorage\TableStorage.csproj" PackageVersion="[^,$)" />
   </ItemGroup>
 
   <ItemGroup>

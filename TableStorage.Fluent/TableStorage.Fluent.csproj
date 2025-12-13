@@ -10,11 +10,12 @@
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" Version="[12.8.3,)" />
-		<ProjectReference Include="..\TableStorage\TableStorage.csproj" />
+		<ProjectReference Include="..\TableStorage\TableStorage.csproj" PackageVersion="[^,$)" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<InternalsVisibleTo Include="TableStorage.Fluent.Extended" />
+		<InternalsVisibleTo Include="TableStorage.Fluent.RuntimeCompilations" />
 		<None Include="README.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
