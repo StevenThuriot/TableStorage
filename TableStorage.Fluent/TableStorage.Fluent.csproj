@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>netstandard2.1</TargetFramework>
 		<GeneratePackageOnBuild Condition="$(Configuration) == 'Release'">True</GeneratePackageOnBuild>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>TableStorage.png</PackageIcon>
@@ -15,15 +15,24 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Update="FluentTableEntity.cs">
-			<DependentUpon>FluentTableEntity.tt</DependentUpon>
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-		</Compile>
 		<None Update="FluentTableEntity.tt">
-			<LastGenOutput>FluentTableEntity.cs</LastGenOutput>
+			<LastGenOutput>FluentTableEntity.g.cs</LastGenOutput>
 			<Generator>TextTemplatingFileGenerator</Generator>
 		</None>
+		<Compile Update="FluentTableEntity.g.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>FluentTableEntity.tt</DependentUpon>
+		</Compile>
+		<None Update="Linq\FluentTableQueryHelper.tt">
+			<Generator>TextTemplatingFileGenerator</Generator>
+			<LastGenOutput>FluentTableQueryHelper.g.cs</LastGenOutput>
+		</None>
+		<Compile Update="Linq\FluentTableQueryHelper.g.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>FluentTableQueryHelper.tt</DependentUpon>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -39,10 +48,6 @@
 		<None Include="TableStorage.props" Pack="true" PackagePath="build\TableStorage.props" />
 		<Using Include="Azure" />
 		<Using Include="Azure.Data.Tables" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
 	</ItemGroup>
 
 </Project>

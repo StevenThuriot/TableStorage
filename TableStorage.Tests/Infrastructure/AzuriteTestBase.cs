@@ -93,7 +93,7 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
         await CleanTable(Context.Models5);
         await CleanTable(Context.FluentModels);
         await CleanTable(Context.FluentPartitionModels);
-        await CleanTable(Context.FluentRowTypeModels);
+        await CleanTable(Context.FluentRowKeyModels);
         await CleanBlobs(Context.Models1Blob);
         await CleanBlobs(Context.Models4Blob);
         await CleanBlobs(Context.Models2Blob);

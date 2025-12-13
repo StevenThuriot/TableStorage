@@ -652,10 +652,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentRowTypeModels.UpsertEntityAsync(modelA);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
 
         // Retrieve using Type Name as RowKey
-        var retrieved = await Context.FluentRowTypeModels.FindAsync(modelA.PrettyPartitionA, "FluentTestModelA");
+        var retrieved = await Context.FluentRowKeyModels.FindAsync(modelA.PrettyPartitionA, "FluentTestModelA");
 
         // Assert
         Assert.NotNull(retrieved);
@@ -688,11 +688,11 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentRowTypeModels.UpsertEntityAsync(modelA);
-        await Context.FluentRowTypeModels.UpsertEntityAsync(modelB);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB);
 
-        var retrievedA = await Context.FluentRowTypeModels.FindAsync(partitionKey, "FluentTestModelA");
-        var retrievedB = await Context.FluentRowTypeModels.FindAsync(partitionKey, "FluentTestModelB");
+        var retrievedA = await Context.FluentRowKeyModels.FindAsync(partitionKey, "FluentTestModelA");
+        var retrievedB = await Context.FluentRowKeyModels.FindAsync(partitionKey, "FluentTestModelB");
 
         // Assert
         Assert.NotNull(retrievedA);

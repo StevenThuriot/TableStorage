@@ -2,14 +2,16 @@
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Linq" #>
-<#@ output extension=".cs" #>
+<#@ output extension=".g.cs" #>
 <#
     // Configuration
     int minGenerics = 2;
-    int maxGenerics = 2;
+    int maxGenerics = 16;
 #>
 using System.Collections;
 using System.ComponentModel;
+
+#nullable enable
 
 namespace TableStorage.Fluent;
 
@@ -17,7 +19,7 @@ namespace TableStorage.Fluent;
 <# for (int genericCount = minGenerics; genericCount <= maxGenerics; genericCount++) { 
     GenerateClass("FluentTableEntity", "$type", true, genericCount);
     GenerateClass("FluentPartitionTableEntity", "PartitionKey", false, genericCount);
-    GenerateClass("FluentRowTypeTableEntity", "RowKey", false, genericCount);
+    GenerateClass("FluentRowTableEntity", "RowKey", false, genericCount);
 } #>
 
 <#+
@@ -438,7 +440,10 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
 
     public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
     {
-        ArgumentNullException.ThrowIfNull(array);
+        if (array is null)
+        {
+            throw new ArgumentNullException(nameof(array));
+        }
 
         if (arrayIndex < 0 || arrayIndex > array.Length)
         {
