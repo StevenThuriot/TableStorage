@@ -349,16 +349,16 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             TypeA = "Original Value",
             PropertyA = 10
         };
-        
+
         await Context.FluentModels.UpsertEntityAsync(modelA);
 
         // Act - Update the entity
         var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
-        
+
         Assert.NotNull(retrieved);
         retrieved["TypeA"] = "Updated Value";
         retrieved["PropertyA"] = 20;
-        
+
         await Context.FluentModels.UpsertEntityAsync(retrieved);
 
         var updatedRetrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
@@ -587,7 +587,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
 
         // Act
         await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        
+
         // Retrieve using Type Name as PartitionKey
         var retrieved = await Context.FluentPartitionModels.FindAsync("FluentTestModelA", modelA.PrettyRowA);
 
@@ -653,7 +653,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
 
         // Act
         await Context.FluentRowTypeModels.UpsertEntityAsync(modelA);
-        
+
         // Retrieve using Type Name as RowKey
         var retrieved = await Context.FluentRowTypeModels.FindAsync(modelA.PrettyPartitionA, "FluentTestModelA");
 

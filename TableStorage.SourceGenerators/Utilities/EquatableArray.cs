@@ -33,7 +33,7 @@ public readonly struct EquatableArray<T>(T[]? array) : IEquatable<EquatableArray
     /// <summary>
     /// Gets a value indicating whether the array is empty.
     /// </summary>
-    public bool IsEmpty => Length == 0;
+    public bool IsEmpty => Length is 0;
 
     /// <summary>
     /// Returns a span representation of the array.

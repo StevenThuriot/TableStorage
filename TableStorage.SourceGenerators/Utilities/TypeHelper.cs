@@ -15,8 +15,8 @@ internal static class TypeHelper
     public static TypeKind GetTypeKind(ITypeSymbol? type) => type switch
     {
         null => TypeKind.Unknown,
-        INamedTypeSymbol namedTypeSymbol when type.NullableAnnotation == NullableAnnotation.Annotated ||
-                                              namedTypeSymbol.ConstructedFrom.ToDisplayString() == "System.Nullable<T>" =>
+        INamedTypeSymbol namedTypeSymbol when type.NullableAnnotation is NullableAnnotation.Annotated ||
+                                              namedTypeSymbol.ConstructedFrom.ToDisplayString() is "System.Nullable<T>" =>
             namedTypeSymbol.TypeArguments.Length is not 0
                 ? namedTypeSymbol.TypeArguments[0].TypeKind
                 : namedTypeSymbol.ConstructedFrom.TypeKind,

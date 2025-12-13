@@ -29,8 +29,8 @@ internal static class ValidationHelper
     /// <returns>A result indicating success or failure with diagnostic information.</returns>
     public static Result<bool> ValidateRequiredAssemblies(Compilation compilation)
     {
-        bool hasTableStorage = compilation.ReferencedAssemblyNames.Any(asm => asm.Name == "TableStorage");
-        bool hasTableStorageBlobs = compilation.ReferencedAssemblyNames.Any(asm => asm.Name == "TableStorage.Blobs");
+        bool hasTableStorage = compilation.ReferencedAssemblyNames.Any(asm => asm.Name is "TableStorage");
+        bool hasTableStorageBlobs = compilation.ReferencedAssemblyNames.Any(asm => asm.Name is "TableStorage.Blobs");
 
         if (!hasTableStorage && !hasTableStorageBlobs)
         {

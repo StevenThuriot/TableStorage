@@ -55,15 +55,15 @@ internal struct HashCode
         uint val = (uint)value;
         uint previousLength = _length++;
         uint position = previousLength % 4;
-        if (position == 0)
+        if (position is 0)
         {
             _queue1 = val;
         }
-        else if (position == 1)
+        else if (position is 1)
         {
             _queue2 = val;
         }
-        else if (position == 2)
+        else if (position is 2)
         {
             _queue3 = val;
         }

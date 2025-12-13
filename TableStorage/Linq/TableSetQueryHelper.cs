@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Linq.Expressions;
 using TableStorage.Visitors;
 
 namespace TableStorage.Linq;
@@ -8,23 +9,12 @@ internal static class TableSetQueryHelper
     public static TableSetQueryHelper<T> From<T>(TableSet<T> table) where T : class, ITableEntity, new() => new(table);
 }
 
-internal interface ITableSetQueryHelper
-{
-    internal ITableSetQueryHelper SetFields(IEnumerable<string> fields);
-    internal ITableSetQueryHelper SetFields<T, TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound = true) where T : class, ITableEntity, new();
-    internal ITableSetQueryHelper SetAmount(int amount);
-    internal ITableSetQueryHelper AddFilter<T>(Expression<Func<T, bool>> predicate);
-    internal ITableSetQueryHelper AddExistsInFilter<T, TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
-    internal ITableSetQueryHelper AddNotExistsInFilter<T, TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements);
-}
-
 internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     IAsyncEnumerable<T>,
     ISelectedTableQueryable<T>,
     ITakenTableQueryable<T>,
     IFilteredTableQueryable<T>,
-    ISelectedTakenTableQueryable<T>,
-    ITableSetQueryHelper
+    ISelectedTakenTableQueryable<T>
     where T : class, ITableEntity, new()
 {
     private ParameterExpression? _parameter;
@@ -113,7 +103,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
             {
                 yield return item;
 
-                if (--count == 0)
+                if (--count is 0)
                 {
                     yield break;
                 }
@@ -146,7 +136,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
         SelectionVisitor visitor = new(Table.PartitionKeyProxy, Table.RowKeyProxy);
         visitor.Visit(exp);
 
-        if (visitor.Members.Count == 0)
+        if (visitor.Members.Count is 0)
         {
             if (throwIfNoArgumentsFound)
             {
@@ -168,8 +158,6 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #endregion Select
 
     #region Take
-
-    ITableSetQueryHelper ITableSetQueryHelper.SetFields(IEnumerable<string> fields) => SetFields(fields);
 
     internal TableSetQueryHelper<T> SetAmount(int amount)
     {
@@ -251,23 +239,4 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
 
     ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
     #endregion NotExistsIn
-    
-    #region ITableSetQueryHelper
-
-    private static Expression<Func<T, TResult>> AlterExpression<T1, TResult>(Expression<Func<T1, TResult>> expression)
-    {
-        ParameterExpression parameter = Expression.Parameter(typeof(T1), "x");
-        return Expression.Lambda<Func<T, TResult>>(expression.Body, parameter);
-    }
-    
-    ITableSetQueryHelper ITableSetQueryHelper.SetFields<T1, TResult>(Expression<Func<T1, TResult>> exp, bool throwIfNoArgumentsFound) => SetFields(AlterExpression(exp), throwIfNoArgumentsFound);
-
-    ITableSetQueryHelper ITableSetQueryHelper.SetAmount(int amount) => SetAmount(amount);
-
-    ITableSetQueryHelper ITableSetQueryHelper.AddFilter<T1>(Expression<Func<T1, bool>> predicate) => AddFilter(AlterExpression(predicate));
-
-    ITableSetQueryHelper ITableSetQueryHelper.AddExistsInFilter<T1, TElement>(Expression<Func<T1, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(AlterExpression(predicate), elements);
-
-    ITableSetQueryHelper ITableSetQueryHelper.AddNotExistsInFilter<T1, TElement>(Expression<Func<T1, TElement>> predicate, IEnumerable<TElement> elements)  => AddNotExistsInFilter(AlterExpression(predicate), elements);
-    #endregion ITableSetQueryHelper
 }

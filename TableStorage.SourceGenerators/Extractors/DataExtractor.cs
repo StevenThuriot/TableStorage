@@ -140,7 +140,7 @@ internal static class DataExtractor
 
         // Fast attribute lookup with early exit
         var tableSetAttribute = GetTableSetAttributeFast(classSymbol);
-        if (tableSetAttribute == null)
+        if (tableSetAttribute is null)
         {
             return null;
         }
@@ -223,7 +223,7 @@ internal static class DataExtractor
         {
             foreach (var attr in symbol.GetAttributes())
             {
-                if (attr.AttributeClass?.Name == "TableSetAttribute")
+                if (attr.AttributeClass?.Name is "TableSetAttribute")
                 {
                     return attr;
                 }
@@ -322,7 +322,7 @@ internal static class DataExtractor
     {
         foreach (var attr in classSymbol.GetAttributes())
         {
-            if (attr.AttributeClass?.Name == "TableSetPropertyAttribute")
+            if (attr.AttributeClass?.Name is "TableSetPropertyAttribute")
             {
                 yield return attr;
             }
@@ -461,7 +461,7 @@ internal static class DataExtractor
 
         // Quick syntax-only checks to reduce false positives
         // Check if class has any attributes at all (cheap syntax check)
-        if (classDeclaration.AttributeLists.Count == 0)
+        if (classDeclaration.AttributeLists.Count is 0)
         {
             return false;
         }
@@ -491,7 +491,7 @@ internal static class DataExtractor
         }
 
         // Quick check for attributes (syntax-only, very fast)
-        if (classDeclaration.AttributeLists.Count == 0)
+        if (classDeclaration.AttributeLists.Count is 0)
         {
             return false;
         }

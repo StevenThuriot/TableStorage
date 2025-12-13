@@ -63,7 +63,7 @@ internal static class MemberProcessor
 
             ITypeSymbol type = property.Type;
             TypeKind typeKind = TypeHelper.GetTypeKind(type);
-            bool tagBlob = property.GetAttributes().Any(x => x.AttributeClass?.ToDisplayString() == "TableStorage.TagAttribute");
+            bool tagBlob = property.GetAttributes().Any(x => x.AttributeClass?.ToDisplayString() is "TableStorage.TagAttribute");
 
             // Check if this is a partial property definition or a virtual property that should be overridden
             bool isPartial = property.IsPartialDefinition;

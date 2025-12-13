@@ -55,7 +55,7 @@ public static class TableSetExtensions
 
         TableEntity entity = visitor.Entity;
 
-        if (entity.Count == 0 || visitor.IsComplex)
+        if (entity.Count is 0 || visitor.IsComplex)
         {
             throw new NotSupportedException("Merge expression is not supported");
         }

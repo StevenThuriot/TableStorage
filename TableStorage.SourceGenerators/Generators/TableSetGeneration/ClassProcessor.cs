@@ -33,9 +33,9 @@ internal static class ClassProcessor
 
         var relevantAttributes = AttributeProcessor.GetRelevantAttributes(classDeclarationSyntax, semanticModel, ct);
         AttributeSyntax? tableSetAttributeSyntax = relevantAttributes
-            .FirstOrDefault(attr => attr.fullName == "TableStorage.TableSetAttribute").attributeSyntax;
+            .FirstOrDefault(attr => attr.fullName is "TableStorage.TableSetAttribute").attributeSyntax;
 
-        if (tableSetAttributeSyntax == null)
+        if (tableSetAttributeSyntax is null)
         {
             // This should not happen if ForAttributeWithMetadataName is working correctly,
             // but as a safeguard or if the attribute is malformed.
@@ -44,9 +44,9 @@ internal static class ClassProcessor
 
         var (partitionKeyProxy, rowKeyProxy, prettyMembers) = AttributeProcessor.ProcessTableSetAttributeArguments(tableSetAttributeSyntax, classSymbol);
 
-        bool withBlobSupport = AttributeProcessor.GetArgumentValue(tableSetAttributeSyntax, "SupportBlobs") == "true";
-        bool withTablesSupport = AttributeProcessor.GetArgumentValue(tableSetAttributeSyntax, "DisableTables") != "true";
-        bool withChangeTracking = withTablesSupport && AttributeProcessor.GetArgumentValue(tableSetAttributeSyntax, "TrackChanges") == "true";
+        bool withBlobSupport = AttributeProcessor.GetArgumentValue(tableSetAttributeSyntax, "SupportBlobs") is "true";
+        bool withTablesSupport = AttributeProcessor.GetArgumentValue(tableSetAttributeSyntax, "DisableTables") is not "true";
+        bool withChangeTracking = withTablesSupport && AttributeProcessor.GetArgumentValue(tableSetAttributeSyntax, "TrackChanges") is "true";
 
         List<MemberToGenerate> members = MemberProcessor.ProcessClassMembers(
             classSymbol,

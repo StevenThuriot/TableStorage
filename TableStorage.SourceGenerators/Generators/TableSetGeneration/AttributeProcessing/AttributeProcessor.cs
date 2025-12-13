@@ -121,11 +121,11 @@ internal static class AttributeProcessor
         string rowKeyProxy,
         CancellationToken ct)
     {
-        foreach ((string attrFullName, AttributeSyntax tableSetPropertyAttribute) in relevantAttributes.Where(x => x.fullName == "TableStorage.TableSetPropertyAttribute"))
+        foreach ((string attrFullName, AttributeSyntax tableSetPropertyAttribute) in relevantAttributes.Where(x => x.fullName is "TableStorage.TableSetPropertyAttribute"))
         {
             ct.ThrowIfCancellationRequested();
 
-            if (tableSetPropertyAttribute.ArgumentList == null || tableSetPropertyAttribute.ArgumentList.Arguments.Count < 2)
+            if (tableSetPropertyAttribute.ArgumentList is null || tableSetPropertyAttribute.ArgumentList.Arguments.Count < 2)
             {
                 continue;
             }
@@ -146,7 +146,7 @@ internal static class AttributeProcessor
             TypeInfo typeInfo = semanticModel.GetTypeInfo(typeSyntax, cancellationToken: ct);
             string type = typeInfo.Type?.ToDisplayString() ?? typeSyntax.ToFullString();
             TypeKind typeKind = TypeHelper.GetTypeKind(typeInfo.Type);
-            bool tagBlob = GetArgumentValue(tableSetPropertyAttribute, "Tag") == "true";
+            bool tagBlob = GetArgumentValue(tableSetPropertyAttribute, "Tag") is "true";
 
             members.Add(new MemberToGenerate(
                 name: name,

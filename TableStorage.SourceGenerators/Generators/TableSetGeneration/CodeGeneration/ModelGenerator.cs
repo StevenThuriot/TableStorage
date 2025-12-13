@@ -45,7 +45,7 @@ internal static class ModelGenerator
         foreach (ClassToGenerate classToGenerate in classesToGenerate)
         {
             string modelResult = GenerateSingleTableSetClassString(classToGenerate, publishAot, tableStorageSerializerContext);
-            string fileName = string.IsNullOrEmpty(classToGenerate.Namespace) || classToGenerate.Namespace == "<global namespace>"
+            string fileName = string.IsNullOrEmpty(classToGenerate.Namespace) || classToGenerate.Namespace is "<global namespace>"
                 ? classToGenerate.Name
                 : classToGenerate.Namespace + "." + classToGenerate.Name;
             yield return (fileName, modelResult);
