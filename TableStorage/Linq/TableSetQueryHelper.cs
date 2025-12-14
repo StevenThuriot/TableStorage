@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using TableStorage.Visitors;
 
 namespace TableStorage.Linq;
@@ -9,12 +8,25 @@ internal static class TableSetQueryHelper
     public static TableSetQueryHelper<T> From<T>(TableSet<T> table) where T : class, ITableEntity, new() => new(table);
 }
 
+internal interface ITableSetQueryHelper<T> : IAsyncEnumerable<T>, ICanTakeOneTableQueryable<T>
+    where T : class, ITableEntity, new()
+{
+    public string? PartitionKeyProxy { get; }
+    public string? RowKeyProxy { get; }
+    public ITableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound);
+    public ITableSetQueryHelper<T> SetFields(IEnumerable<string> fields);
+    public bool HasFields();
+    public Task UpdateAsync(ITableEntity entity, CancellationToken cancellationToken);
+    public Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken = default);
+}
+
 internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     IAsyncEnumerable<T>,
     ISelectedTableQueryable<T>,
     ITakenTableQueryable<T>,
     IFilteredTableQueryable<T>,
-    ISelectedTakenTableQueryable<T>
+    ISelectedTakenTableQueryable<T>,
+    ITableSetQueryHelper<T>
     where T : class, ITableEntity, new()
 {
     private ParameterExpression? _parameter;
@@ -238,5 +250,20 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     IFilteredTableQueryable<T> IFilteredTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
 
     ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
+    IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator(CancellationToken cancellationToken) => throw new NotImplementedException();
+    Task<T> ICanTakeOneTableQueryable<T>.FirstAsync(CancellationToken token) => throw new NotImplementedException();
+    Task<T?> ICanTakeOneTableQueryable<T>.FirstOrDefaultAsync(CancellationToken token) => throw new NotImplementedException();
+    Task<T> ICanTakeOneTableQueryable<T>.SingleAsync(CancellationToken token) => throw new NotImplementedException();
+    Task<T?> ICanTakeOneTableQueryable<T>.SingleOrDefaultAsync(CancellationToken token) => throw new NotImplementedException();
     #endregion NotExistsIn
+
+    #region ITableSetQueryHelper
+    string? ITableSetQueryHelper<T>.PartitionKeyProxy => Table.PartitionKeyProxy;
+    string? ITableSetQueryHelper<T>.RowKeyProxy => Table.RowKeyProxy;
+    bool ITableSetQueryHelper<T>.HasFields() => HasFields();
+    ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields(IEnumerable<string> fields) => SetFields(fields);
+    ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound) => SetFields(exp, throwIfNoArgumentsFound);
+    Task ITableSetQueryHelper<T>.UpdateAsync(ITableEntity entity, CancellationToken cancellationToken) => Table.UpdateAsync(entity, cancellationToken);
+    Task ITableSetQueryHelper<T>.SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken) => Table.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
+    #endregion ITableSetQueryHelper
 }

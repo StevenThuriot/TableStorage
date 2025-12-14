@@ -42,6 +42,8 @@
 		<!-- Mark the property as compiler aware, so it's added to the editor config-->
 		<CompilerVisibleProperty Include="PublishAot" />
 		<CompilerVisibleProperty Include="TableStorageSerializerContext" />
+		<ProjectReference Include="..\TableStorage.Fluent.Extended\TableStorage.Fluent.Extended.csproj" />
+		<ProjectReference Include="..\TableStorage.Fluent.RuntimeCompilations\TableStorage.Fluent.RuntimeCompilations.csproj" />
 		<ProjectReference Include="..\TableStorage.Fluent\TableStorage.Fluent.csproj" />
 
 		<ProjectReference Include="..\TableStorage\TableStorage.csproj" />

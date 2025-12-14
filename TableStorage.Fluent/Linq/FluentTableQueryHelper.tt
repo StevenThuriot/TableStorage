@@ -58,10 +58,8 @@ namespace TableStorage.Linq;
             createFilterMethod = $@"
         private static Expression<Func<{className}<{typeParamList}>, bool>> CreateFilter()
         {{
-            ParameterExpression parameter = Expression.Parameter(DollarTypeClass.Type, ""x"");
-            Expression propertyAccess = Expression.Property(parameter, ""$type"");
             Expression equality = Expression.Equal(
-                propertyAccess,
+                DollarTypeClass.TypeProperty,
                 Expression.Constant(typeof(T).Name)
             );
             return Expression.Lambda<Func<{className}<{typeParamList}>, bool>>(equality, Expression.Parameter(typeof({className}<{typeParamList}>)));
@@ -163,10 +161,33 @@ public static class <#= className #><#= genericCount #>QueryHelper
         ISelectedTableQueryable<T>,
         ITakenTableQueryable<T>,
         IFilteredTableQueryable<T>,
-        ISelectedTakenTableQueryable<T>
+        ISelectedTakenTableQueryable<T>,
+        ITableSetQueryHelper<T>
         where T : class, IDictionary<string, object>, ITableEntity, new() // T is either T1..T<#= genericCount #>. We've already filtered by Type before this helper is created
         <#= constraintList #>
     {
+        string? ITableSetQueryHelper<T>.PartitionKeyProxy => _helper.Table.PartitionKeyProxy;
+
+        string? ITableSetQueryHelper<T>.RowKeyProxy => _helper.Table.PartitionKeyProxy;
+
+        ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound)
+        {
+            SelectFields(exp, throwIfNoArgumentsFound);
+            return this;
+        }
+
+        ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields(IEnumerable<string> fields)
+        {
+            _helper.SetFields(fields);
+            return this;
+        }
+
+        bool ITableSetQueryHelper<T>.HasFields() => _helper.HasFields();
+        
+        Task ITableSetQueryHelper<T>.UpdateAsync(ITableEntity entity, CancellationToken cancellationToken) => _helper.Table.UpdateAsync(entity, cancellationToken);
+
+        Task ITableSetQueryHelper<T>.SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken) => _helper.Table.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
+
         // We know that the PartitionKey is always the name of type T for FluentPartitionTableEntity, the RowKey for FluentRowTableEntity and the $type field for FluentTableEntity
         private readonly TableSetQueryHelper<<#= className #><<#= typeParamList #>>> _helper = helper.AddFilter(<#= discriminator == "$type" ? "CreateFilter()" : $"x => x.{discriminator} == typeof(T).Name" #>);
 <#= createFilterMethod #>
@@ -199,18 +220,21 @@ public static class <#= className #><#= genericCount #>QueryHelper
 
         public async Task<T?> SingleOrDefaultAsync(CancellationToken token = default) => Unsafe.As<T>((await _helper.SingleOrDefaultAsync(token))?.GetRawValue());
 
-        private void SelectFields<TResult>(Expression<Func<T, TResult>> selector)
+        private void SelectFields<TResult>(Expression<Func<T, TResult>> selector, bool throwIfNoArgumentsFound = true)
         {
             SelectionVisitor visitor = new(_helper.Table.PartitionKeyProxy, _helper.Table.RowKeyProxy);
             visitor.Visit(selector);
 
             if (visitor.Members.Count is 0)
             {
-                throw new NotSupportedException("Select expression is not supported");
+                if (throwIfNoArgumentsFound)
+                {
+                    throw new NotSupportedException("Select expression is not supported");
+                }
             }
             else
             {
-                visitor.Members.Add(<#= className #><<#= typeParamList #>>.Discriminator);
+                visitor.Members.Add(FluentTableEntity<T1, T2>.Discriminator);
                 _helper.SetFields(visitor.Members);
             }
         }

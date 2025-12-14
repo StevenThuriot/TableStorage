@@ -8,7 +8,7 @@ public static class ITableAsyncEnumerableExtensions
     public static Task<int> BatchUpdateAsync<T>(this ITableAsyncEnumerable<T> table, Expression<Func<T, T>> update, CancellationToken token = default)
         where T : class, ITableEntity, new()
     {
-        if (table is not TableSetQueryHelper<T> helper)
+        if (table is not ITableSetQueryHelper<T> helper)
         {
             throw new NotSupportedException("BatchUpdateTransactionAsync is not supported on the passed table type.");
         }
@@ -20,7 +20,7 @@ public static class ITableAsyncEnumerableExtensions
     public static Task<int> BatchUpdateTransactionAsync<T>(this ITableAsyncEnumerable<T> table, Expression<Func<T, T>> update, CancellationToken token = default)
         where T : class, ITableEntity, new()
     {
-        if (table is not TableSetQueryHelper<T> helper)
+        if (table is not ITableSetQueryHelper<T> helper)
         {
             throw new NotSupportedException("BatchUpdateTransactionAsync is not supported on the passed table type.");
         }

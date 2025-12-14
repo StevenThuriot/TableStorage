@@ -1,6 +1,4 @@
 using Azure.Data.Tables;
-using Azure.Storage.Blobs.Specialized;
-using DotNet.Testcontainers.Builders;
 using Microsoft.Extensions.DependencyInjection;
 using TableStorage.Tests.Contexts;
 using Testcontainers.Azurite;
@@ -61,6 +59,7 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
             configure: x =>
             {
                 x.CreateTableIfNotExists = true;
+                x.EnableFluentCompilationAtRuntime();
             },
             configureBlobs: x =>
             {

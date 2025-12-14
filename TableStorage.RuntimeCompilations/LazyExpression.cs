@@ -1,11 +1,9 @@
-﻿using FastExpressionCompiler;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace TableStorage;
 
-internal sealed class LazyExpression<T>(Expression<Func<T, T>> expression) : Lazy<Func<T, T>>(() => expression.CompileFast())
+internal sealed class LazyExpression<T, TResult>(Expression<Func<T, TResult>> expression) : Lazy<Func<T, TResult>>(() => LazyExpressionCompilation.CompilationFactory.Compile(expression))
 {
-    public T Invoke(T entity) => Value(entity);
-
-    public static implicit operator LazyExpression<T>(Expression<Func<T, T>> expression) => new(expression);
+    public TResult Invoke(T entity) => Value(entity);
+    public static implicit operator LazyExpression<T, TResult>(Expression<Func<T, TResult>> expression) => new(expression);
 }

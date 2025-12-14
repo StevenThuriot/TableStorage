@@ -1,18 +1,15 @@
-﻿using FastExpressionCompiler;
-using System.Linq.Expressions;
+﻿namespace TableStorage.Linq;
 
-namespace TableStorage.Linq;
-
-internal sealed class TransformedTableSetQueryHelper<T, TResult>(TableSetQueryHelper<T> tableSetQueryHelper, Expression<Func<T, TResult>> transform) : ITableEnumerable<TResult>
+internal sealed class TransformedTableSetQueryHelper<T, TResult>(ITableSetQueryHelper<T> tableSetQueryHelper, LazyExpression<T, TResult> transform) : ITableEnumerable<TResult>
     where T : class, ITableEntity, new()
 {
-    private readonly TableSetQueryHelper<T> _helper = tableSetQueryHelper;
-    private readonly Func<T, TResult> _transform = transform.CompileFast();
+    private readonly ITableSetQueryHelper<T> _helper = tableSetQueryHelper;
+    private readonly LazyExpression<T, TResult> _transform = transform;
 
     public async Task<TResult> FirstAsync(CancellationToken token = default)
     {
         T result = await _helper.FirstAsync(token);
-        return _transform(result);
+        return _transform.Invoke(result);
     }
 
     public async Task<TResult?> FirstOrDefaultAsync(CancellationToken token = default)
@@ -24,13 +21,13 @@ internal sealed class TransformedTableSetQueryHelper<T, TResult>(TableSetQueryHe
             return default;
         }
 
-        return _transform(result);
+        return _transform.Invoke(result);
     }
 
     public async Task<TResult> SingleAsync(CancellationToken token = default)
     {
         T result = await _helper.SingleAsync(token);
-        return _transform(result);
+        return _transform.Invoke(result);
     }
 
     public async Task<TResult?> SingleOrDefaultAsync(CancellationToken token = default)
@@ -42,14 +39,16 @@ internal sealed class TransformedTableSetQueryHelper<T, TResult>(TableSetQueryHe
             return default;
         }
 
-        return _transform(result);
+        return _transform.Invoke(result);
     }
 
     public async IAsyncEnumerator<TResult> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
+        Func<T, TResult> invoker = _transform.Value;
+
         await foreach (T item in _helper)
         {
-            yield return _transform(item);
+            yield return invoker(item);
         }
     }
 }

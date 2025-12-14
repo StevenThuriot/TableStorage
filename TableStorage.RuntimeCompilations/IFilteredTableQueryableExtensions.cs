@@ -8,7 +8,7 @@ public static class IFilteredTableQueryableExtensions
     public static ITableEnumerable<TResult> Select<T, TResult>(this IFilteredTableQueryable<T> table, Expression<Func<T, TResult>> selector)
         where T : class, ITableEntity, new()
     {
-        if (table is not TableSetQueryHelper<T> helper)
+        if (table is not ITableSetQueryHelper<T> helper)
         {
             throw new NotSupportedException("BatchUpdateTransactionAsync is not supported on the passed table type.");
         }

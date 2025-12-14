@@ -6,27 +6,27 @@ namespace TableStorage.Linq;
 internal sealed class CompilingTableSetQueryHelper<T>
     where T : class, ITableEntity, new()
 {
-    private readonly TableSetQueryHelper<T> _helper;
+    private readonly ITableSetQueryHelper<T> _helper;
 
     public CompilingTableSetQueryHelper(TableSet<T> table)
     {
         _helper = TableSetQueryHelper.From(table);
     }
 
-    public CompilingTableSetQueryHelper(TableSetQueryHelper<T> table)
+    public CompilingTableSetQueryHelper(ITableSetQueryHelper<T> table)
     {
         _helper = table;
     }
 
     public TransformedTableSetQueryHelper<T, TResult> SetFieldsAndTransform<TResult>(Expression<Func<T, TResult>> exp)
     {
-        TableSetQueryHelper<T> helper = _helper.SetFields(exp, throwIfNoArgumentsFound: false);
+        ITableSetQueryHelper<T> helper = _helper.SetFields(exp, throwIfNoArgumentsFound: false);
         return new TransformedTableSetQueryHelper<T, TResult>(helper, exp);
     }
 
     public async Task<int> BatchUpdateAsync(Expression<Func<T, T>> update, CancellationToken token = default)
     {
-        (MergeVisitor visitor, LazyExpression<T> compiledUpdate) = PrepareExpression(update);
+        (MergeVisitor visitor, LazyExpression<T, T> compiledUpdate) = PrepareExpression(update);
 
         int result = 0;
 
@@ -36,7 +36,7 @@ internal sealed class CompilingTableSetQueryHelper<T>
         {
             T current = enumerator.Current;
             ITableEntity entity = PrepareEntity(visitor, compiledUpdate, current);
-            await _helper.Table.UpdateAsync(entity, token);
+            await _helper.UpdateAsync(entity, token);
 
             result++;
         }
@@ -46,7 +46,7 @@ internal sealed class CompilingTableSetQueryHelper<T>
 
     public async Task<int> BatchUpdateTransactionAsync(Expression<Func<T, T>> update, CancellationToken token)
     {
-        (MergeVisitor visitor, LazyExpression<T> compiledUpdate) = PrepareExpression(update);
+        (MergeVisitor visitor, LazyExpression<T, T> compiledUpdate) = PrepareExpression(update);
 
         List<TableTransactionAction> entities = [];
 
@@ -59,11 +59,11 @@ internal sealed class CompilingTableSetQueryHelper<T>
             entities.Add(new(TableTransactionActionType.UpdateMerge, entity, current.ETag));
         }
 
-        await _helper.Table.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
+        await _helper.SubmitTransactionAsync(entities, TransactionSafety.Enabled, token);
         return entities.Count;
     }
 
-    private static ITableEntity PrepareEntity(MergeVisitor visitor, LazyExpression<T> compiledUpdate, T current)
+    private static ITableEntity PrepareEntity(MergeVisitor visitor, LazyExpression<T, T> compiledUpdate, T current)
     {
         TableEntity entity = new(visitor.Entity)
         {
@@ -91,14 +91,14 @@ internal sealed class CompilingTableSetQueryHelper<T>
         return entity;
     }
 
-    private (MergeVisitor, LazyExpression<T>) PrepareExpression(Expression<Func<T, T>> update)
+    private (MergeVisitor, LazyExpression<T, T>) PrepareExpression(Expression<Func<T, T>> update)
     {
         if (update is null)
         {
             throw new ArgumentNullException(nameof(update), "update action should not be null");
         }
 
-        MergeVisitor visitor = new(_helper.Table.PartitionKeyProxy, _helper.Table.RowKeyProxy);
+        MergeVisitor visitor = new(_helper.PartitionKeyProxy, _helper.RowKeyProxy);
         update = (Expression<Func<T, T>>)visitor.Visit(update);
 
         if (!visitor.HasMerges)

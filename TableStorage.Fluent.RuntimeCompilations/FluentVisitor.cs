@@ -1,18 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Text;
+﻿using System.Linq.Expressions;
 
 namespace TableStorage.Fluent;
 
-public sealed class FluentVisitor(ParameterExpression parameter) : ExpressionVisitor
+internal sealed class FluentVisitor(ParameterExpression parameter) : ExpressionVisitor
 {
     private readonly ParameterExpression _parameter = parameter;
 
-    protected override Expression VisitParameter(ParameterExpression node)
-    {
-        return _parameter;
-    }
+    protected override Expression VisitParameter(ParameterExpression node) => _parameter;
 
     protected override Expression VisitMember(MemberExpression node)
     {

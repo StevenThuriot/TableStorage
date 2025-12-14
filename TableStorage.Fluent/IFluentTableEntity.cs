@@ -1,7 +1,7 @@
 ﻿
 namespace TableStorage.Fluent;
 
-public interface IFluentTableEntity : IDictionary<string, object>, ITableEntity
+internal interface IFluentTableEntity : IDictionary<string, object>, ITableEntity
 {
     public Type GetActualType();
     public FluentBackingType GetBackingType();

@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Linq.Expressions;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace TableStorage.Fluent;
@@ -34,7 +35,11 @@ internal static class DollarTypeClass
         propertyBuilder.SetSetMethod(setMethodBuilder);
 
         Type = typeBuilder.CreateType();
+
+        ParameterExpression parameter = Expression.Parameter(Type, "x");
+        TypeProperty = Expression.Property(parameter, "$type");
     }
 
     public static Type Type { get; }
+    public static MemberExpression TypeProperty { get; }
 }
