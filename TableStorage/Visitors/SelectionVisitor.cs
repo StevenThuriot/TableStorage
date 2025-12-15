@@ -2,10 +2,10 @@
 
 namespace TableStorage.Visitors;
 
-internal sealed class SelectionVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+internal sealed class SelectionVisitor(ModelInfo modelInfo) : ExpressionVisitor
 {
-    private readonly string? _partitionKeyProxy = partitionKeyProxy;
-    private readonly string? _rowKeyProxy = rowKeyProxy;
+    private readonly string? _partitionKeyProxy = modelInfo.PartitionKey;
+    private readonly string? _rowKeyProxy = modelInfo.RowKey;
 
     public readonly HashSet<string> Members = [];
 
@@ -13,12 +13,12 @@ internal sealed class SelectionVisitor(string? partitionKeyProxy, string? rowKey
     {
         string name = node.Member.Name;
 
-        if (name == _partitionKeyProxy)
+        if (name == _partitionKeyProxy && name is not nameof(ITableEntity.PartitionKey))
         {
             name = nameof(ITableEntity.PartitionKey);
             node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
         }
-        else if (name == _rowKeyProxy)
+        else if (name == _rowKeyProxy && name is not nameof(ITableEntity.RowKey))
         {
             name = nameof(ITableEntity.RowKey);
             node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));

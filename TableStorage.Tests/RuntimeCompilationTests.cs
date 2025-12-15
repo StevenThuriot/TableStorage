@@ -1,3 +1,4 @@
+#if !PublishAot
 using TableStorage.Tests.Infrastructure;
 using TableStorage.Tests.Models;
 
@@ -9,7 +10,6 @@ namespace TableStorage.Tests;
 /// </summary>
 public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azuriteFixture)
 {
-#if !PublishAot
     [Fact]
     public async Task Select_WithAnonymousType_ShouldProjectProperties()
     {
@@ -438,12 +438,5 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
         Assert.NotEqual("test", result.MyProperty2);
         Assert.NotNull(result.MyProperty9);
     }
-#else
-    [Fact]
-    public void RuntimeCompilation_IsDisabledForPublishAot()
-    {
-        // This test exists to ensure the test project compiles with PublishAot
-        Assert.True(true);
-    }
-#endif
 }
+#endif

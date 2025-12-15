@@ -16,13 +16,8 @@ internal sealed class ChangeTrackingTableSet<T> : TableSet<T>
         return entity;
     }
 
-    internal ChangeTrackingTableSet(TableStorageFactory factory, string tableName, TableOptions options)
-        : base(factory, tableName, options)
-    {
-    }
-
-    internal ChangeTrackingTableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
-        : base(factory, tableName, options, partitionKeyProxy, rowKeyProxy)
+    internal ChangeTrackingTableSet(TableStorageFactory factory, string tableName, TableOptions options, Func<Type, ModelInfo> infoProvider)
+        : base(factory, tableName, options, infoProvider)
     {
     }
 

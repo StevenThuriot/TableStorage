@@ -31,23 +31,25 @@ public abstract class BaseBlobSet<T, TClient> : IStorageSet<T>
     protected const string PartitionTagConstant = "partition";
     protected const string RowTagConstant = "row";
 
+    private readonly Func<Type, ModelInfo> _infoProvider;
+
     public string Name { get; }
-    public Type Type => typeof(T);
-    public string EntityType => Type.Name;
+    public Type Type => ModelInfo.EntityType;
+    public string EntityType => ModelInfo.EntityType.Name;
 
     protected internal BlobOptions Options { get; }
-    protected internal string? PartitionKeyProxy { get; }
-    protected internal string? RowKeyProxy { get; }
     protected internal IReadOnlyCollection<string> Tags { get; }
+    public ModelInfo ModelInfo { get; }
+    public ModelInfo GetModelInfo<TType>() => _infoProvider(typeof(TType));
 
     private readonly LazyAsync<BlobContainerClient> _containerClient;
 
-    internal BaseBlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, string? partitionKeyProxy, string? rowKeyProxy, IReadOnlyCollection<string> tags)
+    internal BaseBlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, Func<Type, ModelInfo> infoProvider, IReadOnlyCollection<string> tags)
     {
+        _infoProvider = infoProvider;
+        ModelInfo = infoProvider(typeof(T));
         Name = tableName;
         Options = options;
-        PartitionKeyProxy = partitionKeyProxy;
-        RowKeyProxy = rowKeyProxy;
         Tags = tags;
         _containerClient = new(() => factory.GetClient(tableName));
     }

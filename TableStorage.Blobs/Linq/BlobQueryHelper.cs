@@ -57,14 +57,14 @@ public static class BlobSetQueryHelper
     public static Task<T?> FindAsync<T>(this BlobSet<T> table, string partitionKey, string rowKey, CancellationToken token = default)
         where T : IBlobEntity
     {
-        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T>(partitionKey, rowKey, table.PartitionKeyProxy, table.RowKeyProxy);
+        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T, IBlobEntity>(partitionKey, rowKey);
         return table.Where(predicate).FirstOrDefaultAsync(token);
     }
 
     public static IFilteredBlobQueryable<T> FindAsync<T>(this BlobSet<T> table, params IReadOnlyList<(string partitionKey, string rowKey)> keys)
         where T : IBlobEntity
     {
-        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T>(keys, table.PartitionKeyProxy, table.RowKeyProxy);
+        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T, IBlobEntity>(keys);
         return table.Where(predicate);
     }
 
@@ -113,14 +113,14 @@ public static class BlobSetQueryHelper
     public static Task<T?> FindAsync<T>(this AppendBlobSet<T> table, string partitionKey, string rowKey, CancellationToken token = default)
         where T : IBlobEntity
     {
-        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T>(partitionKey, rowKey, table.PartitionKeyProxy, table.RowKeyProxy);
+        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T, IBlobEntity>(partitionKey, rowKey);
         return table.Where(predicate).FirstOrDefaultAsync(token);
     }
 
     public static IFilteredBlobQueryable<T> FindAsync<T>(this AppendBlobSet<T> table, params IReadOnlyList<(string partitionKey, string rowKey)> keys)
         where T : IBlobEntity
     {
-        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T>(keys, table.PartitionKeyProxy, table.RowKeyProxy);
+        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T, IBlobEntity>(keys);
         return table.Where(predicate);
     }
 }

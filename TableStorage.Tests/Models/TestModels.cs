@@ -131,6 +131,11 @@ public static class Mapper
     {
         return new(model.MyProperty1, model.MyProperty2);
     }
+
+    public static TestTransformAndSelect Map(this FluentTestModelA model)
+    {
+        return new(model.PropertyA, model.TypeA);
+    }
 }
 
 // Base class tests for property inheritance

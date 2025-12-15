@@ -3,12 +3,8 @@
 internal sealed class DefaultTableSet<T> : TableSet<T>
     where T : class, ITableEntity, new()
 {
-    internal DefaultTableSet(TableStorageFactory factory, string tableName, TableOptions options)
-        : base(factory, tableName, options)
-    {
-    }
-    internal DefaultTableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
-        : base(factory, tableName, options, partitionKeyProxy, rowKeyProxy)
+    internal DefaultTableSet(TableStorageFactory factory, string tableName, TableOptions options, Func<Type, ModelInfo> infoProvider)
+        : base(factory, tableName, options, infoProvider)
     {
     }
 

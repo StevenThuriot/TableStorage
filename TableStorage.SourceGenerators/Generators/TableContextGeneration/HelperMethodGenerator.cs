@@ -33,25 +33,25 @@ internal static class HelperMethodGenerator
         public BlobSet<T> GetBlobSet<T>(string tableName)
             where T : class, TableStorage.IBlobEntity, new()
         {
-            return _blobCreator.CreateSet<T>(tableName);
+            return _blobCreator.CreateSet<T>(tableName, TableStorage.ModelInfoProvider.GetInfo);
         }
 
-        public BlobSet<T> GetBlobSet<T>(string tableName, string partitionKeyProxy = null, string rowKeyProxy = null)
+        public BlobSet<T> GetBlobSet<T>(string tableName, Func<System.Type, TableStorage.ModelInfo> infoProvider)
             where T : class, TableStorage.IBlobEntity, new()
         {
-            return _blobCreator.CreateSet<T>(tableName, partitionKeyProxy, rowKeyProxy);
+            return _blobCreator.CreateSet<T>(tableName, infoProvider ?? TableStorage.ModelInfoProvider.GetInfo);
         }
 
         public AppendBlobSet<T> GetAppendBlobSet<T>(string tableName)
             where T : class, TableStorage.IBlobEntity, new()
         {
-            return _blobCreator.CreateAppendSet<T>(tableName);
+            return _blobCreator.CreateAppendSet<T>(tableName, TableStorage.ModelInfoProvider.GetInfo);
         }
 
-        public AppendBlobSet<T> GetAppendBlobSet<T>(string tableName, string partitionKeyProxy = null, string rowKeyProxy = null)
+        public AppendBlobSet<T> GetAppendBlobSet<T>(string tableName, Func<System.Type, TableStorage.ModelInfo> infoProvider)
             where T : class, TableStorage.IBlobEntity, new()
         {
-            return _blobCreator.CreateAppendSet<T>(tableName, partitionKeyProxy, rowKeyProxy);
+            return _blobCreator.CreateAppendSet<T>(tableName, infoProvider ?? TableStorage.ModelInfoProvider.GetInfo);
         }");
     }
 
@@ -62,25 +62,25 @@ internal static class HelperMethodGenerator
         public TableSet<T> GetTableSet<T>(string tableName)
             where T : class, Azure.Data.Tables.ITableEntity, new()
         {
-            return _creator.CreateSet<T>(tableName);
+            return _creator.CreateSet<T>(tableName, TableStorage.ModelInfoProvider.GetInfo);
         }
 
-        public TableSet<T> GetTableSet<T>(string tableName, string partitionKeyProxy = null, string rowKeyProxy = null)
+        public TableSet<T> GetTableSet<T>(string tableName, Func<System.Type, TableStorage.ModelInfo> infoProvider)
             where T : class, Azure.Data.Tables.ITableEntity, new()
         {
-            return _creator.CreateSet<T>(tableName, partitionKeyProxy, rowKeyProxy);
+            return _creator.CreateSet<T>(tableName, infoProvider ?? TableStorage.ModelInfoProvider.GetInfo);
         }
 
         public TableSet<T> GetTableSetWithChangeTracking<T>(string tableName)
             where T : class, Azure.Data.Tables.ITableEntity, TableStorage.IChangeTracking, new()
         {
-            return _creator.CreateSetWithChangeTracking<T>(tableName);
+            return _creator.CreateSetWithChangeTracking<T>(tableName, TableStorage.ModelInfoProvider.GetInfo);
         }
 
-        public TableSet<T> GetTableSetWithChangeTracking<T>(string tableName, string partitionKeyProxy = null, string rowKeyProxy = null)
+        public TableSet<T> GetTableSetWithChangeTracking<T>(string tableName, Func<System.Type, TableStorage.ModelInfo> infoProvider)
             where T : class, Azure.Data.Tables.ITableEntity, TableStorage.IChangeTracking, new()
         {
-            return _creator.CreateSetWithChangeTracking<T>(tableName, partitionKeyProxy, rowKeyProxy);
+            return _creator.CreateSetWithChangeTracking<T>(tableName, infoProvider ?? TableStorage.ModelInfoProvider.GetInfo);
         }");
     }
 }

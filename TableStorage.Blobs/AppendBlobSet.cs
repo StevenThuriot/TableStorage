@@ -6,8 +6,8 @@ namespace TableStorage;
 public sealed class AppendBlobSet<T> : BaseBlobSet<T, AppendBlobClient>
     where T : IBlobEntity
 {
-    internal AppendBlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, string? partitionKeyProxy, string? rowKeyProxy, IReadOnlyCollection<string> tags)
-        : base(factory, tableName, options, partitionKeyProxy, rowKeyProxy, tags)
+    internal AppendBlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, Func<Type, ModelInfo> infoProvider, IReadOnlyCollection<string> tags)
+        : base(factory, tableName, options, infoProvider, tags)
     {
     }
 

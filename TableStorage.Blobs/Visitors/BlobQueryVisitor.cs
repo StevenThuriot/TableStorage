@@ -35,10 +35,10 @@ internal readonly struct TagCollection
     public ILookup<string, TagCollectionEntry> ToLookup() => _tags.SelectMany(x => x.Value.Select(value => (x.Key, value))).ToLookup(x => x.Key, x => x.value);
 }
 
-internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKeyProxy, IEnumerable<string> tags) : ExpressionVisitor
+internal sealed class BlobQueryVisitor(ModelInfo modelInfo, IEnumerable<string> tags) : ExpressionVisitor
 {
-    private readonly string _partitionKeyName = partitionKeyProxy ?? nameof(IBlobEntity.PartitionKey);
-    private readonly string _rowKeyName = rowKeyProxy ?? nameof(IBlobEntity.RowKey);
+    private readonly string _partitionKeyName = modelInfo.PartitionKey;
+    private readonly string _rowKeyName = modelInfo.RowKey;
     private readonly IEnumerable<string> _tags = tags;
 
     private bool _simpleFilter = true;
@@ -133,9 +133,9 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
 
     private bool TryGetFilterFor(Expression left, Expression right, ExpressionType type, out string? filter)
     {
-        if (left is MemberExpression member && member.Expression is ParameterExpression)
+        if (left is MemberExpression member && member.Expression.NodeType is ExpressionType.Parameter or ExpressionType.Convert)
         {
-            if (member.Member.Name == _partitionKeyName)
+            if (member.Member.Name == _partitionKeyName || member.Member.Name is nameof(IBlobEntity.PartitionKey))
             {
                 string? value = GetValue(right)?.ToString();
                 if (value is not null)
@@ -146,7 +146,7 @@ internal sealed class BlobQueryVisitor(string? partitionKeyProxy, string? rowKey
                     return true;
                 }
             }
-            else if (member.Member.Name == _rowKeyName)
+            else if (member.Member.Name == _rowKeyName || member.Member.Name is nameof(IBlobEntity.RowKey))
             {
                 string? value = GetValue(right)?.ToString();
                 if (value is not null)

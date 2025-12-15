@@ -44,11 +44,18 @@ namespace TableStorage.Fluent;
         {
             var typeName = typeParams[i];
             var backingTypeValue = (i + 1 <= 16) ? $"FluentBackingType.{GetOrdinalName(i + 1)}" : "FluentBackingType.NotInitialized";
+
+            var setDiscriminatorLogic = string.Empty;
+            if (!isVirtualDiscriminator)
+            {
+                setDiscriminatorLogic = $@"
+        entity.{discriminator} = typeof(T{i + 1}).Name;";
+            }
             
             operators.Add($@"    public {className}(T{i + 1} entity)
     {{
         _backingType = {backingTypeValue};
-        _backingDictionary = entity;
+        _backingDictionary = entity;{setDiscriminatorLogic}
     }}
 
     public static implicit operator {className}<{typeParamList}>(T{i + 1} entity) => new(entity);
@@ -145,8 +152,8 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
     internal const string Discriminator = "<#= discriminator #>";
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static TableSet<<#= className #><<#= typeParamList #>>> CreateTableSet(ICreator creator, string name)
-        => creator.CreateSet<<#= className #><<#= typeParamList #>>>(name, null, null);
+    public static TableSet<<#= className #><<#= typeParamList #>>> CreateTableSet(ICreator creator, string name, Func<System.Type, TableStorage.ModelInfo> infoProvider)
+        => creator.CreateSet<<#= className #><<#= typeParamList #>>>(name, infoProvider);
 
     private FluentBackingType _backingType;
     private IDictionary<string, object> _backingDictionary;
@@ -377,11 +384,13 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
                         }
 
                         return;
-                    case "odata.etag":
-                        if (value is ETag et)
+                    case "odata.etag":                        
+                        _tempETag = value switch
                         {
-                            _tempETag = et;
-                        }
+                            string etagString => new(etagString),
+                            ETag etag => etag,
+                            _ => null
+                        };
                         
                         return;
                 }
@@ -401,18 +410,19 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
             _ => null
         };
     }
+    
+    public bool IsReadOnly => _backingDictionary.IsReadOnly;
+    public bool Remove(string key) => _backingDictionary.Remove(key);
+    public void Add(string key, object value) => _backingDictionary.Add(key, value);
+    public void Add(KeyValuePair<string, object> item) => _backingDictionary.Add(item);
+    public void Clear() => _backingDictionary.Clear();
+    public bool Remove(KeyValuePair<string, object> item) => _backingDictionary.Remove(item);
 
 <#+ if (isVirtualDiscriminator) { #>
     public ICollection<string> Keys => new KeyCollectionHelper(_backingDictionary, Discriminator);
     public ICollection<object> Values => new ValueCollectionHelper(_backingDictionary, GetDiscriminatorType());
-
     public int Count => _backingDictionary.Count + 1;
-    public bool IsReadOnly => false;
-
-    public void Add(string key, object value) => _backingDictionary.Add(key, value);
     public bool ContainsKey(string key) => key is Discriminator || _backingDictionary.ContainsKey(key);
-    public bool Remove(string key) => _backingDictionary.Remove(key);
-
     public bool TryGetValue(string key, out object value)
     {
         if (key is Discriminator)
@@ -423,9 +433,6 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
 
         return _backingDictionary.TryGetValue(key, out value);
     }
-
-    public void Add(KeyValuePair<string, object> item) => _backingDictionary.Add(item);
-    public void Clear() => _backingDictionary.Clear();
 
     public bool Contains(KeyValuePair<string, object> item)
     {
@@ -458,7 +465,6 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
         _backingDictionary.CopyTo(array, arrayIndex);
     }
 
-    public bool Remove(KeyValuePair<string, object> item) => _backingDictionary.Remove(item);
     public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
     {
         yield return new(Discriminator, GetDiscriminatorType());
@@ -470,33 +476,11 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
 <#+ } else { #>
     public ICollection<string> Keys => _backingDictionary.Keys;
     public ICollection<object> Values => _backingDictionary.Values;
-
     public int Count => _backingDictionary.Count;
-    public bool IsReadOnly => false;
-
-    public void Add(string key, object value) => _backingDictionary.Add(key, value);
     public bool ContainsKey(string key) => _backingDictionary.ContainsKey(key);
-    public bool Remove(string key) => _backingDictionary.Remove(key);
-
-    public bool TryGetValue(string key, out object value)
-    {
-        if (key is Discriminator)
-        {
-            value = GetDiscriminatorType();
-            return true;
-        }
-
-        return _backingDictionary.TryGetValue(key, out value);
-    }
-
-    public void Add(KeyValuePair<string, object> item) => _backingDictionary.Add(item);
-    public void Clear() => _backingDictionary.Clear();
-
+    public bool TryGetValue(string key, out object value) => _backingDictionary.TryGetValue(key, out value);
     public bool Contains(KeyValuePair<string, object> item) => _backingDictionary.Contains(item);
-
     public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex) => _backingDictionary.CopyTo(array, arrayIndex);
-
-    public bool Remove(KeyValuePair<string, object> item) => _backingDictionary.Remove(item);
     public IEnumerator<KeyValuePair<string, object>> GetEnumerator() => _backingDictionary.GetEnumerator();
 <#+ } #>
 

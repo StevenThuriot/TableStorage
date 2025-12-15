@@ -61,14 +61,14 @@ public static class TableQueryHelper
     public static Task<T?> FindAsync<T>(this TableSet<T> table, string partitionKey, string rowKey, CancellationToken token = default)
         where T : class, ITableEntity, new()
     {
-        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T>(partitionKey, rowKey, table.PartitionKeyProxy, table.RowKeyProxy);
+        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T, ITableEntity>(partitionKey, rowKey);
         return table.Where(predicate).FirstOrDefaultAsync(token);
     }
 
     public static IFilteredTableQueryable<T> FindAsync<T>(this TableSet<T> table, params IReadOnlyList<(string partitionKey, string rowKey)> keys)
         where T : class, ITableEntity, new()
     {
-        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T>(keys, table.PartitionKeyProxy, table.RowKeyProxy);
+        Expression<Func<T, bool>> predicate = Helpers.CreateFindPredicate<T, ITableEntity>(keys);
         return table.Where(predicate);
     }
 }

@@ -28,7 +28,7 @@ public static class TableSetExtensions
 
         public Task UpdateAsync(Expression<Func<T>> exp, CancellationToken cancellationToken = default)
         {
-            TableEntity entity = VisitForMergeAndValidate(table.PartitionKeyProxy, table.RowKeyProxy, exp);
+            TableEntity entity = VisitForMergeAndValidate(table.ModelInfo, exp);
 
             if (entity.ETag == default)
             {
@@ -40,15 +40,15 @@ public static class TableSetExtensions
 
         public Task UpsertAsync(Expression<Func<T>> exp, CancellationToken cancellationToken = default)
         {
-            TableEntity entity = VisitForMergeAndValidate(table.PartitionKeyProxy, table.RowKeyProxy, exp);
+            TableEntity entity = VisitForMergeAndValidate(table.ModelInfo, exp);
             return table.UpsertAsync(entity, cancellationToken);
         }
     }
 
-    internal static TableEntity VisitForMergeAndValidate<T>(string? partitionKeyProxy, string? rowKeyProxy, Expression<Func<T>> exp)
+    internal static TableEntity VisitForMergeAndValidate<T>(ModelInfo modelInfo, Expression<Func<T>> exp)
         where T : class, ITableEntity, new()
     {
-        MergeVisitor visitor = new(partitionKeyProxy, rowKeyProxy);
+        MergeVisitor visitor = new(modelInfo);
         _ = visitor.Visit(exp);
 
         TableEntity entity = visitor.Entity;

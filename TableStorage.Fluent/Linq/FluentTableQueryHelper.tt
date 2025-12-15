@@ -83,14 +83,14 @@ namespace TableStorage.Linq;
                     findMethods.Add($@"
         public Task<{className}<{typeParamList}>?> Find{ordinalName}Async(string partitionKey, CancellationToken token = default)
         {{
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>>(partitionKey, {typeNameLiteral}, table.PartitionKeyProxy, table.RowKeyProxy);
+            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>(partitionKey, {typeNameLiteral});
             return table.Where(predicate).FirstOrDefaultAsync(token);
         }}
 
         public IFilteredTableQueryable<{className}<{typeParamList}>> Find{ordinalName}Async(params IReadOnlyList<string> partitionKeys)
         {{
             var keys = partitionKeys.Select(pk => (partitionKey: pk, rowKey: {typeNameLiteral})).ToList();
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>>(keys, table.PartitionKeyProxy, table.RowKeyProxy);
+            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>(keys);
             return table.Where(predicate);
         }}");
                 }
@@ -100,14 +100,14 @@ namespace TableStorage.Linq;
                     findMethods.Add($@"
         public Task<{className}<{typeParamList}>?> Find{ordinalName}Async(string rowKey, CancellationToken token = default)
         {{
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>>({typeNameLiteral}, rowKey, table.PartitionKeyProxy, table.RowKeyProxy);
+            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>({typeNameLiteral}, rowKey);
             return table.Where(predicate).FirstOrDefaultAsync(token);
         }}
 
         public IFilteredTableQueryable<{className}<{typeParamList}>> Find{ordinalName}Async(params IReadOnlyList<string> rowKeys)
         {{
             var keys = rowKeys.Select(rk => (partitionKey: {typeNameLiteral}, rowKey: rk)).ToList();
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>>(keys, table.PartitionKeyProxy, table.RowKeyProxy);
+            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>(keys);
             return table.Where(predicate);
         }}");
                 }
@@ -166,30 +166,8 @@ public static class <#= className #><#= genericCount #>QueryHelper
         where T : class, IDictionary<string, object>, ITableEntity, new() // T is either T1..T<#= genericCount #>. We've already filtered by Type before this helper is created
         <#= constraintList #>
     {
-        string? ITableSetQueryHelper<T>.PartitionKeyProxy => _helper.Table.PartitionKeyProxy;
-
-        string? ITableSetQueryHelper<T>.RowKeyProxy => _helper.Table.PartitionKeyProxy;
-
-        ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound)
-        {
-            SelectFields(exp, throwIfNoArgumentsFound);
-            return this;
-        }
-
-        ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields(IEnumerable<string> fields)
-        {
-            _helper.SetFields(fields);
-            return this;
-        }
-
-        bool ITableSetQueryHelper<T>.HasFields() => _helper.HasFields();
-        
-        Task ITableSetQueryHelper<T>.UpdateAsync(ITableEntity entity, CancellationToken cancellationToken) => _helper.Table.UpdateAsync(entity, cancellationToken);
-
-        Task ITableSetQueryHelper<T>.SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken) => _helper.Table.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
-
         // We know that the PartitionKey is always the name of type T for FluentPartitionTableEntity, the RowKey for FluentRowTableEntity and the $type field for FluentTableEntity
-        private readonly TableSetQueryHelper<<#= className #><<#= typeParamList #>>> _helper = helper.AddFilter(<#= discriminator == "$type" ? "CreateFilter()" : $"x => x.{discriminator} == typeof(T).Name" #>);
+        private readonly TableSetQueryHelper<<#= className #><<#= typeParamList #>>> _helper = helper.AddFilter(<#= discriminator == "$type" ? "CreateFilter()" : $"x => x.{discriminator} == typeof(T).Name" #>, ModelInfoCache<T>.GetModelInfo(helper));
 <#= createFilterMethod #>
         private static Expression<Func<<#= className #><<#= typeParamList #>>, TResult>> AlterExpression<TResult>(Expression<Func<T, TResult>> expression)
         {
@@ -199,6 +177,40 @@ public static class <#= className #><#= genericCount #>QueryHelper
             ParameterExpression parameter = Expression.Parameter(typeof(<#= className #><<#= typeParamList #>>));
             return Expression.Lambda<Func<<#= className #><<#= typeParamList #>>, TResult>>(expression.Body, parameter);
         }
+
+        ModelInfo ITableSetQueryHelper.ModelInfo => ModelInfoCache<T>.GetModelInfo(_helper);
+        ModelInfo ITableSetQueryHelper.GetModelInfo<TType>() => _helper.Table.GetModelInfo<TType>();
+
+        Expression? ITableSetQueryHelper.GetFilter()
+        {
+            var expression = _helper.GetFilter();
+
+            if (expression is null)
+            {
+                return null;
+            }
+
+            ParameterExpression parameter = Expression.Parameter(typeof(T));
+            return Expression.Lambda<Func<T, bool>>(expression.Body, parameter);
+        }
+
+        ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound)
+        {
+            SelectFields(exp, throwIfNoArgumentsFound);
+            return this;
+        }
+
+        ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields(IEnumerable<string> fields)
+        {
+            _helper.SetFields([<#= className #><<#= typeParamList #>>.Discriminator, ..fields]);
+            return this;
+        }
+
+        bool ITableSetQueryHelper.HasFields() => _helper.HasFields();
+        
+        Task ITableSetQueryHelper.UpdateAsync(ITableEntity entity, CancellationToken cancellationToken) => _helper.Table.UpdateAsync(entity, cancellationToken);
+
+        Task ITableSetQueryHelper.SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken) => _helper.Table.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
 
         public async IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
         {
@@ -222,7 +234,7 @@ public static class <#= className #><#= genericCount #>QueryHelper
 
         private void SelectFields<TResult>(Expression<Func<T, TResult>> selector, bool throwIfNoArgumentsFound = true)
         {
-            SelectionVisitor visitor = new(_helper.Table.PartitionKeyProxy, _helper.Table.RowKeyProxy);
+            SelectionVisitor visitor = new(ModelInfoCache<T>.GetModelInfo(_helper));
             visitor.Visit(selector);
 
             if (visitor.Members.Count is 0)
@@ -234,7 +246,7 @@ public static class <#= className #><#= genericCount #>QueryHelper
             }
             else
             {
-                visitor.Members.Add(FluentTableEntity<T1, T2>.Discriminator);
+                visitor.Members.Add(<#= className #><<#= typeParamList #>>.Discriminator);
                 _helper.SetFields(visitor.Members);
             }
         }
@@ -265,73 +277,73 @@ public static class <#= className #><#= genericCount #>QueryHelper
 
         IFilteredTableQueryable<T> IFilteredTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
         {
-            _helper.AddFilter(AlterExpression(predicate));
+            _helper.AddFilter(AlterExpression(predicate), ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
         {
-            _helper.AddFilter(AlterExpression(predicate));
+            _helper.AddFilter(AlterExpression(predicate), ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ITakenTableQueryable<T> ITakenTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
         {
-            _helper.AddFilter(AlterExpression(predicate));
+            _helper.AddFilter(AlterExpression(predicate), ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ISelectedTableQueryable<T> ISelectedTableQueryable<T>.Where(Expression<Func<T, bool>> predicate)
         {
-            _helper.AddFilter(AlterExpression(predicate));
+            _helper.AddFilter(AlterExpression(predicate), ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         IFilteredTableQueryable<T> IFilteredTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ITakenTableQueryable<T> ITakenTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ISelectedTableQueryable<T> ISelectedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         IFilteredTableQueryable<T> IFilteredTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ITakenTableQueryable<T> ITakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
 
         ISelectedTableQueryable<T> ISelectedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
         {
-            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements);
+            _helper.AddNotExistsInFilter(AlterExpression(predicate), elements, ModelInfoCache<T>.GetModelInfo(_helper));
             return this;
         }
     }

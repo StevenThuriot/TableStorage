@@ -74,16 +74,19 @@ internal static class Helpers
         }
     }
 
-    public static Expression<Func<T, bool>> CreateFindPredicate<T>(string partitionKey, string rowKey, string? partitionKeyProxy, string? rowKeyProxy)
+    public static Expression<Func<T, bool>> CreateFindPredicate<T, TInterface>(string partitionKey, string rowKey)
+        where T : TInterface
     {
         ParameterExpression parameter = Expression.Parameter(typeof(T), "x");
-        Expression partitionAccess = Expression.PropertyOrField(parameter, partitionKeyProxy ?? "PartitionKey");
-        Expression rowAccess = Expression.PropertyOrField(parameter, rowKeyProxy ?? "RowKey");
+        UnaryExpression converted = Expression.Convert(parameter, typeof(TInterface));
+        MemberExpression partitionAccess = Expression.PropertyOrField(converted, "PartitionKey");
+        MemberExpression rowAccess = Expression.PropertyOrField(converted, "RowKey");
 
         return CreateFindPredicate<T>(parameter, partitionAccess, rowAccess, partitionKey, rowKey);
     }
 
-    public static Expression<Func<T, bool>> CreateFindPredicate<T>(IReadOnlyList<(string partitionKey, string rowKey)> keys, string? partitionKeyProxy, string? rowKeyProxy)
+    public static Expression<Func<T, bool>> CreateFindPredicate<T, TInterface>(IReadOnlyList<(string partitionKey, string rowKey)> keys)
+        where T : TInterface
     {
         if (keys is null || keys.Count is 0)
         {
@@ -91,8 +94,9 @@ internal static class Helpers
         }
 
         ParameterExpression parameter = Expression.Parameter(typeof(T), "x");
-        Expression partitionAccess = Expression.PropertyOrField(parameter, partitionKeyProxy ?? "PartitionKey");
-        Expression rowAccess = Expression.PropertyOrField(parameter, rowKeyProxy ?? "RowKey");
+        UnaryExpression converted = Expression.Convert(parameter, typeof(TInterface));
+        MemberExpression partitionAccess = Expression.PropertyOrField(converted, "PartitionKey");
+        MemberExpression rowAccess = Expression.PropertyOrField(converted, "RowKey");
 
         Expression<Func<T, bool>> filter = default!;
 

@@ -17,7 +17,7 @@ internal readonly struct BlobQueryHandler<T, TClient>(BaseBlobSet<T, TClient> bl
             return _blobset.IterateAllBlobs(cancellationToken);
         }
 
-        BlobQueryVisitor visitor = new(_blobset.PartitionKeyProxy, _blobset.RowKeyProxy, _blobset.Tags);
+        BlobQueryVisitor visitor = new(_blobset.ModelInfo, _blobset.Tags);
         Expression<Func<T, bool>> visitedFilter = visitor.VisitAndConvert(filter, nameof(QueryAsync));
 
         if (!visitor.Error)

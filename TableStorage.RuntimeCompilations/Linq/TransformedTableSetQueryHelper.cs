@@ -1,6 +1,8 @@
-﻿namespace TableStorage.Linq;
+﻿using System.Linq.Expressions;
 
-internal sealed class TransformedTableSetQueryHelper<T, TResult>(ITableSetQueryHelper<T> tableSetQueryHelper, LazyExpression<T, TResult> transform) : ITableEnumerable<TResult>
+namespace TableStorage.Linq;
+
+internal sealed class TransformedTableSetQueryHelper<T, TResult>(ITableSetQueryHelper<T> tableSetQueryHelper, LazyExpression<T, TResult> transform) : ITableEnumerable<TResult>, ITableSetQueryHelper
     where T : class, ITableEntity, new()
 {
     private readonly ITableSetQueryHelper<T> _helper = tableSetQueryHelper;
@@ -51,4 +53,11 @@ internal sealed class TransformedTableSetQueryHelper<T, TResult>(ITableSetQueryH
             yield return invoker(item);
         }
     }
+
+    public Expression? GetFilter() => _helper.GetFilter();
+    public bool HasFields() => _helper.HasFields();
+    public Task UpdateAsync(ITableEntity entity, CancellationToken cancellationToken) => _helper.UpdateAsync(entity, cancellationToken);
+    public Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken = default) => _helper.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
+    public ModelInfo ModelInfo => _helper.ModelInfo;
+    public ModelInfo GetModelInfo<TType>() => _helper.GetModelInfo<TType>();
 }

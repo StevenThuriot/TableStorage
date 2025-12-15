@@ -4,10 +4,10 @@ using System.Reflection;
 
 namespace TableStorage.Visitors;
 
-internal sealed class MergeVisitor(string? partitionKeyProxy, string? rowKeyProxy) : ExpressionVisitor
+internal sealed class MergeVisitor(ModelInfo modelInfo) : ExpressionVisitor
 {
-    private readonly string? _partitionKeyProxy = partitionKeyProxy;
-    private readonly string? _rowKeyProxy = rowKeyProxy;
+    private readonly string? _partitionKeyProxy = modelInfo.PartitionKey;
+    private readonly string? _rowKeyProxy = modelInfo.RowKey;
     private readonly HashSet<string> _members = [];
     private readonly HashSet<string> _complexMembers = [];
 

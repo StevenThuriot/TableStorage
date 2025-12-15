@@ -5,8 +5,8 @@ namespace TableStorage;
 public sealed class BlobSet<T> : BaseBlobSet<T, BlobClient>
     where T : IBlobEntity
 {
-    internal BlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, string? partitionKeyProxy, string? rowKeyProxy, IReadOnlyCollection<string> tags)
-        : base(factory, tableName, options, partitionKeyProxy, rowKeyProxy, tags)
+    internal BlobSet(BlobStorageFactory factory, string tableName, BlobOptions options, Func<Type, ModelInfo> infoProvider, IReadOnlyCollection<string> tags)
+        : base(factory, tableName, options, infoProvider, tags)
     {
     }
 

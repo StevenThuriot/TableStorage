@@ -18,7 +18,7 @@ internal static class FactoryGenerator
     {
         sb.Append(@"
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static TableSet<").Append(classToGenerate.Name).Append(@"> CreateTableSet(TableStorage.ICreator creator, string name)
+        public static TableSet<").Append(classToGenerate.Name).Append(@"> CreateTableSet(TableStorage.ICreator creator, string name, Func<System.Type, TableStorage.ModelInfo> infoProvider)
         {
             return creator.CreateSet");
 
@@ -27,29 +27,7 @@ internal static class FactoryGenerator
             sb.Append("WithChangeTracking");
         }
 
-        sb.Append('<').Append(classToGenerate.Name).Append(">(name, ");
-
-        if (context.HasPartitionKeyProxy)
-        {
-            sb.Append('"').Append(context.PartitionKeyProxy.Name).Append('"');
-        }
-        else
-        {
-            sb.Append("null");
-        }
-
-        sb.Append(", ");
-
-        if (context.HasRowKeyProxy)
-        {
-            sb.Append('"').Append(context.RowKeyProxy.Name).Append('"');
-        }
-        else
-        {
-            sb.Append("null");
-        }
-
-        sb.Append(@");
+        sb.Append('<').Append(classToGenerate.Name).Append(@">(name, infoProvider);
         }
 ");
     }
@@ -88,40 +66,20 @@ internal static class FactoryGenerator
         }
 
         // Generate CreateBlobSet method
-        GenerateBlobSetFactory(sb, classToGenerate, context, "BlobSet", "CreateSet");
+        GenerateBlobSetFactory(sb, classToGenerate, "BlobSet", "CreateSet");
 
         // Generate CreateAppendBlobSet method
-        GenerateBlobSetFactory(sb, classToGenerate, context, "AppendBlobSet", "CreateAppendSet");
+        GenerateBlobSetFactory(sb, classToGenerate, "AppendBlobSet", "CreateAppendSet");
     }
 
-    private static void GenerateBlobSetFactory(StringBuilder sb, ClassToGenerate classToGenerate, in ModelContext context, string setType, string methodName)
+    private static void GenerateBlobSetFactory(StringBuilder sb, ClassToGenerate classToGenerate, string setType, string methodName)
     {
         sb.Append(@"
 
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static ").Append(setType).Append('<').Append(classToGenerate.Name).Append(@"> Create").Append(setType).Append(@"(TableStorage.IBlobCreator creator, string name)
+        public static ").Append(setType).Append('<').Append(classToGenerate.Name).Append(@"> Create").Append(setType).Append(@"(TableStorage.IBlobCreator creator, string name, Func<System.Type, TableStorage.ModelInfo> infoProvider)
         {
-            return creator.").Append(methodName).Append('<').Append(classToGenerate.Name).Append(@">(name, ");
-
-        if (context.HasPartitionKeyProxy)
-        {
-            sb.Append('"').Append(context.PartitionKeyProxy.Name).Append('"');
-        }
-        else
-        {
-            sb.Append("null");
-        }
-
-        sb.Append(", ");
-
-        if (context.HasRowKeyProxy)
-        {
-            sb.Append('"').Append(context.RowKeyProxy.Name).Append('"');
-        }
-        else
-        {
-            sb.Append("null");
-        }
+            return creator.").Append(methodName).Append('<').Append(classToGenerate.Name).Append(">(name, infoProvider");
 
         sb.Append(", [");
 

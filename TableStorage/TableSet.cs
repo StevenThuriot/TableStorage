@@ -7,27 +7,25 @@ namespace TableStorage;
 public abstract class TableSet<T> : IStorageSet<T>
     where T : class, ITableEntity, new()
 {
+    private readonly Func<Type, ModelInfo> _infoProvider;
+
     public string Name { get; }
-    public Type Type => typeof(T);
-    public string EntityType => Type.Name;
+    public Type Type => ModelInfo.EntityType;
+    public string EntityType => ModelInfo.EntityType.Name;
 
     internal LazyAsync<TableClient> LazyClient { get; }
     internal TableOptions Options { get; }
-    internal string? PartitionKeyProxy { get; }
-    internal string? RowKeyProxy { get; }
 
-    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options)
+    public ModelInfo ModelInfo { get; }
+    public ModelInfo GetModelInfo<TType>() => _infoProvider(typeof(TType));
+
+    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, Func<Type, ModelInfo> infoProvider)
     {
+        _infoProvider = infoProvider;
+        ModelInfo = infoProvider(typeof(T));
         Name = tableName;
         LazyClient = new(() => factory.GetClient(tableName));
         Options = options;
-    }
-
-    internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, string? partitionKeyProxy, string? rowKeyProxy)
-        : this(factory, tableName, options)
-    {
-        PartitionKeyProxy = partitionKeyProxy;
-        RowKeyProxy = rowKeyProxy;
     }
 
     public abstract Task AddEntityAsync(T entity, CancellationToken cancellationToken = default);
@@ -137,9 +135,9 @@ public abstract class TableSet<T> : IStorageSet<T>
 
     public virtual IAsyncEnumerable<T> QueryAsync(Expression<Func<T, bool>> filter, int? maxPerPage, IEnumerable<string>? select, CancellationToken cancellationToken = default)
     {
-        if (PartitionKeyProxy is not null || RowKeyProxy is not null)
+        if (ModelInfo.HasProxies())
         {
-            WhereVisitor visitor = new(PartitionKeyProxy, RowKeyProxy, Type);
+            WhereVisitor visitor = new(ModelInfo);
             filter = (Expression<Func<T, bool>>)visitor.Visit(filter);
         }
 

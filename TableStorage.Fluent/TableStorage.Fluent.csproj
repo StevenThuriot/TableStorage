@@ -14,6 +14,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="TableStorage.Tests" />
 		<InternalsVisibleTo Include="TableStorage.Fluent.Extended" />
 		<InternalsVisibleTo Include="TableStorage.Fluent.RuntimeCompilations" />
 		<None Include="README.md">

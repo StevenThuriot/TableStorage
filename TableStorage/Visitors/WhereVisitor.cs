@@ -3,11 +3,11 @@ using System.Reflection;
 
 namespace TableStorage.Visitors;
 
-internal sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProxy, Type entityType) : ExpressionVisitor
+internal sealed class WhereVisitor(ModelInfo modelInfo) : ExpressionVisitor
 {
-    private readonly string? _partitionKeyProxy = partitionKeyProxy;
-    private readonly string? _rowKeyProxy = rowKeyProxy;
-    private readonly Type _entityType = entityType;
+    private readonly string? _partitionKeyProxy = modelInfo.PartitionKey;
+    private readonly string? _rowKeyProxy = modelInfo.RowKey;
+    private readonly Type _entityType = modelInfo.EntityType;
 
     protected override Expression VisitMember(MemberExpression node)
     {
@@ -17,11 +17,11 @@ internal sealed class WhereVisitor(string? partitionKeyProxy, string? rowKeyProx
             {
                 string name = node.Member.Name;
 
-                if (name == _partitionKeyProxy)
+                if (name == _partitionKeyProxy && name is not nameof(ITableEntity.PartitionKey))
                 {
                     node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.PartitionKey));
                 }
-                else if (name == _rowKeyProxy)
+                else if (name == _rowKeyProxy && name is not nameof(ITableEntity.RowKey))
                 {
                     node = Expression.Property(Expression.Convert(node.Expression, typeof(ITableEntity)), nameof(ITableEntity.RowKey));
                 }

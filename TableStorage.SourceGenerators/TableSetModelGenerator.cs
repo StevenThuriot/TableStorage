@@ -210,5 +210,9 @@ namespace TableStorage
             // Add each generated file with a consistent naming scheme
             context.AddSource($"{name}.g.cs", SourceText.From(modelResult, Encoding.UTF8));
         }
+
+        // Generate the ModelInfoProvider class containing metadata for all models
+        string modelInfoProvider = ModelInfoProviderGenerator.GenerateModelInfoProvider(classes);
+        context.AddSource("TableStorage.ModelInfoProvider.g.cs", SourceText.From(modelInfoProvider, Encoding.UTF8));
     }
 }

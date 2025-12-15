@@ -12,11 +12,11 @@ internal sealed class BlobTagAccessor(IDictionary<string, string> dictionary)
     public static readonly MethodInfo MethodInfo = typeof(BlobTagAccessor).GetMethod(nameof(Get))!;
 }
 
-internal sealed class BlobTagQueryVisitor<T>(string? partitionKeyProxy, string? rowKeyProxy, IReadOnlyCollection<string> tags) : ExpressionVisitor
+internal sealed class BlobTagQueryVisitor<T>(ModelInfo modelInfo, IReadOnlyCollection<string> tags) : ExpressionVisitor
     where T : IBlobEntity
 {
-    private readonly string? _partitionKeyProxy = partitionKeyProxy;
-    private readonly string? _rowKeyProxy = rowKeyProxy;
+    private readonly string _partitionKeyProxy = modelInfo.PartitionKey;
+    private readonly string _rowKeyProxy = modelInfo.RowKey;
     private readonly IReadOnlyCollection<string> _tags = ["partition", "row", .. tags];
     private readonly Dictionary<ParameterExpression, ParameterExpression> _parameterMap = [];
 
@@ -38,11 +38,11 @@ internal sealed class BlobTagQueryVisitor<T>(string? partitionKeyProxy, string? 
     protected override Expression VisitMember(MemberExpression node)
     {
         string name = node.Member.Name;
-        if (name == _partitionKeyProxy)
+        if (name == _partitionKeyProxy || name is nameof(IBlobEntity.PartitionKey))
         {
             name = "partition";
         }
-        else if (name == _rowKeyProxy)
+        else if (name == _rowKeyProxy || name is nameof(IBlobEntity.RowKey))
         {
             name = "row";
         }
@@ -50,6 +50,12 @@ internal sealed class BlobTagQueryVisitor<T>(string? partitionKeyProxy, string? 
         if (_tags.Contains(name))
         {
             var expression = Visit(node.Expression);
+
+            if (expression.NodeType is ExpressionType.Convert && expression is UnaryExpression unaryExpression)
+            {
+                expression = unaryExpression.Operand;
+            }
+
             return Expression.Call(expression, BlobTagAccessor.MethodInfo, Expression.Constant(name));
         }
 
@@ -142,11 +148,11 @@ internal sealed class BlobTagQueryVisitor<T>(string? partitionKeyProxy, string? 
             if (expression is MemberExpression member)
             {
                 string name = member.Member.Name;
-                if (name == _partitionKeyProxy)
+                if (name == _partitionKeyProxy || name is nameof(IBlobEntity.PartitionKey))
                 {
                     name = "partition";
                 }
-                else if (name == _rowKeyProxy)
+                else if (name == _rowKeyProxy || name is nameof(IBlobEntity.RowKey))
                 {
                     name = "row";
                 }

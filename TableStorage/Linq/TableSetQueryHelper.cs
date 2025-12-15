@@ -8,16 +8,21 @@ internal static class TableSetQueryHelper
     public static TableSetQueryHelper<T> From<T>(TableSet<T> table) where T : class, ITableEntity, new() => new(table);
 }
 
-internal interface ITableSetQueryHelper<T> : IAsyncEnumerable<T>, ICanTakeOneTableQueryable<T>
-    where T : class, ITableEntity, new()
+internal interface ITableSetQueryHelper
 {
-    public string? PartitionKeyProxy { get; }
-    public string? RowKeyProxy { get; }
-    public ITableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound);
-    public ITableSetQueryHelper<T> SetFields(IEnumerable<string> fields);
+    public Expression? GetFilter();
+    public ModelInfo ModelInfo { get; }
+    public ModelInfo GetModelInfo<TType>();
     public bool HasFields();
     public Task UpdateAsync(ITableEntity entity, CancellationToken cancellationToken);
     public Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken = default);
+}
+
+internal interface ITableSetQueryHelper<T> : ITableSetQueryHelper, IAsyncEnumerable<T>, ICanTakeOneTableQueryable<T>
+    where T : class, ITableEntity, new()
+{
+    public ITableSetQueryHelper<T> SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound);
+    public ITableSetQueryHelper<T> SetFields(IEnumerable<string> fields);
 }
 
 internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
@@ -36,6 +41,8 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     private HashSet<string>? _fields;
     private Expression<Func<T, bool>>? _filter;
     private int? _amount;
+
+    internal Expression<Func<T, bool>>? GetFilter() => _filter;
 
     public Task<T> FirstAsync(CancellationToken token)
     {
@@ -145,7 +152,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
             throw new NotSupportedException("Only one transformation is allowed at a time");
         }
 
-        SelectionVisitor visitor = new(Table.PartitionKeyProxy, Table.RowKeyProxy);
+        SelectionVisitor visitor = new(Table.ModelInfo);
         visitor.Visit(exp);
 
         if (visitor.Members.Count is 0)
@@ -188,11 +195,13 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #endregion Take
 
     #region Where
-    internal TableSetQueryHelper<T> AddFilter(Expression<Func<T, bool>> predicate)
+    internal TableSetQueryHelper<T> AddFilter(Expression<Func<T, bool>> predicate) => AddFilter(predicate, Table.ModelInfo);
+
+    internal TableSetQueryHelper<T> AddFilter(Expression<Func<T, bool>> predicate, ModelInfo modelInfo)
     {
-        if (Table.PartitionKeyProxy is not null || Table.RowKeyProxy is not null)
+        if (modelInfo.HasProxies())
         {
-            WhereVisitor visitor = new(Table.PartitionKeyProxy, Table.RowKeyProxy, Table.Type);
+            WhereVisitor visitor = new(modelInfo);
             predicate = (Expression<Func<T, bool>>)visitor.Visit(predicate);
         }
 
@@ -221,10 +230,12 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #endregion Where
 
     #region ExistsIn
-    internal TableSetQueryHelper<T> AddExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
+    internal TableSetQueryHelper<T> AddExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements, Table.ModelInfo);
+
+    internal TableSetQueryHelper<T> AddExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements, ModelInfo modelInfo)
     {
         Expression<Func<T, bool>> lambda = predicate.CreateExistsInFilter(elements);
-        return AddFilter(lambda);
+        return AddFilter(lambda, modelInfo);
     }
 
     ISelectedTableQueryable<T> ISelectedTableQueryable<T>.ExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddExistsInFilter(predicate, elements);
@@ -237,10 +248,12 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #endregion ExistsIn
 
     #region NotExistsIn
-    internal TableSetQueryHelper<T> AddNotExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements)
+    internal TableSetQueryHelper<T> AddNotExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements, Table.ModelInfo);
+
+    internal TableSetQueryHelper<T> AddNotExistsInFilter<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements, ModelInfo modelInfo)
     {
         Expression<Func<T, bool>> lambda = predicate.CreateNotExistsInFilter(elements);
-        return AddFilter(lambda);
+        return AddFilter(lambda, modelInfo);
     }
 
     ISelectedTableQueryable<T> ISelectedTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
@@ -250,20 +263,16 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     IFilteredTableQueryable<T> IFilteredTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
 
     ISelectedTakenTableQueryable<T> ISelectedTakenTableQueryable<T>.NotExistsIn<TElement>(Expression<Func<T, TElement>> predicate, IEnumerable<TElement> elements) => AddNotExistsInFilter(predicate, elements);
-    IAsyncEnumerator<T> IAsyncEnumerable<T>.GetAsyncEnumerator(CancellationToken cancellationToken) => throw new NotImplementedException();
-    Task<T> ICanTakeOneTableQueryable<T>.FirstAsync(CancellationToken token) => throw new NotImplementedException();
-    Task<T?> ICanTakeOneTableQueryable<T>.FirstOrDefaultAsync(CancellationToken token) => throw new NotImplementedException();
-    Task<T> ICanTakeOneTableQueryable<T>.SingleAsync(CancellationToken token) => throw new NotImplementedException();
-    Task<T?> ICanTakeOneTableQueryable<T>.SingleOrDefaultAsync(CancellationToken token) => throw new NotImplementedException();
     #endregion NotExistsIn
 
     #region ITableSetQueryHelper
-    string? ITableSetQueryHelper<T>.PartitionKeyProxy => Table.PartitionKeyProxy;
-    string? ITableSetQueryHelper<T>.RowKeyProxy => Table.RowKeyProxy;
-    bool ITableSetQueryHelper<T>.HasFields() => HasFields();
+    ModelInfo ITableSetQueryHelper.ModelInfo => Table.ModelInfo;
+    ModelInfo ITableSetQueryHelper.GetModelInfo<TType>() => Table.GetModelInfo<TType>();
+    Expression? ITableSetQueryHelper.GetFilter() => _filter;
+    bool ITableSetQueryHelper.HasFields() => HasFields();
     ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields(IEnumerable<string> fields) => SetFields(fields);
     ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields<TResult>(Expression<Func<T, TResult>> exp, bool throwIfNoArgumentsFound) => SetFields(exp, throwIfNoArgumentsFound);
-    Task ITableSetQueryHelper<T>.UpdateAsync(ITableEntity entity, CancellationToken cancellationToken) => Table.UpdateAsync(entity, cancellationToken);
-    Task ITableSetQueryHelper<T>.SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken) => Table.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
+    Task ITableSetQueryHelper.UpdateAsync(ITableEntity entity, CancellationToken cancellationToken) => Table.UpdateAsync(entity, cancellationToken);
+    Task ITableSetQueryHelper.SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken) => Table.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
     #endregion ITableSetQueryHelper
 }

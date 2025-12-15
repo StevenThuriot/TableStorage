@@ -91,7 +91,7 @@ internal static class ConstructorGenerator
                 sb.Append('c');
             }
 
-            sb.Append("reator, \"").Append(name).Append("\");");
+            sb.Append("reator, \"").Append(name).Append("\", TableStorage.ModelInfoProvider.GetInfo);");
         }
     }
 }

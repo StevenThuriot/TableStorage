@@ -1,7 +1,6 @@
 using Azure.Data.Tables;
 using Microsoft.Extensions.DependencyInjection;
 using TableStorage.Tests.Contexts;
-using Testcontainers.Azurite;
 
 namespace TableStorage.Tests.Infrastructure;
 
@@ -10,26 +9,32 @@ namespace TableStorage.Tests.Infrastructure;
 /// </summary>
 public class AzuriteFixture : IAsyncLifetime
 {
+#if TestContainers
     private AzuriteContainer? _azuriteContainer;
+#endif
 
-    public string ConnectionString { get; private set; } = string.Empty;
+    public string ConnectionString { get; private set; } = "UseDevelopmentStorage=true";
 
     public async Task InitializeAsync()
     {
+#if TestContainers
         _azuriteContainer = new AzuriteBuilder()
             .WithImage("mcr.microsoft.com/azure-storage/azurite:latest")
             .Build();
 
         await _azuriteContainer.StartAsync();
         ConnectionString = _azuriteContainer.GetConnectionString();
+#endif
     }
 
     public async Task DisposeAsync()
     {
-        if (_azuriteContainer != null)
+#if TestContainers
+        if (_azuriteContainer is not null)
         {
             await _azuriteContainer.DisposeAsync();
         }
+#endif
     }
 }
 
