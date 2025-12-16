@@ -44,7 +44,7 @@ internal static class TableContextClassProcessor
                     ITypeSymbol tableSetType = ((INamedTypeSymbol)property.Type).TypeArguments[0];
                     members.Add(new(
                         member.Name,
-                        tableSetType.ToDisplayString(),
+                        tableSetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                         property.Type.TypeKind,
                         property.Type.Name));
                 }

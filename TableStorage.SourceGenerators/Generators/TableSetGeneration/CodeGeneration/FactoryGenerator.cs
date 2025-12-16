@@ -17,8 +17,8 @@ internal static class FactoryGenerator
     public static void GenerateTableSetFactoryMethod(StringBuilder sb, ClassToGenerate classToGenerate, in ModelContext context)
     {
         sb.Append(@"
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static TableSet<").Append(classToGenerate.Name).Append(@"> CreateTableSet(TableStorage.ICreator creator, string name, Func<System.Type, TableStorage.ModelInfo> infoProvider)
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static global::TableStorage.TableSet<").Append(classToGenerate.Name).Append(@"> CreateTableSet(global::TableStorage.ICreator creator, string name, global::System.Func<global::System.Type, global::TableStorage.ModelInfo> infoProvider)
         {
             return creator.CreateSet");
 
@@ -44,7 +44,7 @@ internal static class FactoryGenerator
         if (context.HasPartitionKeyProxy)
         {
             sb.Append(@"
-        string IBlobEntity.PartitionKey => ").Append(context.RealPartitionKey).Append(';');
+        string global::TableStorage.IBlobEntity.PartitionKey => ").Append(context.RealPartitionKey).Append(';');
         }
         else if (!classToGenerate.WithTablesSupport)
         {
@@ -57,7 +57,7 @@ internal static class FactoryGenerator
         if (context.HasRowKeyProxy)
         {
             sb.Append(@"
-        string IBlobEntity.RowKey => ").Append(context.RealRowKey).Append(';');
+        string global::TableStorage.IBlobEntity.RowKey => ").Append(context.RealRowKey).Append(';');
         }
         else if (!classToGenerate.WithTablesSupport)
         {
@@ -76,8 +76,8 @@ internal static class FactoryGenerator
     {
         sb.Append(@"
 
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        public static ").Append(setType).Append('<').Append(classToGenerate.Name).Append(@"> Create").Append(setType).Append(@"(TableStorage.IBlobCreator creator, string name, Func<System.Type, TableStorage.ModelInfo> infoProvider)
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static global::TableStorage.").Append(setType).Append('<').Append(classToGenerate.Name).Append(@"> Create").Append(setType).Append(@"(global::TableStorage.IBlobCreator creator, string name, global::System.Func<global::System.Type, global::TableStorage.ModelInfo> infoProvider)
         {
             return creator.").Append(methodName).Append('<').Append(classToGenerate.Name).Append(">(name, infoProvider");
 

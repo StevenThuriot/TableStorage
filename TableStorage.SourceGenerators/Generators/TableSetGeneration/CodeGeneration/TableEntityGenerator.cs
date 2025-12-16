@@ -20,11 +20,11 @@ internal static class TableEntityGenerator
 
         if (context.HasPartitionKeyProxy)
         {
-            sb.Append("string Azure.Data.Tables.ITableEntity.PartitionKey { get => ").Append(context.PartitionKeyProxy.Name).Append("; set => ").Append(context.PartitionKeyProxy.Name).Append(" = value; }");
+            sb.Append("string global::Azure.Data.Tables.ITableEntity.PartitionKey { get => ").Append(context.PartitionKeyProxy.Name).Append("; set => ").Append(context.PartitionKeyProxy.Name).Append(" = value; }");
         }
         else
         {
-            sb.Append(@"[System.Runtime.Serialization.IgnoreDataMember]
+            sb.Append(@"[global::System.Runtime.Serialization.IgnoreDataMember]
         public string PartitionKey { get; set; }");
         }
 
@@ -34,20 +34,20 @@ internal static class TableEntityGenerator
 
         if (context.HasRowKeyProxy)
         {
-            sb.Append("string Azure.Data.Tables.ITableEntity.RowKey { get => ").Append(context.RowKeyProxy.Name).Append("; set => ").Append(context.RowKeyProxy.Name).Append(" = value; }");
+            sb.Append("string global::Azure.Data.Tables.ITableEntity.RowKey { get => ").Append(context.RowKeyProxy.Name).Append("; set => ").Append(context.RowKeyProxy.Name).Append(" = value; }");
         }
         else
         {
-            sb.Append(@"[System.Runtime.Serialization.IgnoreDataMember]
+            sb.Append(@"[global::System.Runtime.Serialization.IgnoreDataMember]
         public string RowKey { get; set; }");
         }
 
         sb.Append(@"
 
-        [System.Runtime.Serialization.IgnoreDataMember]
-        public DateTimeOffset? Timestamp { get; set; }
+        [global::System.Runtime.Serialization.IgnoreDataMember]
+        public global::System.DateTimeOffset? Timestamp { get; set; }
 
-        [System.Runtime.Serialization.IgnoreDataMember]
-        public Azure.ETag ETag { get; set; } = Azure.ETag.All;");
+        [global::System.Runtime.Serialization.IgnoreDataMember]
+        public global::Azure.ETag ETag { get; set; } = global::Azure.ETag.All;");
     }
 }

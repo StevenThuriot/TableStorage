@@ -21,7 +21,7 @@ internal static class ChangeTrackingGenerator
         string realRowKey = context.RealRowKey;
 
         sb.Append(@"
-        private readonly HashSet<string> _changes = new HashSet<string>();
+        private readonly global::System.Collections.Generic.HashSet<string> _changes = new global::System.Collections.Generic.HashSet<string>();
 
         public void AcceptChanges()
         {
@@ -46,9 +46,9 @@ internal static class ChangeTrackingGenerator
     {
         sb.Append(@"
 
-        public Azure.Data.Tables.ITableEntity GetEntity()
+        public global::Azure.Data.Tables.ITableEntity GetEntity()
         {
-            var entityDictionary = new Dictionary<string, object>(").Append(4 + classToGenerate.Members.Count(x => x.Name != realPartitionKey && x.Name != realRowKey && !x.WithChangeTracking)).Append(@" + _changes.Count)
+            var entityDictionary = new global::System.Collections.Generic.Dictionary<string, object>(").Append(4 + classToGenerate.Members.Count(x => x.Name != realPartitionKey && x.Name != realRowKey && !x.WithChangeTracking)).Append(@" + _changes.Count)
             {
                 [""PartitionKey""] = ").Append(context.RealPartitionKey).Append(@",
                 [""RowKey""] = ").Append(context.RealRowKey).Append(@",
@@ -102,13 +102,13 @@ internal static class ChangeTrackingGenerator
             sb.Append(item.Name).AppendLine(", ");
         }
 
-        sb.Append(@"                    _ => throw new System.ArgumentException()
+        sb.Append(@"                    _ => throw new global::System.ArgumentException()
                 };");
 
         sb.Append(@"
             }
 
-            return new Azure.Data.Tables.TableEntity(entityDictionary);
+            return new global::Azure.Data.Tables.TableEntity(entityDictionary);
         }");
     }
 

@@ -32,8 +32,7 @@ public sealed class TableContextGenerator : IIncrementalGenerator
     /// Pre-generated source code for TableContext attribute.
     /// This is registered during post-initialization to ensure the attribute is available.
     /// </summary>
-    private const string TableContextAttributeSource = Header.Value + @"using System;
-
+    private const string TableContextAttributeSource = Header.Value + @"
 namespace TableStorage
 {
     /// <summary>
@@ -42,8 +41,8 @@ namespace TableStorage
     /// and table/blob set management functionality.
     /// </summary>
     [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class TableContextAttribute : Attribute
+    [global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false)]
+    public sealed class TableContextAttribute : global::System.Attribute
     {
     }
 }";    /// <summary>

@@ -70,7 +70,7 @@ namespace ").Append(@namespace).Append(@"
     public static void GenerateClassSignature(StringBuilder sb, ClassToGenerate classToGenerate, in ModelContext context)
     {
         sb.Append(@"
-    [System.Diagnostics.DebuggerDisplay(@""").Append(classToGenerate.Name).Append(@" \{ {").Append(context.RealPartitionKey).Append("}, {").Append(context.RealRowKey).Append(@"} \}"")]
+    [global::System.Diagnostics.DebuggerDisplay(@""").Append(classToGenerate.Name).Append(@" \{ {").Append(context.RealPartitionKey).Append("}, {").Append(context.RealRowKey).Append(@"} \}"")]
     partial class ").Append(classToGenerate.Name);
 
         if (classToGenerate.WithTablesSupport || classToGenerate.WithBlobSupport)
@@ -80,11 +80,11 @@ namespace ").Append(@namespace).Append(@"
 
         if (classToGenerate.WithTablesSupport)
         {
-            sb.Append(@"IDictionary<string, object>, Azure.Data.Tables.ITableEntity");
+            sb.Append(@"global::System.Collections.Generic.IDictionary<string, object>, global::Azure.Data.Tables.ITableEntity");
 
             if (context.HasChangeTracking)
             {
-                sb.Append(", TableStorage.IChangeTracking");
+                sb.Append(", global::TableStorage.IChangeTracking");
             }
         }
 
@@ -95,7 +95,7 @@ namespace ").Append(@namespace).Append(@"
                 sb.Append(", ");
             }
 
-            sb.Append("TableStorage.IBlobEntity");
+            sb.Append("global::TableStorage.IBlobEntity");
         }
 
         sb.Append(@"

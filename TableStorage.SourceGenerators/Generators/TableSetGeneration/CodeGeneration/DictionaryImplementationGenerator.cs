@@ -30,7 +30,7 @@ internal static class DictionaryImplementationGenerator
         // Keys collection
         sb.Append(@"
 
-        public ICollection<string> Keys => [ ""PartitionKey"", ""RowKey"", ""Timestamp"", ""odata.etag"", ");
+        public global::System.Collections.Generic.ICollection<string> Keys => [ ""PartitionKey"", ""RowKey"", ""Timestamp"", ""odata.etag"", ");
 
         foreach (MemberToGenerate item in keysAndValuesToGenerate)
         {
@@ -39,7 +39,7 @@ internal static class DictionaryImplementationGenerator
 
         // Values collection
         sb.Append(@" ];
-        public ICollection<object> Values => [ ").Append(context.RealPartitionKey).Append(", ").Append(context.RealRowKey).Append(", Timestamp, ETag.ToString(), ");
+        public global::System.Collections.Generic.ICollection<object> Values => [ ").Append(context.RealPartitionKey).Append(", ").Append(context.RealRowKey).Append(", Timestamp, ETag.ToString(), ");
 
         foreach (MemberToGenerate item in keysAndValuesToGenerate)
         {
@@ -94,7 +94,7 @@ internal static class DictionaryImplementationGenerator
         sb.Append(@"
         }
 
-        public void Add(KeyValuePair<string, object> item)
+        public void Add(global::System.Collections.Generic.KeyValuePair<string, object> item)
         {
             this[item.Key] = item.Value;");
 
@@ -129,7 +129,7 @@ internal static class DictionaryImplementationGenerator
     {
         sb.Append(@"
 
-        public bool Contains(KeyValuePair<string, object> item)
+        public bool Contains(global::System.Collections.Generic.KeyValuePair<string, object> item)
         {
             if (TryGetValue(item.Key, out var value))
             {
@@ -166,21 +166,21 @@ internal static class DictionaryImplementationGenerator
     {
         sb.Append(@"
 
-        public void CopyTo(KeyValuePair<string, object>[] array, int arrayIndex)
+        public void CopyTo(global::System.Collections.Generic.KeyValuePair<string, object>[] array, int arrayIndex)
         {
             if (array == null)
             {
-                throw new System.ArgumentNullException(""array"");
+                throw new global::System.ArgumentNullException(""array"");
             }
 
             if ((uint)arrayIndex > (uint)array.Length)
             {
-                throw new System.IndexOutOfRangeException();
+                throw new global::System.IndexOutOfRangeException();
             }
 
             if (array.Length - arrayIndex < Count)
             {
-                throw new System.ArgumentException();
+                throw new global::System.ArgumentException();
             }
 
             foreach (var item in this)
@@ -194,17 +194,17 @@ internal static class DictionaryImplementationGenerator
     {
         sb.Append(@"
 
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        public global::System.Collections.Generic.IEnumerator<global::System.Collections.Generic.KeyValuePair<string, object>> GetEnumerator()
         {
-            yield return new KeyValuePair<string, object>(""PartitionKey"", ").Append(context.RealPartitionKey).Append(@");
-            yield return new KeyValuePair<string, object>(""RowKey"", ").Append(context.RealRowKey).Append(@");
-            yield return new KeyValuePair<string, object>(""Timestamp"", Timestamp);
-            yield return new KeyValuePair<string, object>(""odata.etag"", ETag.ToString());");
+            yield return new global::System.Collections.Generic.KeyValuePair<string, object>(""PartitionKey"", ").Append(context.RealPartitionKey).Append(@");
+            yield return new global::System.Collections.Generic.KeyValuePair<string, object>(""RowKey"", ").Append(context.RealRowKey).Append(@");
+            yield return new global::System.Collections.Generic.KeyValuePair<string, object>(""Timestamp"", Timestamp);
+            yield return new global::System.Collections.Generic.KeyValuePair<string, object>(""odata.etag"", ETag.ToString());");
 
         foreach (MemberToGenerate item in classToGenerate.Members.Where(x => x.Name != context.RealPartitionKey && x.Name != context.RealRowKey))
         {
             sb.Append(@"
-            yield return new KeyValuePair<string, object>(""").Append(item.Name).Append(@""", ");
+            yield return new global::System.Collections.Generic.KeyValuePair<string, object>(""").Append(item.Name).Append(@""", ");
 
             if (item.TypeKind == TypeKind.Enum)
             {
@@ -224,7 +224,7 @@ internal static class DictionaryImplementationGenerator
         sb.Append(@"
         }
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
         }");
@@ -253,7 +253,7 @@ internal static class DictionaryImplementationGenerator
             return false;
         }
 
-        public bool Remove(KeyValuePair<string, object> item)
+        public bool Remove(global::System.Collections.Generic.KeyValuePair<string, object> item)
         {
             if (Contains(item)) 
             {

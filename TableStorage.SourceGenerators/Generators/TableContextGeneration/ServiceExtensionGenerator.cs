@@ -24,22 +24,22 @@ internal static class ServiceExtensionGenerator
         sb.Append(@"
     public static class ").Append(classToGenerate.Name).Append(@"Extensions
     {
-        public static IServiceCollection Add").Append(classToGenerate.Name).Append(@"(this IServiceCollection services, string connectionString");
+        public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection Add").Append(classToGenerate.Name).Append(@"(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services, string connectionString");
 
         // Add optional configuration parameters based on capabilities
         if (hasTables)
         {
-            sb.Append(", Action<TableStorage.TableOptions> configure = null");
+            sb.Append(", global::System.Action<global::TableStorage.TableOptions> configure = null");
         }
 
         if (hasBlobs)
         {
-            sb.Append(", Action<TableStorage.BlobOptions> configureBlobs = null");
+            sb.Append(", global::System.Action<global::TableStorage.BlobOptions> configureBlobs = null");
         }
 
         sb.Append(@")
         {
-            ").Append(classToGenerate.Name).Append(@".Register(services, connectionString");
+            global::").Append(classToGenerate.Namespace).Append('.').Append(classToGenerate.Name).Append(@".Register(services, connectionString");
 
         // Pass configuration parameters
         if (hasTables)

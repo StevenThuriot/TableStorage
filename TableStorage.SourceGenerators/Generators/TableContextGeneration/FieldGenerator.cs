@@ -18,13 +18,13 @@ internal static class FieldGenerator
         if (hasTables)
         {
             sb.Append(@"
-        private TableStorage.ICreator _creator { get; init; }");
+        private global::TableStorage.ICreator _creator { get; init; }");
         }
 
         if (hasBlobs)
         {
             sb.Append(@"
-        private TableStorage.IBlobCreator _blobCreator { get; init; }");
+        private global::TableStorage.IBlobCreator _blobCreator { get; init; }");
         }
     }
 }

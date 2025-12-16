@@ -56,26 +56,26 @@ internal static class ValueConversionGenerator
     {
         if (withBlobSupport)
         {
-            sb.Append("value is System.Text.Json.JsonElement _").Append(item.Name).Append("JsonElement ? _").Append(item.Name).Append("JsonElement.GetDateTimeOffset() : ");
+            sb.Append("value is global::System.Text.Json.JsonElement _").Append(item.Name).Append("JsonElement ? _").Append(item.Name).Append("JsonElement.GetDateTimeOffset() : ");
 
             if (isNullable)
             {
-                sb.Append("value as DateTimeOffset?)?.DateTime");
+                sb.Append("value as global::System.DateTimeOffset?)?.DateTime");
             }
             else
             {
-                sb.Append("(DateTimeOffset)value).DateTime");
+                sb.Append("(global::System.DateTimeOffset)value).DateTime");
             }
         }
         else
         {
             if (isNullable)
             {
-                sb.Append("value as DateTimeOffset?)?.DateTime");
+                sb.Append("value as global::System.DateTimeOffset?)?.DateTime");
             }
             else
             {
-                sb.Append("(DateTimeOffset)value).DateTime");
+                sb.Append("(global::System.DateTimeOffset)value).DateTime");
             }
         }
     }
@@ -84,9 +84,9 @@ internal static class ValueConversionGenerator
     {
         if (withBlobSupport)
         {
-            sb.Append("value is System.Text.Json.JsonElement _")
+            sb.Append("value is global::System.Text.Json.JsonElement _")
                 .Append(item.Name)
-                .Append("JsonElement ? (Enum.TryParse(_")
+                .Append("JsonElement ? (global::System.Enum.TryParse(_")
                 .Append(item.Name)
                 .Append("JsonElement.ToString(), out ")
                 .Append(item.Type.TrimEnd('?'))
@@ -100,7 +100,7 @@ internal static class ValueConversionGenerator
         }
 
         sb.Append("value is int _").Append(item.Name).Append("Integer ? (").Append(item.Type).Append(") _").Append(item.Name).Append("Integer : ")
-            .Append("Enum.TryParse(value?.ToString(), out ")
+            .Append("global::System.Enum.TryParse(value?.ToString(), out ")
             .Append(item.Type.TrimEnd('?'))
             .Append(" _")
             .Append(item.Name)
@@ -155,7 +155,7 @@ internal static class ValueConversionGenerator
 
         if (!publishAot && string.IsNullOrEmpty(tableStorageSerializerContext))
         {
-            sb.Append("( value is System.Text.Json.JsonElement _")
+            sb.Append("( value is global::System.Text.Json.JsonElement _")
                 .Append(item.Name)
                 .Append("JsonElement ? _")
                 .Append(item.Name)
@@ -165,13 +165,13 @@ internal static class ValueConversionGenerator
         }
         else if (!string.IsNullOrEmpty(tableStorageSerializerContext))
         {
-            sb.Append("( value is System.Text.Json.JsonElement _")
+            sb.Append("( value is global::System.Text.Json.JsonElement _")
                 .Append(item.Name)
                 .Append($"JsonElement ? (")
                 .Append(item.Type)
-                .Append(") _")
+                .Append(") global::System.Text.Json.JsonSerializer.Deserialize(_")
                 .Append(item.Name)
-                .Append("JsonElement.Deserialize(")
+                .Append("JsonElement, ")
                 .Append(tableStorageSerializerContext)
                 .Append(".Default.GetTypeInfo(typeof(")
                 .Append(item.Type)
@@ -188,7 +188,7 @@ internal static class ValueConversionGenerator
 
     private static void GenerateSimpleTypeConversion(StringBuilder sb, MemberToGenerate item, string deserializing)
     {
-        sb.Append("value is System.Text.Json.JsonElement _")
+        sb.Append("value is global::System.Text.Json.JsonElement _")
             .Append(item.Name)
             .Append("JsonElement ? _")
             .Append(item.Name)

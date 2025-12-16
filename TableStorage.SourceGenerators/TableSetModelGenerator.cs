@@ -34,8 +34,7 @@ public sealed class TableSetModelGenerator : IIncrementalGenerator
     /// Pre-generated source code for TableStorage attributes.
     /// This includes TableSetAttribute, TableSetPropertyAttribute, and TagAttribute.
     /// </summary>
-    private const string TableSetAttributesSource = Header.Value + @"using System;
-
+    private const string TableSetAttributesSource = Header.Value + @"
 namespace TableStorage
 {
     /// <summary>
@@ -43,8 +42,8 @@ namespace TableStorage
     /// This attribute configures partition key, row key, and various features.
     /// </summary>
     [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public sealed class TableSetAttribute : Attribute
+    [global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false)]
+    public sealed class TableSetAttribute : global::System.Attribute
     {
         /// <summary>
         /// Gets or sets the partition key property name or expression.
@@ -80,15 +79,15 @@ namespace TableStorage
     /// Configures additional properties for a TableSet class.
     /// Can be applied multiple times to configure different properties.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-    public sealed class TableSetPropertyAttribute : Attribute
+    [global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true)]
+    public sealed class TableSetPropertyAttribute : global::System.Attribute
     {
         /// <summary>
         /// Initializes a new instance of the TableSetPropertyAttribute class.
         /// </summary>
         /// <param name=""type"">The type of the property.</param>
         /// <param name=""name"">The name of the property.</param>
-        public TableSetPropertyAttribute(Type type, string name)
+        public TableSetPropertyAttribute(global::System.Type type, string name)
         {
         }
 
@@ -104,8 +103,8 @@ namespace TableStorage
     /// <summary>
     /// Marks a property as a blob tag for blob storage operations.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-    public sealed class TagAttribute : Attribute
+    [global::System.AttributeUsage(global::System.AttributeTargets.Property, AllowMultiple = false)]
+    public sealed class TagAttribute : global::System.Attribute
     {
     }
 #endif

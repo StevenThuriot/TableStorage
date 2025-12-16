@@ -41,10 +41,7 @@ internal static class TableContextGenerator
 
     private static void GenerateFileHeader(StringBuilder sb)
     {
-        sb.Append(Header.Value).Append(@"using Microsoft.Extensions.DependencyInjection;
-using TableStorage;
-using System;
-");
+        sb.Append(Header.Value);
     }
 
     private static void GenerateCompleteContext(

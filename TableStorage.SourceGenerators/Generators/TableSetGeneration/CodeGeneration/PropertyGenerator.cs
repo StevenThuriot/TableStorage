@@ -27,7 +27,7 @@ internal static class PropertyGenerator
             if (classToGenerate.WithTablesSupport)
             {
                 sb.Append(@"
-        [System.Runtime.Serialization.IgnoreDataMember]");
+        [global::System.Runtime.Serialization.IgnoreDataMember]");
             }
 
             sb.Append(@"
@@ -130,7 +130,7 @@ internal static class PropertyGenerator
         if (classToGenerate.WithTablesSupport)
         {
             sb.Append(@"
-        [System.Runtime.Serialization.IgnoreDataMember]");
+        [global::System.Runtime.Serialization.IgnoreDataMember]");
         }
 
         sb.Append(@"
@@ -175,7 +175,7 @@ internal static class PropertyGenerator
         if (classToGenerate.WithTablesSupport)
         {
             sb.Append(@"
-        [System.Runtime.Serialization.IgnoreDataMember]");
+        [global::System.Runtime.Serialization.IgnoreDataMember]");
         }
 
         sb.Append(@"

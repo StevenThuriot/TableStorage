@@ -21,8 +21,8 @@ internal static class ModelGenerator
     {
         StringBuilder modelBuilder = new();
 
-        // Add file header and using statements
-        GenerateFileHeader(modelBuilder, classToGenerate);
+        // Add file header
+        GenerateFileHeader(modelBuilder);
 
         // Generate the complete model
         GenerateModel(modelBuilder, classToGenerate, publishAot, tableStorageSerializerContext);
@@ -52,23 +52,9 @@ internal static class ModelGenerator
         }
     }
 
-    private static void GenerateFileHeader(StringBuilder sb, ClassToGenerate classToGenerate)
+    private static void GenerateFileHeader(StringBuilder sb)
     {
-        sb.Append(Header.Value).Append(@"using Microsoft.Extensions.DependencyInjection;
-using TableStorage;
-using System.Collections.Generic;
-using System;
-");
-
-        if (classToGenerate.Members.Any(m => m.WithChangeTracking))
-        {
-            sb.AppendLine("using System.Linq;");
-        }
-
-        if (classToGenerate.WithBlobSupport)
-        {
-            sb.AppendLine("using System.Text.Json;");
-        }
+        sb.Append(Header.Value);
     }
 
     private static void GenerateModel(StringBuilder sb, ClassToGenerate classToGenerate, bool publishAot, string? tableStorageSerializerContext)

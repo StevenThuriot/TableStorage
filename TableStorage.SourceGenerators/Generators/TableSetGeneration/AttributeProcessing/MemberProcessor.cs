@@ -75,7 +75,7 @@ internal static class MemberProcessor
 
             members.Add(new MemberToGenerate(
                 name: property.Name,
-                type: type.ToDisplayString(),
+                type: type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                 typeKind: typeKind,
                 generateProperty: generate,
                 partitionKeyProxy: partitionKeyForNewMembers, // Proxies are for TableSetPropertyAttribute, not existing properties

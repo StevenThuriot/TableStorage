@@ -20,9 +20,7 @@ internal static class ModelInfoProviderGenerator
         StringBuilder sb = new();
 
         // Add file header
-        sb.Append(Header.Value).Append(@"using System;
-using System.Collections.Generic;
-
+        sb.Append(Header.Value).Append(@"
 namespace TableStorage
 {
     /// <summary>
@@ -30,7 +28,7 @@ namespace TableStorage
     /// </summary>
     public static class ModelInfoProvider
     {
-        private static readonly Dictionary<Type, ModelInfo> s_info = new Dictionary<Type, ModelInfo>(").Append(classesToGenerate.Length).Append(@")
+        private static readonly global::System.Collections.Generic.Dictionary<global::System.Type, global::TableStorage.ModelInfo> s_info = new global::System.Collections.Generic.Dictionary<global::System.Type, global::TableStorage.ModelInfo>(").Append(classesToGenerate.Length).Append(@")
         {
 ");
 
@@ -52,13 +50,13 @@ namespace TableStorage
             // Build the fully qualified type name
             string fullTypeName = string.IsNullOrEmpty(classToGenerate.Namespace) || classToGenerate.Namespace == "<global namespace>"
                 ? classToGenerate.Name
-                : $"{classToGenerate.Namespace}.{classToGenerate.Name}";
+                : $"global::{classToGenerate.Namespace}.{classToGenerate.Name}";
 
             // Format the key values with proper null handling
             string partitionKeyValue = partitionKey != null ? $"\"{partitionKey}\"" : "null";
             string rowKeyValue = rowKey != null ? $"\"{rowKey}\"" : "null";
 
-            sb.Append($"            {{ typeof({fullTypeName}), new ModelInfo({partitionKeyValue}, {rowKeyValue}, typeof({fullTypeName})) }}");
+            sb.Append($"            {{ typeof({fullTypeName}), new global::TableStorage.ModelInfo({partitionKeyValue}, {rowKeyValue}, typeof({fullTypeName})) }}");
         }
 
         // Close the dictionary and class
@@ -70,16 +68,16 @@ namespace TableStorage
         /// </summary>
         /// <typeparam name=""T"">The model type.</typeparam>
         /// <returns>The model information if found; otherwise, null.</returns>
-        public static ModelInfo GetInfo<T>() => GetInfo(typeof(T));
+        public static global::TableStorage.ModelInfo GetInfo<T>() => GetInfo(typeof(T));
 
         /// <summary>
         /// Gets the model information for the specified type.
         /// </summary>
         /// <param name=""type"">The model type.</param>
         /// <returns>The model information if found; otherwise, null.</returns>
-        public static ModelInfo GetInfo(Type type)
+        public static global::TableStorage.ModelInfo GetInfo(global::System.Type type)
         {
-            if (!s_info.TryGetValue(type, out ModelInfo info))
+            if (!s_info.TryGetValue(type, out global::TableStorage.ModelInfo info))
             {
                 s_info[type] = info = new(null, null, type);
             }

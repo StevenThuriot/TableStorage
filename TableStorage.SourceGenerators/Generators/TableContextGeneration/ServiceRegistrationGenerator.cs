@@ -22,22 +22,22 @@ internal static class ServiceRegistrationGenerator
     {
         sb.Append(@"
 
-        public static void Register(IServiceCollection services, string connectionString");
+        public static void Register(global::Microsoft.Extensions.DependencyInjection.IServiceCollection services, string connectionString");
 
         // Add configuration parameters
         if (hasTables)
         {
-            sb.Append(", Action<TableStorage.TableOptions> configure");
+            sb.Append(", global::System.Action<global::TableStorage.TableOptions> configure");
         }
 
         if (hasBlobs)
         {
-            sb.Append(", Action<TableStorage.BlobOptions> configureBlobs");
+            sb.Append(", global::System.Action<global::TableStorage.BlobOptions> configureBlobs");
         }
 
         sb.Append(@")
         {
-            services.AddSingleton(s =>
+            global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, s =>
             {");
 
         // Generate creator setup
@@ -72,13 +72,13 @@ internal static class ServiceRegistrationGenerator
         if (hasTables)
         {
             sb.Append(@"
-                TableStorage.ICreator creator = TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);");
+                global::TableStorage.ICreator creator = global::TableStorage.TableStorageSetup.BuildCreator(connectionString, configure);");
         }
 
         if (hasBlobs)
         {
             sb.Append(@"
-                TableStorage.IBlobCreator blobCreator = TableStorage.BlobStorageSetup.BuildCreator(connectionString, configureBlobs);");
+                global::TableStorage.IBlobCreator blobCreator = global::TableStorage.BlobStorageSetup.BuildCreator(connectionString, configureBlobs);");
         }
     }
 }

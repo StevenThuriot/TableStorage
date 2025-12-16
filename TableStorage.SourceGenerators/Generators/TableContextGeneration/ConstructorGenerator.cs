@@ -41,7 +41,7 @@ internal static class ConstructorGenerator
     {
         if (hasTables)
         {
-            sb.Append("TableStorage.ICreator creator");
+            sb.Append("global::TableStorage.ICreator creator");
         }
 
         if (hasBlobs)
@@ -51,7 +51,7 @@ internal static class ConstructorGenerator
                 sb.Append(", ");
             }
 
-            sb.Append("TableStorage.IBlobCreator blobCreator");
+            sb.Append("global::TableStorage.IBlobCreator blobCreator");
         }
     }
 
@@ -91,7 +91,7 @@ internal static class ConstructorGenerator
                 sb.Append('c');
             }
 
-            sb.Append("reator, \"").Append(name).Append("\", TableStorage.ModelInfoProvider.GetInfo);");
+            sb.Append("reator, \"").Append(name).Append("\", global::TableStorage.ModelInfoProvider.GetInfo);");
         }
     }
 }

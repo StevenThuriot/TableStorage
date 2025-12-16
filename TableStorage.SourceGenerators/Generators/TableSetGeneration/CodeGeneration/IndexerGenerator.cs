@@ -84,15 +84,15 @@ internal static class IndexerGenerator
 
         if (classToGenerate.WithBlobSupport)
         {
-            sb.Append("(value is System.Text.Json.JsonElement _TimestampJsonElement ? _TimestampJsonElement.GetDateTimeOffset() : (System.DateTimeOffset?)value)");
+            sb.Append("(value is global::System.Text.Json.JsonElement _TimestampJsonElement ? _TimestampJsonElement.GetDateTimeOffset() : (global::System.DateTimeOffset?)value)");
         }
         else
         {
-            sb.Append("(System.DateTimeOffset?)value");
+            sb.Append("(global::System.DateTimeOffset?)value");
         }
 
         sb.Append(@"; break;
-                    case ""odata.etag"": ETag = new Azure.ETag(value?.ToString()); break;");
+                    case ""odata.etag"": ETag = new global::Azure.ETag(value?.ToString()); break;");
 
         foreach (MemberToGenerate item in classToGenerate.Members)
         {
