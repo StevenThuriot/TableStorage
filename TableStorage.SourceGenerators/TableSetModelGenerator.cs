@@ -42,6 +42,7 @@ namespace TableStorage
     /// Marks a class as a TableSet that should have source generation applied.
     /// This attribute configures partition key, row key, and various features.
     /// </summary>
+    [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class TableSetAttribute : Attribute
     {
@@ -122,7 +123,10 @@ namespace TableStorage
     {
         // Register the attributes source first - this runs once during initialization
         context.RegisterPostInitializationOutput(static ctx =>
-            ctx.AddSource("TableSetAttributes.g.cs", SourceText.From(TableSetAttributesSource, Encoding.UTF8)));
+        {
+            ctx.AddEmbeddedAttributeDefinition();
+            ctx.AddSource("TableSetAttributes.g.cs", SourceText.From(TableSetAttributesSource, Encoding.UTF8));
+        });
 
         // Extract generation options from analyzer configuration - runs once per config change
         IncrementalValueProvider<GenerationOptions> generationOptions = context.AnalyzerConfigOptionsProvider

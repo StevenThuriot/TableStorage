@@ -41,6 +41,7 @@ namespace TableStorage
     /// This attribute triggers the generation of dependency injection setup code
     /// and table/blob set management functionality.
     /// </summary>
+    [global::Microsoft.CodeAnalysis.EmbeddedAttribute]
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
     public sealed class TableContextAttribute : Attribute
     {
@@ -58,7 +59,12 @@ namespace TableStorage
     {
         // Register the attribute source first - this runs once during initialization
         context.RegisterPostInitializationOutput(static ctx =>
-            ctx.AddSource("TableContextAttribute.g.cs", SourceText.From(TableContextAttributeSource, Encoding.UTF8)));        // Extract compilation capabilities efficiently - runs once per compilation change
+        {
+            ctx.AddEmbeddedAttributeDefinition();
+            ctx.AddSource("TableContextAttribute.g.cs", SourceText.From(TableContextAttributeSource, Encoding.UTF8));
+        });
+        
+        // Extract compilation capabilities efficiently - runs once per compilation change
         IncrementalValueProvider<CompilationCapabilities> compilationCapabilities = context.CompilationProvider
             .Select(static (compilation, _) => DataExtractor.ExtractCompilationCapabilities(compilation))
             .WithTrackingName("TableContext.CompilationCapabilities");
