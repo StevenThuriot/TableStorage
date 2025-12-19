@@ -8,7 +8,7 @@ public sealed class TableOptions
 
     public int? PageSize { get; set; }
 
-    public bool CreateTableIfNotExists { get; set; } = true;
+    public CreateIfNotExistsMode CreateTableIfNotExists { get; set; } = CreateIfNotExistsMode.Always;
 
     public BulkOperation BulkOperation { get; set; } = BulkOperation.Replace;
 

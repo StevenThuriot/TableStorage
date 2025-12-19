@@ -1,19 +1,26 @@
 ﻿namespace TableStorage;
 
-internal sealed class BlobStorageFactory(string connectionString, bool autoCreate)
+internal sealed class BlobStorageFactory(string connectionString, CreateIfNotExistsMode mode)
 {
     private readonly BlobServiceClient _client = new(connectionString ?? throw new ArgumentNullException(nameof(connectionString)));
-    private readonly bool _autoCreate = autoCreate;
+    private readonly CreateIfNotExistsMode _creationMode = mode;
 
-    public async Task<BlobContainerClient> GetClient(string container)
+    private static readonly HashSet<string> s_createdContainers = new(StringComparer.OrdinalIgnoreCase);
+    public Task<BlobContainerClient> GetClient(string container)
     {
         BlobContainerClient client = _client.GetBlobContainerClient(container ?? throw new ArgumentNullException(nameof(container)));
 
-        if (_autoCreate)
+        return _creationMode switch
         {
-            _ = await client.CreateIfNotExistsAsync();
-        }
+            CreateIfNotExistsMode.Always => Init(client),
+            CreateIfNotExistsMode.Once when s_createdContainers.Add(container) => Init(client),
+            _ => Task.FromResult(client),
+        };
+    }
 
+    private static async Task<BlobContainerClient> Init(BlobContainerClient client)
+    {
+        _ = await client.CreateIfNotExistsAsync();
         return client;
     }
 }

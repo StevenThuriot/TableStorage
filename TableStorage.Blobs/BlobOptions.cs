@@ -11,7 +11,7 @@ public sealed class BlobOptions
         QueryHandlerFactory = new QueryHandlerFactory();
     }
 
-    public bool CreateContainerIfNotExists { get; set; } = true;
+    public CreateIfNotExistsMode CreateContainerIfNotExists { get; set; } = CreateIfNotExistsMode.Always;
 
     public IBlobSerializer Serializer { get; set; } = default!;
 

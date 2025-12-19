@@ -42,9 +42,7 @@ public class AzuriteFixture : IAsyncLifetime
 /// xUnit collection definition to share Azurite fixture
 /// </summary>
 [CollectionDefinition("Azurite Collection")]
-public class AzuriteCollection : ICollectionFixture<AzuriteFixture>
-{
-}
+public class AzuriteCollection : ICollectionFixture<AzuriteFixture>;
 
 /// <summary>
 /// Base class for tests that need access to Azurite and the TableStorage context
@@ -63,12 +61,12 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
         services.AddMyTableContext(AzuriteFixture.ConnectionString,
             configure: x =>
             {
-                x.CreateTableIfNotExists = true;
+                x.CreateTableIfNotExists = CreateIfNotExistsMode.Once;
                 x.EnableFluentCompilationAtRuntime();
             },
             configureBlobs: x =>
             {
-                x.CreateContainerIfNotExists = true;
+                x.CreateContainerIfNotExists = CreateIfNotExistsMode.Once;
                 x.Serializer = new HybridSerializer();
                 x.EnableCompilationAtRuntime();
             });
@@ -108,7 +106,7 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
         {
             try
             {
-                await tableSet.Where(x => true).BatchDeleteAsync();
+                await tableSet.Where(_ => true).BatchDeleteAsync();
             }
             catch
             {
@@ -121,7 +119,7 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
         {
             try
             {
-                await tableSet.Where(x => true).BatchDeleteAsync();
+                await tableSet.Where(_ => true).BatchDeleteAsync();
             }
             catch
             {
@@ -134,7 +132,7 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
         {
             try
             {
-                await tableSet.Where(x => true).BatchDeleteAsync();
+                await tableSet.Where(_ => true).BatchDeleteAsync();
             }
             catch
             {
