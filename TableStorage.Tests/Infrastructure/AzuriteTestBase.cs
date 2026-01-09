@@ -18,9 +18,7 @@ public class AzuriteFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
 #if TestContainers
-        _azuriteContainer = new AzuriteBuilder()
-            .WithImage("mcr.microsoft.com/azure-storage/azurite:latest")
-            .Build();
+        _azuriteContainer = new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite:latest").Build();
 
         await _azuriteContainer.StartAsync();
         ConnectionString = _azuriteContainer.GetConnectionString();

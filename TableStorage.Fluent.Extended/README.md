@@ -17,6 +17,7 @@ This package supports **5 to 16 generic type parameters**. For support of 2 to 4
 ```bash
 dotnet add package TableStorage.Core
 dotnet add package TableStorage
+dotnet add package TableStorage.Fluent
 dotnet add package TableStorage.Fluent.Extended
 ```
 
