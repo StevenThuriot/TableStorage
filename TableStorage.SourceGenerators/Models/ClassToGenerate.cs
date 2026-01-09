@@ -37,6 +37,106 @@ public readonly struct ContextMemberToGenerate(string name, string type, TypeKin
     public readonly TypeKind TypeKind = typeKind;
     public readonly string SetType = setType;
 
+    /// <summary>
+    /// Gets whether this member is a fluent type (FluentTableEntity, FluentPartitionTableEntity, or FluentRowTableEntity).
+    /// </summary>
+    public bool IsFluentType => Type.Contains("FluentTableEntity") || Type.Contains("FluentPartitionTableEntity") || Type.Contains("FluentRowTableEntity");
+
+    /// <summary>
+    /// Gets the fluent type variant name (e.g., "FluentTableEntity", "FluentPartitionTableEntity", or "FluentRowTableEntity").
+    /// Returns null if this is not a fluent type.
+    /// </summary>
+    public string? FluentTypeVariant
+    {
+        get
+        {
+            if (Type.Contains("FluentTableEntity") && !Type.Contains("FluentPartitionTableEntity") && !Type.Contains("FluentRowTableEntity"))
+            {
+                return "FluentTableEntity";
+            }
+
+            if (Type.Contains("FluentPartitionTableEntity"))
+            {
+                return "FluentPartitionTableEntity";
+            }
+
+            if (Type.Contains("FluentRowTableEntity"))
+            {
+                return "FluentRowTableEntity";
+            }
+
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the generic type arguments for fluent types.
+    /// Returns an empty array if this is not a fluent type or parsing fails.
+    /// Example: "global::FluentTableEntity<MyNamespace.TypeA, MyNamespace.TypeB>" -> ["MyNamespace.TypeA", "MyNamespace.TypeB"]
+    /// </summary>
+    public string[] GetFluentGenericArguments()
+    {
+        if (!IsFluentType)
+        {
+            return [];
+        }
+
+        int startIndex = Type.IndexOf('<');
+        int endIndex = Type.LastIndexOf('>');
+
+        if (startIndex == -1 || endIndex == -1 || endIndex <= startIndex)
+        {
+            return [];
+        }
+
+        string genericPart = Type.Substring(startIndex + 1, endIndex - startIndex - 1);
+        
+        // Parse generic arguments, handling nested generics
+        var arguments = new List<string>();
+        int depth = 0;
+        int argStart = 0;
+
+        for (int i = 0; i < genericPart.Length; i++)
+        {
+            char c = genericPart[i];
+            if (c == '<')
+            {
+                depth++;
+            }
+            else if (c == '>')
+            {
+                depth--;
+            }
+            else if (c == ',' && depth == 0)
+            {
+                arguments.Add(genericPart.Substring(argStart, i - argStart).Trim());
+                argStart = i + 1;
+            }
+        }
+
+        // Add last argument
+        if (argStart < genericPart.Length)
+        {
+            arguments.Add(genericPart.Substring(argStart).Trim());
+        }
+
+        return [.. arguments];
+    }
+
+    /// <summary>
+    /// Gets simple type names from fully qualified type names.
+    /// Example: "global::MyNamespace.TypeA" -> "TypeA"
+    /// </summary>
+    public static string GetSimpleTypeName(string fullyQualifiedType)
+    {
+        // Remove global:: prefix
+        string cleaned = fullyQualifiedType.Replace("global::", "");
+        
+        // Get the last part after the last dot
+        int lastDot = cleaned.LastIndexOf('.');
+        return lastDot >= 0 ? cleaned.Substring(lastDot + 1) : cleaned;
+    }
+
     public bool Equals(ContextMemberToGenerate other)
     {
         return Name == other.Name && Type == other.Type && TypeKind == other.TypeKind && SetType == other.SetType;

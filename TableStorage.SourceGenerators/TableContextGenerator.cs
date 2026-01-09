@@ -92,6 +92,13 @@ namespace TableStorage
         // Register the main source output - this only runs when combinedData changes
         context.RegisterSourceOutput(combinedData,
             static (spc, source) => ExecuteTableContextGeneration(source.Classes, source.Capabilities, spc));
+
+        // Register fluent extension methods generation - this only runs when tableContextClasses changes
+        context.RegisterSourceOutput(
+            tableContextClasses.Collect()
+                .Select(static (classes, _) => new EquatableArray<ContextClassToGenerate>([.. classes]))
+                .WithTrackingName("TableContext.FluentExtensions"),
+            static (spc, classes) => ExecuteFluentExtensionsGeneration(classes, spc));
     }    /// <summary>
          /// Extracts table context class information from a GeneratorAttributeSyntaxContext.
          /// This method is designed to extract all necessary data in the transform stage to avoid
@@ -147,6 +154,29 @@ namespace TableStorage
             capabilities.HasBlobs))
         {
             // Add each generated file with a consistent naming scheme
+            context.AddSource($"{name}.g.cs", SourceText.From(result, Encoding.UTF8));
+        }
+    }
+
+    /// <summary>
+    /// Generates fluent extension methods for table context classes that have FluentTableEntity properties.
+    /// This method creates extension methods like WhereMyEntityA() that delegate to WhereFirstType().
+    /// </summary>
+    /// <param name="classes">The extracted table context class information.</param>
+    /// <param name="context">The source production context for adding generated files.</param>
+    private static void ExecuteFluentExtensionsGeneration(
+        EquatableArray<ContextClassToGenerate> classes,
+        SourceProductionContext context)
+    {
+        // Early exit if no classes to process
+        if (classes.IsEmpty)
+        {
+            return;
+        }
+
+        // Generate fluent extension methods for each class with fluent properties
+        foreach ((string name, string result) in Generators.TableContextGeneration.FluentExtensionMethodsGenerator.GenerateFluentExtensions(classes))
+        {
             context.AddSource($"{name}.g.cs", SourceText.From(result, Encoding.UTF8));
         }
     }

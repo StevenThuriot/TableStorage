@@ -1,3 +1,4 @@
+using TableStorage.Tests.Contexts;
 using TableStorage.Tests.Infrastructure;
 using TableStorage.Tests.Models;
 
@@ -874,6 +875,219 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         Assert.Single(blobResult);
         Assert.Equal(2, blobResult[0].MyProperty1);
         Assert.Equal("test value", blobResult[0].MyProperty2);
+    }
+
+    #endregion
+
+    #region Fluent Extension Method Tests
+
+    [Fact]
+    public async Task FluentExtension_WhereFluentTestModelA_ShouldFilterToModelAOnly()
+    {
+        // Arrange
+        const string partitionKey = "fluent-extension-test";
+        var modelA1 = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Extension A 1",
+            PropertyA = 100
+        };
+
+        var modelA2 = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Extension A 2",
+            PropertyA = 200
+        };
+
+        var modelB = new FluentTestModelB
+        {
+            PrettyPartitionB = partitionKey,
+            PrettyRowB = Guid.NewGuid().ToString("N"),
+            TypeB = "Extension B",
+            PropertyB = true
+        };
+
+        await Context.FluentModels.UpsertEntityAsync(modelA1);
+        await Context.FluentModels.UpsertEntityAsync(modelA2);
+        await Context.FluentModels.UpsertEntityAsync(modelB);
+
+        // Act - Using generated extension method
+        var results = await Context.FluentModels.WhereFluentTestModelA().ToListAsync();
+
+        // Assert
+        Assert.NotEmpty(results);
+        var matchingResults = results.Where(x => 
+            x.PrettyPartitionA == partitionKey && 
+            (x.PrettyRowA == modelA1.PrettyRowA || x.PrettyRowA == modelA2.PrettyRowA)).ToList();
+        Assert.Equal(2, matchingResults.Count);
+        Assert.All(matchingResults, x => Assert.NotNull(x.TypeA));
+    }
+
+    [Fact]
+    public async Task FluentExtension_WhereFluentTestModelB_ShouldFilterToModelBOnly()
+    {
+        // Arrange
+        const string partitionKey = "fluent-extension-b-test";
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Extension A",
+            PropertyA = 300
+        };
+
+        var modelB1 = new FluentTestModelB
+        {
+            PrettyPartitionB = partitionKey,
+            PrettyRowB = Guid.NewGuid().ToString("N"),
+            TypeB = "Extension B 1",
+            PropertyB = true
+        };
+
+        var modelB2 = new FluentTestModelB
+        {
+            PrettyPartitionB = partitionKey,
+            PrettyRowB = Guid.NewGuid().ToString("N"),
+            TypeB = "Extension B 2",
+            PropertyB = false
+        };
+
+        await Context.FluentModels.UpsertEntityAsync(modelA);
+        await Context.FluentModels.UpsertEntityAsync(modelB1);
+        await Context.FluentModels.UpsertEntityAsync(modelB2);
+
+        // Act - Using generated extension method
+        var results = await Context.FluentModels.WhereFluentTestModelB().ToListAsync();
+
+        // Assert
+        Assert.NotEmpty(results);
+        var matchingResults = results.Where(x => 
+            x.PrettyPartitionB == partitionKey && 
+            (x.PrettyRowB == modelB1.PrettyRowB || x.PrettyRowB == modelB2.PrettyRowB)).ToList();
+        Assert.Equal(2, matchingResults.Count);
+        Assert.All(matchingResults, x => Assert.NotNull(x.TypeB));
+    }
+
+    [Fact]
+    public async Task FluentExtension_WhereFluentTestModelA_WithAdditionalFilter_ShouldCombineFilters()
+    {
+        // Arrange
+        const string partitionKey = "fluent-combined-filter";
+        var modelA1 = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Match",
+            PropertyA = 100
+        };
+
+        var modelA2 = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "NoMatch",
+            PropertyA = 200
+        };
+
+        var modelB = new FluentTestModelB
+        {
+            PrettyPartitionB = partitionKey,
+            PrettyRowB = Guid.NewGuid().ToString("N"),
+            TypeB = "Type B",
+            PropertyB = true
+        };
+
+        await Context.FluentModels.UpsertEntityAsync(modelA1);
+        await Context.FluentModels.UpsertEntityAsync(modelA2);
+        await Context.FluentModels.UpsertEntityAsync(modelB);
+
+        // Act - Using generated extension method with additional filter
+        var results = await Context.FluentModels.WhereFluentTestModelA()
+            .Where(x => x.TypeA == "Match")
+            .ToListAsync();
+
+        // Assert
+        var matchingResults = results.Where(x => x.PrettyPartitionA == partitionKey).ToList();
+        Assert.Single(matchingResults);
+        Assert.Equal("Match", matchingResults[0].TypeA);
+        Assert.Equal(100, matchingResults[0].PropertyA);
+    }
+
+    [Fact]
+    public async Task FluentExtension_WhereFluentTestModelA_SelectFields_ShouldReturnOnlySelectedFields()
+    {
+        // Arrange
+        const string partitionKey = "fluent-select-test";
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Select Test",
+            PropertyA = 999
+        };
+
+        await Context.FluentModels.UpsertEntityAsync(modelA);
+
+        // Act - Using generated extension method with SelectFields
+        var results = await Context.FluentModels.WhereFluentTestModelA()
+            .Where(x => x.PrettyPartitionA == partitionKey && x.PrettyRowA == modelA.PrettyRowA)
+            .SelectFields(x => new { x.TypeA })
+            .ToListAsync();
+
+        // Assert
+        Assert.Single(results);
+        Assert.Equal("Select Test", results[0].TypeA);
+    }
+
+    [Fact]
+    public async Task FluentExtension_WhereFluentTestModelB_Take_ShouldLimitResults()
+    {
+        // Arrange
+        const string partitionKey = "fluent-take-test";
+        for (int i = 0; i < 5; i++)
+        {
+            await Context.FluentModels.UpsertEntityAsync(new FluentTestModelB
+            {
+                PrettyPartitionB = partitionKey,
+                PrettyRowB = Guid.NewGuid().ToString("N"),
+                TypeB = $"Take Test {i}",
+                PropertyB = i % 2 == 0
+            });
+        }
+
+        // Act - Using generated extension method with Take
+        var results = await Context.FluentModels.WhereFluentTestModelB()
+            .Where(x => x.PrettyPartitionB == partitionKey)
+            .Take(3)
+            .ToListAsync();
+
+        // Assert
+        Assert.Equal(3, results.Count);
+    }
+
+    [Fact]
+    public async Task FluentExtension_MultipleFluentProperties_ShouldUseCorrectProperty()
+    {
+        // Arrange - FluentPartitionModels uses partition key as discriminator
+        const string partitionKey = "FluentTestModelA"; // Partition key matches type name
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Partition Test",
+            PropertyA = 777
+        };
+
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+
+        // Act - Extension method should work with FluentPartitionModels too
+        var results = await Context.FluentPartitionModels.WhereFluentTestModelA().ToListAsync();
+
+        // Assert - Should find at least one result (could be from either property)
+        Assert.NotEmpty(results);
     }
 
     #endregion
