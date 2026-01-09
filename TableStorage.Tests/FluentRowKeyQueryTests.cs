@@ -41,8 +41,8 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
 
         // Assert
         Assert.NotNull(retrieved);
-        Assert.Equal(partitionKey, retrieved.PartitionKey);
-        Assert.Equal("FluentTestModelA", retrieved.RowKey);
+        Assert.Equal(partitionKey, retrieved.PrettyPartitionA);
+        Assert.Equal("FluentTestModelA", retrieved.PrettyRowA);
     }
 
     [Fact]

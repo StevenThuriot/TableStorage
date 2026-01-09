@@ -81,35 +81,17 @@ namespace TableStorage.Linq;
                 {
                     // For FluentRowTableEntity: take partitionKey parameter, use typeNameLiteral as rowKey
                     findMethods.Add($@"
-        public Task<{className}<{typeParamList}>?> Find{ordinalName}Async(string partitionKey, CancellationToken token = default)
-        {{
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>(partitionKey, {typeNameLiteral});
-            return table.Where(predicate).FirstOrDefaultAsync(token);
-        }}
-
-        public IFilteredTableQueryable<{className}<{typeParamList}>> Find{ordinalName}Async(params IReadOnlyList<string> partitionKeys)
-        {{
-            var keys = partitionKeys.Select(pk => (partitionKey: pk, rowKey: {typeNameLiteral})).ToList();
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>(keys);
-            return table.Where(predicate);
-        }}");
+        public Task<{typeName}?> Find{ordinalName}Async(string partitionKey, CancellationToken token = default) => table.Where{ordinalName}Type().Where(x => x.PartitionKey == partitionKey).FirstOrDefaultAsync(token);
+        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> partitionKeys) => table.Where{ordinalName}Type().ExistsIn(x => x.PartitionKey, partitionKeys);
+        ");
                 }
                 else
                 {
                     // For FluentPartitionTableEntity: use typeNameLiteral as partitionKey, take rowKey parameter
                     findMethods.Add($@"
-        public Task<{className}<{typeParamList}>?> Find{ordinalName}Async(string rowKey, CancellationToken token = default)
-        {{
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>({typeNameLiteral}, rowKey);
-            return table.Where(predicate).FirstOrDefaultAsync(token);
-        }}
-
-        public IFilteredTableQueryable<{className}<{typeParamList}>> Find{ordinalName}Async(params IReadOnlyList<string> rowKeys)
-        {{
-            var keys = rowKeys.Select(rk => (partitionKey: {typeNameLiteral}, rowKey: rk)).ToList();
-            Expression<Func<{className}<{typeParamList}>, bool>> predicate = Helpers.CreateFindPredicate<{className}<{typeParamList}>, ITableEntity>(keys);
-            return table.Where(predicate);
-        }}");
+        public Task<{typeName}?> Find{ordinalName}Async(string rowKey, CancellationToken token = default)  => table.Where{ordinalName}Type().Where(x => x.RowKey == rowKey).FirstOrDefaultAsync(token);
+        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> rowKeys) => table.Where{ordinalName}Type().ExistsIn(x => x.RowKey, rowKeys);
+        ");
                 }
             }
         }
@@ -134,7 +116,8 @@ namespace TableStorage.Linq;
         {
             string typeName = typeParams[i];
             
-            extensionMethods.Add($@"public IFilteredTableQueryable<{typeName}> Where(Expression<Func<{typeName}, bool>> predicate) => table.Where{GetOrdinalName(i + 1)}Type().Where(predicate);
+            extensionMethods.Add($@"
+        public IFilteredTableQueryable<{typeName}> Where(Expression<Func<{typeName}, bool>> predicate) => table.Where{GetOrdinalName(i + 1)}Type().Where(predicate);
         public ISelectedTableQueryable<{typeName}> SelectFields<TResult>(Expression<Func<{typeName}, TResult>> selector) => table.Where{GetOrdinalName(i + 1)}Type().SelectFields(selector);
         public IFilteredTableQueryable<{typeName}> ExistsIn<TElement>(Expression<Func<{typeName}, TElement>> predicate, IEnumerable<TElement> elements) => table.Where{GetOrdinalName(i + 1)}Type().ExistsIn(predicate, elements);
         public IFilteredTableQueryable<{typeName}> NotExistsIn<TElement>(Expression<Func<{typeName}, TElement>> predicate, IEnumerable<TElement> elements) => table.Where{GetOrdinalName(i + 1)}Type().NotExistsIn(predicate, elements);");

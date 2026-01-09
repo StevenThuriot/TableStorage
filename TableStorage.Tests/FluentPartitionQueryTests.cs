@@ -39,8 +39,8 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Assert
         Assert.NotNull(retrieved);
-        Assert.Equal("FluentTestModelA", retrieved.PartitionKey);
-        Assert.Equal(modelA.PrettyRowA, retrieved.RowKey);
+        Assert.Equal("FluentTestModelA", retrieved.PrettyPartitionA);
+        Assert.Equal(modelA.PrettyRowA, retrieved.PrettyRowA);
     }
 
     [Fact]
@@ -114,8 +114,8 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Assert
         Assert.Equal(2, retrieved.Count);
-        Assert.Contains(retrieved, x => x.RowKey == modelA1.PrettyRowA);
-        Assert.Contains(retrieved, x => x.RowKey == modelA2.PrettyRowA);
+        Assert.Contains(retrieved, x => x.PrettyRowA == modelA1.PrettyRowA);
+        Assert.Contains(retrieved, x => x.PrettyRowA == modelA2.PrettyRowA);
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Assert
         Assert.Single(retrieved);
-        Assert.Equal(modelA.PrettyRowA, retrieved[0].RowKey);
+        Assert.Equal(modelA.PrettyRowA, retrieved[0].PrettyRowA);
     }
 
     #endregion
