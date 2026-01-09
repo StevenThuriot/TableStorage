@@ -81,16 +81,16 @@ namespace TableStorage.Linq;
                 {
                     // For FluentRowTableEntity: take partitionKey parameter, use typeNameLiteral as rowKey
                     findMethods.Add($@"
-        public Task<{typeName}?> Find{ordinalName}Async(string partitionKey, CancellationToken token = default) => table.Where{ordinalName}Type().Where(x => x.PartitionKey == partitionKey).FirstOrDefaultAsync(token);
-        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> partitionKeys) => table.Where{ordinalName}Type().ExistsIn(x => x.PartitionKey, partitionKeys);
+        public Task<{typeName}?> Find{ordinalName}Async(string partitionKey, CancellationToken token = default) => table.Where(({typeName} x) => x.PartitionKey == partitionKey).FirstOrDefaultAsync(token);
+        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> partitionKeys) => table.ExistsIn(({typeName} x) => x.PartitionKey, partitionKeys);
         ");
                 }
                 else
                 {
                     // For FluentPartitionTableEntity: use typeNameLiteral as partitionKey, take rowKey parameter
                     findMethods.Add($@"
-        public Task<{typeName}?> Find{ordinalName}Async(string rowKey, CancellationToken token = default)  => table.Where{ordinalName}Type().Where(x => x.RowKey == rowKey).FirstOrDefaultAsync(token);
-        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> rowKeys) => table.Where{ordinalName}Type().ExistsIn(x => x.RowKey, rowKeys);
+        public Task<{typeName}?> Find{ordinalName}Async(string rowKey, CancellationToken token = default)  => table.Where(({typeName} x) => x.RowKey == rowKey).FirstOrDefaultAsync(token);
+        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> rowKeys) => table.ExistsIn(({typeName} x) => x.RowKey, rowKeys);
         ");
                 }
             }
