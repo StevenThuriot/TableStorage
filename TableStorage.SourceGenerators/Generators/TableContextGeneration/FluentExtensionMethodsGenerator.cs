@@ -10,7 +10,7 @@ namespace TableStorage.SourceGenerators.Generators.TableContextGeneration;
 /// </summary>
 internal static class FluentExtensionMethodsGenerator
 {
-    private static readonly string[] OrdinalNames = 
+    private static readonly string[] s_ordinalNames =
     [
         "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth",
         "Ninth", "Tenth", "Eleventh", "Twelfth", "Thirteenth", "Fourteenth", "Fifteenth", "Sixteenth"
@@ -28,17 +28,17 @@ internal static class FluentExtensionMethodsGenerator
         {
             // Filter to only members that are fluent types
             var fluentMembers = classToGenerate.Members.Where(m => m.IsFluentType).ToList();
-            
+
             if (fluentMembers.Count == 0)
             {
                 continue;
             }
 
             StringBuilder sb = new();
-            
+
             // Generate file header
             sb.Append(Header.Value);
-            
+
             // Add necessary using directives
             sb.Append(@"
 using System.Linq.Expressions;
@@ -85,13 +85,14 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
             }
 
             // Generate extension methods for each generic type in this TableSet
-            for (int i = 0; i < genericArgs.Length && i < OrdinalNames.Length; i++)
+            for (int i = 0; i < genericArgs.Length && i < s_ordinalNames.Length; i++)
             {
                 string fullTypeName = genericArgs[i];
                 string simpleTypeName = ContextMemberToGenerate.GetSimpleTypeName(fullTypeName);
-                string ordinalName = OrdinalNames[i];
+                string ordinalName = s_ordinalNames[i];
 
-                GenerateExtensionMethod(sb, member.Type, simpleTypeName, fullTypeName, ordinalName);
+                GenerateWhereExtensionMethod(sb, member.Type, simpleTypeName, fullTypeName, ordinalName);
+                GenerateFindAsyncExtensionMethod(sb, member.Type, simpleTypeName, fullTypeName, ordinalName, member.FluentTypeVariant!);
             }
         }
 
@@ -100,7 +101,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
     }");
     }
 
-    private static void GenerateExtensionMethod(
+    private static void GenerateWhereExtensionMethod(
         StringBuilder sb,
         string tableSetType,
         string simpleTypeName,
@@ -117,6 +118,49 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         public static global::TableStorage.Linq.IFilteredTableQueryable<").Append(fullTypeName).Append(@"> Where").Append(simpleTypeName).Append(@"(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table)
         {
             return table.Where").Append(ordinalName).Append(@"Type();
+        }");
+    }
+
+    private static void GenerateFindAsyncExtensionMethod(
+        StringBuilder sb,
+        string tableSetType,
+        string simpleTypeName,
+        string fullTypeName,
+        string ordinalName,
+        string variant)
+    {
+        if (variant is not "FluentPartitionTableEntity" and not "FluentRowTableEntity")
+        {
+            return;
+        }
+
+        // Determine the parameter name based on the fluent type variant
+        string parameterName = variant switch
+        {
+            "FluentPartitionTableEntity" => "rowKey",
+            "FluentRowTableEntity" => "partitionKey",
+            _ => throw new InvalidOperationException($"Unsupported fluent type variant: {variant}")
+        };
+
+        string paramDescription = variant switch
+        {
+            "FluentPartitionTableEntity" => "The row key of the entity.",
+            "FluentRowTableEntity" => "The partition key of the entity.",
+            _ => throw new InvalidOperationException($"Unsupported fluent type variant: {variant}")
+        };
+
+        sb.Append(@"
+
+        /// <summary>
+        /// Finds a single entity of type ").Append(simpleTypeName).Append(@" by key.
+        /// </summary>
+        /// <param name=""table"">The table set.</param>
+        /// <param name=""").Append(parameterName).Append(@""">" + paramDescription + @"</param>
+        /// <param name=""cancellationToken"">Cancellation token.</param>
+        /// <returns>The entity if found, null otherwise.</returns>
+        public static global::System.Threading.Tasks.Task<").Append(fullTypeName).Append(@"?> Find").Append(simpleTypeName).Append(@"Async(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, string ").Append(parameterName).Append(@", global::System.Threading.CancellationToken cancellationToken = default)
+        {
+            return table.Find").Append(ordinalName).Append(@"Async(").Append(parameterName).Append(@", cancellationToken);
         }");
     }
 }

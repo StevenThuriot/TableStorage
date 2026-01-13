@@ -90,7 +90,7 @@ public readonly struct ContextMemberToGenerate(string name, string type, TypeKin
         }
 
         string genericPart = Type.Substring(startIndex + 1, endIndex - startIndex - 1);
-        
+
         // Parse generic arguments, handling nested generics
         var arguments = new List<string>();
         int depth = 0;
@@ -131,7 +131,7 @@ public readonly struct ContextMemberToGenerate(string name, string type, TypeKin
     {
         // Remove global:: prefix
         string cleaned = fullyQualifiedType.Replace("global::", "");
-        
+
         // Get the last part after the last dot
         int lastDot = cleaned.LastIndexOf('.');
         return lastDot >= 0 ? cleaned.Substring(lastDot + 1) : cleaned;

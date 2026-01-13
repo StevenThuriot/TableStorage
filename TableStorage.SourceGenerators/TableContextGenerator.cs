@@ -62,7 +62,7 @@ namespace TableStorage
             ctx.AddEmbeddedAttributeDefinition();
             ctx.AddSource("TableContextAttribute.g.cs", SourceText.From(TableContextAttributeSource, Encoding.UTF8));
         });
-        
+
         // Extract compilation capabilities efficiently - runs once per compilation change
         IncrementalValueProvider<CompilationCapabilities> compilationCapabilities = context.CompilationProvider
             .Select(static (compilation, _) => DataExtractor.ExtractCompilationCapabilities(compilation))

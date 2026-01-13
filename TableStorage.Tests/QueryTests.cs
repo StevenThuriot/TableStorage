@@ -1090,5 +1090,149 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         Assert.NotEmpty(results);
     }
 
+    [Fact]
+    public async Task FluentExtension_FindFluentTestModelAAsync_OnFluentPartitionModels_ShouldWork()
+    {
+        // Arrange - FluentPartitionModels uses partition key as discriminator
+        const string partitionKey = "FluentTestModelA"; // Partition key matches type name
+        string rowKey = Guid.NewGuid().ToString("N");
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = rowKey,
+            TypeA = "Partition Find Test",
+            PropertyA = 777
+        };
+
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+
+        // Act - FluentPartitionTableEntity FindAsync takes only rowKey parameter
+        var found = await Context.FluentPartitionModels.FindFluentTestModelAAsync(rowKey);
+
+        // Assert
+        Assert.NotNull(found);
+        Assert.Equal("Partition Find Test", found.TypeA);
+        Assert.Equal(777, found.PropertyA);
+    }
+
+    [Fact]
+    public async Task FluentExtension_FindFluentTestModelAAsync_WithCancellationToken_ShouldRespectCancellation()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync(); // Cancel asynchronously
+
+        // Act & Assert - FluentPartitionTableEntity FindAsync takes only rowKey parameter
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await Context.FluentPartitionModels.FindFluentTestModelAAsync("any-row", cts.Token);
+        });
+    }
+
+    [Fact]
+    public async Task FluentExtension_WhereFluentTestModelA_OnFluentRowKeyModels_ShouldWork()
+    {
+        // Arrange - FluentRowKeyModels uses row key as discriminator
+        const string rowKey = "FluentTestModelA"; // Row key matches type name
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = Guid.NewGuid().ToString("N"),
+            PrettyRowA = rowKey,
+            TypeA = "RowKey Where Test",
+            PropertyA = 999
+        };
+
+        var modelB = new FluentTestModelB
+        {
+            PrettyPartitionB = Guid.NewGuid().ToString("N"),
+            PrettyRowB = "FluentTestModelB",
+            TypeB = "Other Type",
+            PropertyB = true
+        };
+
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB);
+
+        // Act
+        var results = await Context.FluentRowKeyModels.WhereFluentTestModelA().ToListAsync();
+
+        // Assert
+        Assert.Single(results);
+        Assert.Equal("RowKey Where Test", results[0].TypeA);
+        Assert.Equal(999, results[0].PropertyA);
+    }
+
+    [Fact]
+    public async Task FluentExtension_FindFluentTestModelAAsync_OnFluentRowKeyModels_ShouldWork()
+    {
+        // Arrange - FluentRowKeyModels uses row key as discriminator
+        const string rowKey = "FluentTestModelA"; // Row key matches type name
+        string partitionKey = Guid.NewGuid().ToString("N");
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = rowKey,
+            TypeA = "RowKey Find Test",
+            PropertyA = 888
+        };
+
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+
+        // Act - FluentRowTableEntity FindAsync takes only partitionKey parameter
+        var found = await Context.FluentRowKeyModels.FindFluentTestModelAAsync(partitionKey);
+
+        // Assert
+        Assert.NotNull(found);
+        Assert.Equal("RowKey Find Test", found.TypeA);
+        Assert.Equal(888, found.PropertyA);
+    }
+
+    [Fact]
+    public async Task FluentExtension_FindFluentTestModelBAsync_OnFluentRowKeyModels_ShouldWork()
+    {
+        // Arrange - FluentRowKeyModels uses row key as discriminator
+        const string rowKey = "FluentTestModelB"; // Row key matches type name
+        string partitionKey = Guid.NewGuid().ToString("N");
+        var modelB = new FluentTestModelB
+        {
+            PrettyPartitionB = partitionKey,
+            PrettyRowB = rowKey,
+            TypeB = "RowKey Find B Test",
+            PropertyB = false
+        };
+
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB);
+
+        // Act - FluentRowTableEntity FindAsync takes only partitionKey parameter
+        var found = await Context.FluentRowKeyModels.FindFluentTestModelBAsync(partitionKey);
+
+        // Assert
+        Assert.NotNull(found);
+        Assert.Equal("RowKey Find B Test", found.TypeB);
+        Assert.False(found.PropertyB);
+    }
+
+    [Fact]
+    public async Task FluentExtension_FindFluentTestModelAAsync_OnFluentRowKeyModels_WithWrongKey_ShouldReturnNull()
+    {
+        // Arrange
+        const string rowKey = "FluentTestModelA";
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = Guid.NewGuid().ToString("N"),
+            PrettyRowA = rowKey,
+            TypeA = "Test",
+            PropertyA = 123
+        };
+
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+
+        // Act
+        var notFound = await Context.FluentRowKeyModels.FindFluentTestModelAAsync("wrong-partition-key");
+
+        // Assert
+        Assert.Null(notFound);
+    }
+
     #endregion
 }
