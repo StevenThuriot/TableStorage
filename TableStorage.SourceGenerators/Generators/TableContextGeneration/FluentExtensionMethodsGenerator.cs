@@ -129,27 +129,16 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         string ordinalName,
         string variant)
     {
-        if (variant is not "FluentPartitionTableEntity" and not "FluentRowTableEntity")
+        if (variant is "FluentPartitionTableEntity" or "FluentRowTableEntity")
         {
-            return;
-        }
+            (string parameterName, string paramDescription) = variant switch
+            {
+                "FluentPartitionTableEntity" => ("rowKey", "The row key of the entity."),
+                "FluentRowTableEntity" => ("partitionKey", "The partition key of the entity."),
+                _ => throw new InvalidOperationException($"Unsupported fluent type variant: {variant}")
+            };
 
-        // Determine the parameter name based on the fluent type variant
-        string parameterName = variant switch
-        {
-            "FluentPartitionTableEntity" => "rowKey",
-            "FluentRowTableEntity" => "partitionKey",
-            _ => throw new InvalidOperationException($"Unsupported fluent type variant: {variant}")
-        };
-
-        string paramDescription = variant switch
-        {
-            "FluentPartitionTableEntity" => "The row key of the entity.",
-            "FluentRowTableEntity" => "The partition key of the entity.",
-            _ => throw new InvalidOperationException($"Unsupported fluent type variant: {variant}")
-        };
-
-        sb.Append(@"
+            sb.Append(@"
 
         /// <summary>
         /// Finds a single entity of type ").Append(simpleTypeName).Append(@" by key.
@@ -162,5 +151,6 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         {
             return table.Find").Append(ordinalName).Append(@"Async(").Append(parameterName).Append(@", cancellationToken);
         }");
+        }
     }
 }
