@@ -919,8 +919,8 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
 
         // Assert
         Assert.NotEmpty(results);
-        var matchingResults = results.Where(x => 
-            x.PrettyPartitionA == partitionKey && 
+        var matchingResults = results.Where(x =>
+            x.PrettyPartitionA == partitionKey &&
             (x.PrettyRowA == modelA1.PrettyRowA || x.PrettyRowA == modelA2.PrettyRowA)).ToList();
         Assert.Equal(2, matchingResults.Count);
         Assert.All(matchingResults, x => Assert.NotNull(x.TypeA));
@@ -964,8 +964,8 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
 
         // Assert
         Assert.NotEmpty(results);
-        var matchingResults = results.Where(x => 
-            x.PrettyPartitionB == partitionKey && 
+        var matchingResults = results.Where(x =>
+            x.PrettyPartitionB == partitionKey &&
             (x.PrettyRowB == modelB1.PrettyRowB || x.PrettyRowB == modelB2.PrettyRowB)).ToList();
         Assert.Equal(2, matchingResults.Count);
         Assert.All(matchingResults, x => Assert.NotNull(x.TypeB));

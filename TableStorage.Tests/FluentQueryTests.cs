@@ -1,3 +1,4 @@
+using TableStorage.Tests.Contexts;
 using TableStorage.Tests.Infrastructure;
 using TableStorage.Tests.Models;
 
@@ -302,7 +303,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .Where((FluentTestModelA x) => x.PropertyA > 100)
+            .WhereFluentTestModelA((x) => x.PropertyA > 100)
             .ToListAsync();
 
         // Assert
@@ -349,7 +350,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .Where((FluentTestModelB x) => x.PropertyB == false)
+            .WhereFluentTestModelB((x) => x.PropertyB == false)
             .ToListAsync();
 
         // Assert
@@ -391,7 +392,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .SelectFields((FluentTestModelA x) => x.TypeA)
+            .SelectFluentTestModelAFields((x) => x.TypeA)
             .ToListAsync();
 
         // Assert
@@ -428,7 +429,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .SelectFields((FluentTestModelB x) => x.TypeB)
+            .SelectFluentTestModelBFields((x) => x.TypeB)
             .ToListAsync();
 
         // Assert
@@ -487,7 +488,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .ExistsIn((FluentTestModelA x) => x.PropertyA, [100, 200, 400])
+            .ExistsInFluentTestModelA((x) => x.PropertyA, [100, 200, 400])
             .ToListAsync();
 
         // Assert
@@ -540,7 +541,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .ExistsIn((FluentTestModelB x) => x.TypeB, ["Type B1", "Type B3", "Type B4"])
+            .ExistsInFluentTestModelB((x) => x.TypeB, ["Type B1", "Type B3", "Type B4"])
             .ToListAsync();
 
         // Assert
@@ -597,7 +598,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .NotExistsIn((FluentTestModelA x) => x.PropertyA, [100, 400])
+            .NotExistsInFluentTestModelA((x) => x.PropertyA, [100, 400])
             .ToListAsync();
 
         // Assert
@@ -656,7 +657,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .NotExistsIn((FluentTestModelB x) => x.TypeB, ["Type B1", "Type B4"])
+            .NotExistsInFluentTestModelB((x) => x.TypeB, ["Type B1", "Type B4"])
             .ToListAsync();
 
         // Assert
@@ -765,7 +766,7 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .ExistsIn((FluentTestModelA x) => x.PropertyA, [100, 200, 300])
+            .ExistsInFluentTestModelA((x) => x.PropertyA, [100, 200, 300])
             .NotExistsIn((FluentTestModelA x) => x.PropertyA, [300])
             .ToListAsync();
 
@@ -810,8 +811,8 @@ public class FluentQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(a
 
         // Act
         var results = await Context.FluentModels
-            .SelectFields((FluentTestModelB x) => x.PropertyB)
-            .Where((FluentTestModelB x) => x.TypeB == "Type B1")
+            .SelectFluentTestModelBFields((x) => x.PropertyB)
+            .Where((x) => x.TypeB == "Type B1")
             .ToListAsync();
 
         // Assert

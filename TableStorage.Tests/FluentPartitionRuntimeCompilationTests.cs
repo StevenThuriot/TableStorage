@@ -3,6 +3,7 @@ using Azure.Data.Tables;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using TableStorage.Fluent;
+using TableStorage.Tests.Contexts;
 using TableStorage.Tests.Infrastructure;
 using TableStorage.Tests.Models;
 
@@ -28,7 +29,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         var proxySelectionWorks = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 0)
+            .WhereFluentTestModelA((x) => x.PropertyA > 0)
             .Select(x => new { x.TypeA, x.PropertyA })
             .ToListAsync();
 
@@ -55,7 +56,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         var firstTransformed1 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new { x.PropertyA, x.TypeA })
             .FirstOrDefaultAsync();
 
@@ -79,7 +80,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         int firstTransformed2 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => x.PropertyA)
             .FirstOrDefaultAsync();
 
@@ -101,7 +102,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         TestTransformAndSelect? firstTransformed3 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelect(x.PropertyA, x.TypeA))
             .FirstOrDefaultAsync();
 
@@ -125,7 +126,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         TestTransformAndSelect? firstTransformed4 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelect(x.PropertyA + 1, x.TypeA + "_test"))
             .FirstOrDefaultAsync();
 
@@ -149,7 +150,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         string? firstTransformed5 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => x.PropertyA + 1 + x.TypeA + "_test")
             .FirstOrDefaultAsync();
 
@@ -173,7 +174,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         TestTransformAndSelect? firstTransformed6 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => TestTransformAndSelect.Map(x.PropertyA, x.TypeA))
             .FirstOrDefaultAsync();
 
@@ -197,7 +198,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         TestTransformAndSelect? firstTransformed7 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => x.Map())
             .FirstOrDefaultAsync();
 
@@ -222,7 +223,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         TestTransformAndSelectWithGuid? firstTransformed8 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelectWithGuid(x.PropertyA, x.TypeA, Guid.Parse(x.PrettyRowA)))
             .FirstOrDefaultAsync();
 
@@ -247,7 +248,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         TestTransformAndSelectWithGuid? firstTransformed9 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelectWithGuid(x.PropertyA, "test", Guid.NewGuid()))
             .FirstOrDefaultAsync();
 
@@ -273,7 +274,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         NestedTestTransformAndSelect? firstTransformed10 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new NestedTestTransformAndSelect(Guid.Parse(x.PrettyRowA), new(x.PropertyA + (1 * 4), x.TypeA + "_test")))
             .FirstOrDefaultAsync();
 
@@ -300,7 +301,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         StringFormatted? firstTransformed11 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 2)
+            .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new StringFormatted($"{x.PrettyRowA} - {x.PropertyA + (1 * 4)}, {x.TypeA}_test"))
             .FirstOrDefaultAsync();
 
@@ -326,7 +327,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         List<StringFormatted2> firstTransformed12 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 0)
+            .WhereFluentTestModelA((x) => x.PropertyA > 0)
             .Select(x => new StringFormatted2($"{x.PrettyRowA} - {x.PropertyA + (1 * 4)}, {x.TypeA}_test", null, x.Timestamp.GetValueOrDefault()))
             .ToListAsync();
 
@@ -354,7 +355,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         List<StringFormatted2> firstTransformed13 = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 0)
+            .WhereFluentTestModelA((x) => x.PropertyA > 0)
             .Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", new object[] { x.PrettyRowA, x.PropertyA + (1 * 4), x.TypeA, x.Timestamp.GetValueOrDefault() }), null, x.Timestamp.GetValueOrDefault()))
             .ToListAsync();
 
@@ -383,14 +384,14 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
 
         // Act
         int mergeCount = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PrettyRowA == fluentModel.PrettyRowA)
+            .WhereFluentTestModelA((x) => x.PrettyRowA == fluentModel.PrettyRowA)
             .BatchUpdateAsync(x => new()
             {
                 PropertyA = x.PropertyA + 1
             });
 
         int result = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PrettyRowA == fluentModel.PrettyRowA)
+            .WhereFluentTestModelA((x) => x.PrettyRowA == fluentModel.PrettyRowA)
             .Select(x => x.PropertyA)
             .FirstAsync();
 

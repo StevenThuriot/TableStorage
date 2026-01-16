@@ -1,3 +1,4 @@
+using TableStorage.Tests.Contexts;
 using TableStorage.Tests.Infrastructure;
 using TableStorage.Tests.Models;
 
@@ -35,7 +36,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
         await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
 
         // Act
-        var retrieved = await Context.FluentPartitionModels.FindFirstAsync(modelA.PrettyRowA);
+        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -69,7 +70,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
         string nonExistentRowKey = Guid.NewGuid().ToString("N");
 
         // Act
-        var retrieved = await Context.FluentPartitionModels.FindFirstAsync(nonExistentRowKey);
+        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(nonExistentRowKey);
 
         // Assert
         Assert.Null(retrieved);
@@ -109,7 +110,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var retrieved = await Context.FluentPartitionModels
-            .FindFirstAsync(modelA1.PrettyRowA!, modelA2.PrettyRowA!, modelB.PrettyRowB!)
+            .FindFluentTestModelAAsync(modelA1.PrettyRowA!, modelA2.PrettyRowA!, modelB.PrettyRowB!)
             .ToListAsync();
 
         // Assert
@@ -136,7 +137,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var retrieved = await Context.FluentPartitionModels
-            .FindFirstAsync(modelA.PrettyRowA!, nonExistentRowKey!)
+            .FindFluentTestModelAAsync(modelA.PrettyRowA!, nonExistentRowKey!)
             .ToListAsync();
 
         // Assert
@@ -370,7 +371,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .Where((FluentTestModelA x) => x.PropertyA > 100)
+            .WhereFluentTestModelA(x => x.PropertyA > 100)
             .ToListAsync();
 
         // Assert
@@ -417,7 +418,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .Where((FluentTestModelB x) => x.PropertyB == false)
+            .WhereFluentTestModelB(x => x.PropertyB == false)
             .ToListAsync();
 
         // Assert
@@ -459,7 +460,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .SelectFields((FluentTestModelA x) => x.TypeA)
+            .SelectFluentTestModelAFields(x => x.TypeA)
             .ToListAsync();
 
         // Assert
@@ -496,7 +497,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .SelectFields((FluentTestModelB x) => x.TypeB)
+            .SelectFluentTestModelBFields((x) => x.TypeB)
             .ToListAsync();
 
         // Assert
@@ -555,7 +556,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .ExistsIn((FluentTestModelA x) => x.PropertyA, [100, 200, 400])
+            .ExistsInFluentTestModelA((x) => x.PropertyA, [100, 200, 400])
             .ToListAsync();
 
         // Assert
@@ -608,7 +609,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .ExistsIn((FluentTestModelB x) => x.TypeB, ["Type B1", "Type B3", "Type B4"])
+            .ExistsInFluentTestModelB((x) => x.TypeB, ["Type B1", "Type B3", "Type B4"])
             .ToListAsync();
 
         // Assert
@@ -665,7 +666,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .NotExistsIn((FluentTestModelA x) => x.PropertyA, [100, 400])
+            .NotExistsInFluentTestModelA((x) => x.PropertyA, [100, 400])
             .ToListAsync();
 
         // Assert
@@ -724,7 +725,7 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .NotExistsIn((FluentTestModelB x) => x.TypeB, ["Type B1", "Type B4"])
+            .NotExistsInFluentTestModelB((x) => x.TypeB, ["Type B1", "Type B4"])
             .ToListAsync();
 
         // Assert
@@ -833,8 +834,8 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .ExistsIn((FluentTestModelA x) => x.PropertyA, [100, 200, 300])
-            .NotExistsIn((FluentTestModelA x) => x.PropertyA, [300])
+            .ExistsInFluentTestModelA((x) => x.PropertyA, [100, 200, 300])
+            .NotExistsIn((x) => x.PropertyA, [300])
             .ToListAsync();
 
         // Assert
@@ -878,8 +879,8 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
 
         // Act
         var results = await Context.FluentPartitionModels
-            .SelectFields((FluentTestModelB x) => x.PropertyB)
-            .Where((FluentTestModelB x) => x.TypeB == "Type B1")
+            .SelectFluentTestModelBFields((x) => x.PropertyB)
+            .Where((x) => x.TypeB == "Type B1")
             .ToListAsync();
 
         // Assert

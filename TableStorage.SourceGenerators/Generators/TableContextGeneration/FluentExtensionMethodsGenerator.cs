@@ -118,7 +118,53 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         public static global::TableStorage.Linq.IFilteredTableQueryable<").Append(fullTypeName).Append(@"> Where").Append(simpleTypeName).Append(@"(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table)
         {
             return table.Where").Append(ordinalName).Append(@"Type();
-        }");
+        }
+
+        /// <summary>
+        /// Filters the ").Append(ordinalName.ToLowerInvariant()).Append(@" type entities by the specified predicate.
+        /// </summary>
+        /// <param name=""predicate"">The filter predicate.</param>
+        /// <returns>A filtered table queryable for <typeparamref name=""").Append(fullTypeName).Append(@"""/>.</returns>
+        public static global::TableStorage.Linq.IFilteredTableQueryable<").Append(fullTypeName).Append(@"> Where").Append(simpleTypeName).Append(@"(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, global::System.Linq.Expressions.Expression<global::System.Func<").Append(fullTypeName).Append(@", bool>> predicate)
+        {
+            return table.Where").Append(ordinalName).Append(@"Type().Where(predicate);
+        }
+
+        /// <summary>
+        /// Selects specific fields from the ").Append(ordinalName.ToLowerInvariant()).Append(@" type entities.
+        /// </summary>
+        /// <typeparam name=""TResult"">The result type of the selector.</typeparam>
+        /// <param name=""selector"">The field selector expression.</param>
+        /// <returns>A selected table queryable for <typeparamref name=""").Append(fullTypeName).Append(@"""/>.</returns>
+        public static global::TableStorage.Linq.ISelectedTableQueryable<").Append(fullTypeName).Append(@"> Select").Append(simpleTypeName).Append(@"Fields<TResult>(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, global::System.Linq.Expressions.Expression<global::System.Func<").Append(fullTypeName).Append(@", TResult>> selector)
+        {
+            return table.Where").Append(ordinalName).Append(@"Type().SelectFields(selector);
+        }
+
+        /// <summary>
+        /// Filters ").Append(ordinalName.ToLowerInvariant()).Append(@" type entities where the predicate value exists in the provided elements.
+        /// </summary>
+        /// <typeparam name=""TElement"">The element type.</typeparam>
+        /// <param name=""predicate"">The predicate to evaluate.</param>
+        /// <param name=""elements"">The elements to check existence in.</param>
+        /// <returns>A filtered table queryable for <typeparamref name=""").Append(fullTypeName).Append(@"""/>.</returns>
+        public static global::TableStorage.Linq.IFilteredTableQueryable<").Append(fullTypeName).Append(@"> ExistsIn").Append(simpleTypeName).Append(@"<TElement>(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, global::System.Linq.Expressions.Expression<global::System.Func<").Append(fullTypeName).Append(@", TElement>> predicate, global::System.Collections.Generic.IEnumerable<TElement> elements)
+        {
+            return table.Where").Append(ordinalName).Append(@"Type().ExistsIn(predicate, elements);
+        }
+
+        /// <summary>
+        /// Filters ").Append(ordinalName.ToLowerInvariant()).Append(@" type entities where the predicate value does not exist in the provided elements.
+        /// </summary>
+        /// <typeparam name=""TElement"">The element type.</typeparam>
+        /// <param name=""predicate"">The predicate to evaluate.</param>
+        /// <param name=""elements"">The elements to check non-existence in.</param>
+        /// <returns>A filtered table queryable for <typeparamref name=""").Append(fullTypeName).Append(@"""/>.</returns>
+        public static global::TableStorage.Linq.IFilteredTableQueryable<").Append(fullTypeName).Append(@"> NotExistsIn").Append(simpleTypeName).Append(@"<TElement>(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, global::System.Linq.Expressions.Expression<global::System.Func<").Append(fullTypeName).Append(@", TElement>> predicate, global::System.Collections.Generic.IEnumerable<TElement> elements)
+        {
+            return table.Where").Append(ordinalName).Append(@"Type().NotExistsIn(predicate, elements);
+        }
+");
     }
 
     private static void GenerateFindAsyncExtensionMethod(
@@ -133,8 +179,8 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         {
             (string parameterName, string paramDescription) = variant switch
             {
-                "FluentPartitionTableEntity" => ("rowKey", "The row key of the entity."),
-                "FluentRowTableEntity" => ("partitionKey", "The partition key of the entity."),
+                "FluentPartitionTableEntity" => ("RowKey", "The row key of the entity."),
+                "FluentRowTableEntity" => ("PartitionKey", "The partition key of the entity."),
                 _ => throw new InvalidOperationException($"Unsupported fluent type variant: {variant}")
             };
 
@@ -144,12 +190,23 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         /// Finds a single entity of type ").Append(simpleTypeName).Append(@" by key.
         /// </summary>
         /// <param name=""table"">The table set.</param>
-        /// <param name=""").Append(parameterName).Append(@""">" + paramDescription + @"</param>
+        /// <param name=""").Append(parameterName.ToLowerInvariant()).Append(@""">").Append(paramDescription).Append(@"</param>
         /// <param name=""cancellationToken"">Cancellation token.</param>
         /// <returns>The entity if found, null otherwise.</returns>
-        public static global::System.Threading.Tasks.Task<").Append(fullTypeName).Append(@"?> Find").Append(simpleTypeName).Append(@"Async(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, string ").Append(parameterName).Append(@", global::System.Threading.CancellationToken cancellationToken = default)
+        public static global::System.Threading.Tasks.Task<").Append(fullTypeName).Append(@"?> Find").Append(simpleTypeName).Append(@"Async(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, string ").Append(parameterName.ToLowerInvariant()).Append(@", global::System.Threading.CancellationToken cancellationToken = default)
         {
-            return table.Find").Append(ordinalName).Append(@"Async(").Append(parameterName).Append(@", cancellationToken);
+            return table.Where").Append(ordinalName).Append(@"Type().Where(x => ((global::Azure.Data.Tables.ITableEntity) x).").Append(parameterName).Append(" == ").Append(parameterName.ToLowerInvariant()).Append(@").FirstOrDefaultAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Finds a the entities of type ").Append(simpleTypeName).Append(@" by keys.
+        /// </summary>
+        /// <param name=""table"">The table set.</param>
+        /// <param name=""").Append(parameterName.ToLowerInvariant()).Append(@"s"">").Append(paramDescription).Append(@"</param>
+        /// <returns>The entities if found, empty list otherwise.</returns>
+        public static global::TableStorage.Linq.IFilteredTableQueryable<").Append(fullTypeName).Append(@"> Find").Append(simpleTypeName).Append(@"Async(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, params global::System.Collections.Generic.IReadOnlyList<string> ").Append(parameterName.ToLowerInvariant()).Append(@"s)
+        {
+            return table.Where").Append(ordinalName).Append(@"Type().ExistsIn(x => ((global::Azure.Data.Tables.ITableEntity) x).").Append(parameterName).Append(", ").Append(parameterName.ToLowerInvariant()).Append(@"s);
         }");
         }
     }

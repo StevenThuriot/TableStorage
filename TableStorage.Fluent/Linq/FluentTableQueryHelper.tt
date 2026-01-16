@@ -67,37 +67,6 @@ namespace TableStorage.Linq;
 ";
         }
         
-        // Generate Find methods for each type
-        var findMethods = new List<string>();
-        if (className != "FluentTableEntity") // Skip for FluentTableEntity
-        {
-            for (int i = 0; i < genericCount; i++)
-            {
-                string ordinalName = GetOrdinalName(i + 1);
-                string typeName = typeParams[i];
-                string typeNameLiteral = $"typeof({typeName}).Name";
-                
-                if (className == "FluentRowTableEntity")
-                {
-                    // For FluentRowTableEntity: take partitionKey parameter, use typeNameLiteral as rowKey
-                    findMethods.Add($@"
-        public Task<{typeName}?> Find{ordinalName}Async(string partitionKey, CancellationToken token = default) => table.Where(({typeName} x) => x.PartitionKey == partitionKey).FirstOrDefaultAsync(token);
-        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> partitionKeys) => table.ExistsIn(({typeName} x) => x.PartitionKey, partitionKeys);
-        ");
-                }
-                else
-                {
-                    // For FluentPartitionTableEntity: use typeNameLiteral as partitionKey, take rowKey parameter
-                    findMethods.Add($@"
-        public Task<{typeName}?> Find{ordinalName}Async(string rowKey, CancellationToken token = default)  => table.Where(({typeName} x) => x.RowKey == rowKey).FirstOrDefaultAsync(token);
-        public IFilteredTableQueryable<{typeName}> Find{ordinalName}Async(params IReadOnlyList<string> rowKeys) => table.ExistsIn(({typeName} x) => x.RowKey, rowKeys);
-        ");
-                }
-            }
-        }
-        
-        var findMethodList = string.Join("\n", findMethods);
-        
         // Generate Where type methods
         var whereTypeMethods = new List<string>();
         for (int i = 0; i < genericCount; i++)
@@ -105,38 +74,31 @@ namespace TableStorage.Linq;
             string ordinalName = GetOrdinalName(i + 1);
             string typeName = typeParams[i];
             
-            whereTypeMethods.Add($"public IFilteredTableQueryable<{typeName}> Where{ordinalName}Type() => table.WhereTypeIs<{typeParamList}, {typeName}>();");
+            whereTypeMethods.Add($@"            
+        /// <summary>
+        /// Filters the table set to entities of the first type (<typeparamref name=""{typeName}""/>).
+        /// </summary>
+        /// <returns>A filtered table queryable for <typeparamref name=""{typeName}""/>.</returns>
+        public IFilteredTableQueryable<{typeName}> Where{ordinalName}Type() => table.WhereTypeIs<{typeParamList}, {typeName}>();");
         }
         
         var whereTypeMethodList = string.Join("\n        ", whereTypeMethods);
-        
-        // Generate extension methods for each type (Where, SelectFields, ExistsIn, NotExistsIn)
-        var extensionMethods = new List<string>();
-        for (int i = 0; i < genericCount; i++)
-        {
-            string typeName = typeParams[i];
-            
-            extensionMethods.Add($@"
-        public IFilteredTableQueryable<{typeName}> Where(Expression<Func<{typeName}, bool>> predicate) => table.Where{GetOrdinalName(i + 1)}Type().Where(predicate);
-        public ISelectedTableQueryable<{typeName}> SelectFields<TResult>(Expression<Func<{typeName}, TResult>> selector) => table.Where{GetOrdinalName(i + 1)}Type().SelectFields(selector);
-        public IFilteredTableQueryable<{typeName}> ExistsIn<TElement>(Expression<Func<{typeName}, TElement>> predicate, IEnumerable<TElement> elements) => table.Where{GetOrdinalName(i + 1)}Type().ExistsIn(predicate, elements);
-        public IFilteredTableQueryable<{typeName}> NotExistsIn<TElement>(Expression<Func<{typeName}, TElement>> predicate, IEnumerable<TElement> elements) => table.Where{GetOrdinalName(i + 1)}Type().NotExistsIn(predicate, elements);");
-        }
-        
-        var extensionMethodList = string.Join("\n        ", extensionMethods);
 #>
 public static class <#= className #><#= genericCount #>QueryHelper
 {
     extension<<#= typeParamList #>>(TableSet<<#= className #><<#= typeParamList #>>> table)
         <#= constraintList #>
-    {
+    {    
+        /// <summary>
+        /// Filters the table set to entities of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The entity type to filter by.</typeparam>
+        /// <returns>A query helper for the filtered type.</returns>
         internal <#= className #>SetQueryHelper<T, <#= typeParamList #>> WhereTypeIs<T>() where T : class, IDictionary<string, object>, ITableEntity, new()
         {
             return new(TableSetQueryHelper.From(table));
         }
-<#= findMethodList #>
         <#= whereTypeMethodList #>
-        <#= extensionMethodList #>
     }
 
     internal sealed class <#= className #>SetQueryHelper<T, <#= typeParamList #>>(TableSetQueryHelper<<#= className #><<#= typeParamList #>>> helper) :
