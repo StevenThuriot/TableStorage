@@ -37,6 +37,8 @@ namespace TableStorage.Fluent;
             .ToList();
         
         var constraintList = string.Join("\n    ", constraints);
+
+        var discriminatorList = string.Join("\n    ", typeParams.Select((x,i) => $"public static string {GetOrdinalName(i + 1)}Discriminator => typeof({x}).Name;"));
         
         // Generate implicit operators for all types
         var operators = new List<string>();
@@ -49,7 +51,7 @@ namespace TableStorage.Fluent;
             if (!isVirtualDiscriminator)
             {
                 setDiscriminatorLogic = $@"
-        entity.{discriminator} = typeof(T{i + 1}).Name;";
+        entity.{discriminator} = {GetOrdinalName(i + 1)}Discriminator;";
             }
             
             operators.Add($@"    public {className}(T{i + 1} entity)
@@ -95,7 +97,7 @@ namespace TableStorage.Fluent;
         for (int i = 0; i < genericCount; i++)
         {
             var backingTypeValue = $"FluentBackingType.{GetOrdinalName(i + 1)}";
-            discriminatorCases.Add($"            {backingTypeValue} => typeof(T{i + 1}).Name,");
+            discriminatorCases.Add($"            {backingTypeValue} => {GetOrdinalName(i + 1)}Discriminator,");
         }
         
         var discriminatorCaseList = string.Join("\n", discriminatorCases);
@@ -150,6 +152,7 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
     <#= constraintList #>
 {
     internal const string Discriminator = "<#= discriminator #>";
+    <#= discriminatorList #>
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static TableSet<<#= className #><<#= typeParamList #>>> CreateTableSet(ICreator creator, string name, Func<System.Type, TableStorage.ModelInfo> infoProvider)
@@ -402,7 +405,7 @@ public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
         }
     }
 
-    private string GetDiscriminatorType()
+    public string GetDiscriminatorType()
     {
         return _backingType switch
         {

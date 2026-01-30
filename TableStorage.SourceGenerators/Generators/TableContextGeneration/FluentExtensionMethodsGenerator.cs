@@ -177,10 +177,10 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
     {
         if (variant is "FluentPartitionTableEntity" or "FluentRowTableEntity")
         {
-            (string parameterName, string paramDescription) = variant switch
+            (string parameterName, string paramDescription, string deletion) = variant switch
             {
-                "FluentPartitionTableEntity" => ("RowKey", "The row key of the entity."),
-                "FluentRowTableEntity" => ("PartitionKey", "The partition key of the entity."),
+                "FluentPartitionTableEntity" => ("RowKey", "The row key of the entity.", $"{tableSetType}.{ordinalName}Discriminator, rowkey"),
+                "FluentRowTableEntity" => ("PartitionKey", "The partition key of the entity.", $"partitionkey, {tableSetType}.{ordinalName}Discriminator"),
                 _ => throw new InvalidOperationException($"Unsupported fluent type variant: {variant}")
             };
 
@@ -196,6 +196,18 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
         public static global::System.Threading.Tasks.Task<").Append(fullTypeName).Append(@"?> Find").Append(simpleTypeName).Append(@"Async(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, string ").Append(parameterName.ToLowerInvariant()).Append(@", global::System.Threading.CancellationToken cancellationToken = default)
         {
             return table.Where").Append(ordinalName).Append(@"Type().Where(x => ((global::Azure.Data.Tables.ITableEntity) x).").Append(parameterName).Append(" == ").Append(parameterName.ToLowerInvariant()).Append(@").FirstOrDefaultAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Deletes a single entity of type ").Append(simpleTypeName).Append(@" by key.
+        /// </summary>
+        /// <param name=""table"">The table set.</param>
+        /// <param name=""").Append(parameterName.ToLowerInvariant()).Append(@""">").Append(paramDescription).Append(@"</param>
+        /// <param name=""cancellationToken"">Cancellation token.</param>
+        /// <returns>The entity if found, null otherwise.</returns>
+        public static global::System.Threading.Tasks.Task Delete").Append(simpleTypeName).Append(@"Async(this global::TableStorage.TableSet<").Append(tableSetType).Append(@"> table, string ").Append(parameterName.ToLowerInvariant()).Append(@", global::System.Threading.CancellationToken cancellationToken = default)
+        {
+            return table.DeleteEntityAsync(").Append(deletion).Append(@", cancellationToken);
         }
 
         /// <summary>

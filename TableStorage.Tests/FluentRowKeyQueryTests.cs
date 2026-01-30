@@ -1189,4 +1189,30 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
     }
 
     #endregion
+
+    #region Delete Tests
+
+    [Fact]
+    public async Task DeleteFluentTestModelAAsync_ShouldRemoveEntity()
+    {
+        // Arrange
+        string partitionKey = Guid.NewGuid().ToString("N");
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = "ignored",
+            TypeA = "Delete Test",
+            PropertyA = 456
+        };
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+
+        // Act
+        await Context.FluentRowKeyModels.DeleteFluentTestModelAAsync(partitionKey);
+
+        // Assert
+        var retrieved = await Context.FluentRowKeyModels.FindFluentTestModelAAsync(partitionKey);
+        Assert.Null(retrieved);
+    }
+
+    #endregion
 }

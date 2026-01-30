@@ -1168,4 +1168,29 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
     }
 
     #endregion
+
+    #region Delete Tests
+
+    [Fact]
+    public async Task DeleteFluentTestModelAAsync_ShouldRemoveEntity()
+    {
+        // Arrange
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = "ignored",
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Delete Test",
+            PropertyA = 123
+        };
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+
+        // Act
+        await Context.FluentPartitionModels.DeleteFluentTestModelAAsync(modelA.PrettyRowA);
+
+        // Assert
+        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA);
+        Assert.Null(retrieved);
+    }
+
+    #endregion
 }

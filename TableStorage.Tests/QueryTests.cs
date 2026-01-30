@@ -1234,5 +1234,47 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         Assert.Null(notFound);
     }
 
-    #endregion
+    [Fact]
+    public async Task FluentExtension_DeleteFluentTestModelAAsync_ShouldRemoveEntity_FromFluentPartitionModels()
+    {
+        // Arrange
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = "FluentTestModelA",
+            PrettyRowA = Guid.NewGuid().ToString("N"),
+            TypeA = "Delete Extension Test",
+            PropertyA = 789
+        };
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+
+        // Act
+        await Context.FluentPartitionModels.DeleteFluentTestModelAAsync(modelA.PrettyRowA);
+
+        // Assert
+        var found = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA);
+        Assert.Null(found);
+    }
+
+    [Fact]
+    public async Task FluentExtension_DeleteFluentTestModelAAsync_ShouldRemoveEntity_FromFluentRowKeyModels()
+    {
+        // Arrange
+        string partitionKey = Guid.NewGuid().ToString("N");
+        var modelA = new FluentTestModelA
+        {
+            PrettyPartitionA = partitionKey,
+            PrettyRowA = "FluentTestModelA",
+            TypeA = "Delete Extension Test RowKey",
+            PropertyA = 101
+        };
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+
+        // Act
+        await Context.FluentRowKeyModels.DeleteFluentTestModelAAsync(partitionKey);
+
+        // Assert
+        var found = await Context.FluentRowKeyModels.FindFluentTestModelAAsync(partitionKey);
+        Assert.Null(found);
+    }
 }
+#endregion
