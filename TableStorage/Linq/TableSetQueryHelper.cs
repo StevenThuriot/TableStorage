@@ -13,6 +13,7 @@ internal interface ITableSetQueryHelper
     public Expression? GetFilter();
     public ModelInfo ModelInfo { get; }
     public ModelInfo GetModelInfo<TType>();
+    public ModelInfo GetModelInfo(Type type);
     public bool HasFields();
     public Task UpdateAsync(ITableEntity entity, CancellationToken cancellationToken);
     public Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken = default);
@@ -268,6 +269,7 @@ internal sealed class TableSetQueryHelper<T>(TableSet<T> table) :
     #region ITableSetQueryHelper
     ModelInfo ITableSetQueryHelper.ModelInfo => Table.ModelInfo;
     ModelInfo ITableSetQueryHelper.GetModelInfo<TType>() => Table.GetModelInfo<TType>();
+    ModelInfo ITableSetQueryHelper.GetModelInfo(Type type) => Table.GetModelInfo(type);
     Expression? ITableSetQueryHelper.GetFilter() => _filter;
     bool ITableSetQueryHelper.HasFields() => HasFields();
     ITableSetQueryHelper<T> ITableSetQueryHelper<T>.SetFields(IEnumerable<string> fields) => SetFields(fields);

@@ -17,7 +17,8 @@ public abstract class TableSet<T> : IStorageSet<T>
     internal TableOptions Options { get; }
 
     public ModelInfo ModelInfo { get; }
-    public ModelInfo GetModelInfo<TType>() => _infoProvider(typeof(TType));
+    public ModelInfo GetModelInfo<TType>() => GetModelInfo(typeof(TType));
+    public ModelInfo GetModelInfo(Type type) => _infoProvider(type);
 
     internal TableSet(TableStorageFactory factory, string tableName, TableOptions options, Func<Type, ModelInfo> infoProvider)
     {

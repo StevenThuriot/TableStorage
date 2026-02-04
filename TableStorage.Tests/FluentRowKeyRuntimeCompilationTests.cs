@@ -395,5 +395,78 @@ public class FluentRowKeyRuntimeCompilationTests(AzuriteFixture azuriteFixture) 
         Assert.Equal(1, mergeCount);
         Assert.Equal(6, result);
     }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldUpdateEntity()
+    {
+        // Arrange
+        var model = new FluentTestModelA
+        {
+            PrettyPartitionA = Guid.NewGuid().ToString("N"),
+            TypeA = "before",
+            PropertyA = 1
+        };
+        await Context.FluentRowKeyModels.UpsertEntityAsync(model);
+
+        // Act
+        await Context.FluentRowKeyModels.UpdateAsync(() => new FluentTestModelA
+        {
+            PrettyPartitionA = model.PrettyPartitionA,
+            TypeA = "after",
+            PropertyA = 2
+        });
+
+        // Assert
+        var updated = await Context.FluentRowKeyModels
+            .WhereFluentTestModelA(x => x.PrettyPartitionA == model.PrettyPartitionA)
+            .FirstOrDefaultAsync();
+        Assert.NotNull(updated);
+        Assert.Equal("after", updated.TypeA);
+        Assert.Equal(2, updated.PropertyA);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_ShouldInsertOrUpdateEntity()
+    {
+        // Arrange
+        var model = new FluentTestModelA
+        {
+            PrettyPartitionA = Guid.NewGuid().ToString("N"),
+            TypeA = "inserted",
+            PropertyA = 10
+        };
+
+        // Act
+        await Context.FluentRowKeyModels.UpsertAsync(() => new FluentTestModelA
+        {
+            PrettyPartitionA = model.PrettyPartitionA,
+            TypeA = model.TypeA,
+            PropertyA = model.PropertyA
+        });
+
+        // Assert
+        var upserted = await Context.FluentRowKeyModels
+            .WhereFluentTestModelA(x => x.PrettyPartitionA == model.PrettyPartitionA)
+            .FirstOrDefaultAsync();
+        Assert.NotNull(upserted);
+        Assert.Equal("inserted", upserted.TypeA);
+        Assert.Equal(10, upserted.PropertyA);
+
+        // Act - update
+        await Context.FluentRowKeyModels.UpsertAsync(() => new FluentTestModelA
+        {
+            PrettyPartitionA = model.PrettyPartitionA,
+            TypeA = "updated",
+            PropertyA = 20
+        });
+
+        // Assert update
+        var updated = await Context.FluentRowKeyModels
+            .WhereFluentTestModelA(x => x.PrettyPartitionA == model.PrettyPartitionA)
+            .FirstOrDefaultAsync();
+        Assert.NotNull(updated);
+        Assert.Equal("updated", updated.TypeA);
+        Assert.Equal(20, updated.PropertyA);
+    }
 }
 #endif

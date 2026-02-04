@@ -4,10 +4,13 @@ using System.Reflection;
 
 namespace TableStorage.Visitors;
 
-internal sealed class MergeVisitor(ModelInfo modelInfo) : ExpressionVisitor
+internal sealed class MergeVisitor(ModelInfo? modelInfo, Func<Type, ModelInfo> getModelInfo) : ExpressionVisitor
 {
-    private readonly string? _partitionKeyProxy = modelInfo.PartitionKey;
-    private readonly string? _rowKeyProxy = modelInfo.RowKey;
+    private readonly Func<Type, ModelInfo> _getModelInfo = getModelInfo;
+    private ModelInfo? _modelInfo = modelInfo;
+    private string? _partitionKeyProxy = modelInfo?.PartitionKey;
+    private string? _rowKeyProxy = modelInfo?.RowKey;
+
     private readonly HashSet<string> _members = [];
     private readonly HashSet<string> _complexMembers = [];
 
@@ -20,6 +23,23 @@ internal sealed class MergeVisitor(ModelInfo modelInfo) : ExpressionVisitor
     public bool HasMerges => _members.Count > 0 || _complexMembers.Count > 0;
 
     private readonly Lazy<UsesParameterVisitor> _usesParameterVisitor = new(() => new());
+
+    public Type? ConstructedType { get; private set; }
+
+    protected override Expression VisitNew(NewExpression node)
+    {
+        ConstructedType = node.Type;
+
+        if (_modelInfo is null)
+        {
+            ModelInfo modelInfo = _getModelInfo(node.Type);
+            _partitionKeyProxy = modelInfo.PartitionKey;
+            _rowKeyProxy = modelInfo.RowKey;
+            _modelInfo = modelInfo;
+        }
+
+        return base.VisitNew(node);
+    }
 
     protected override Expression VisitMember(MemberExpression memberExpression)
     {

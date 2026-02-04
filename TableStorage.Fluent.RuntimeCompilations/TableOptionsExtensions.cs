@@ -12,5 +12,6 @@ public static class TableOptionsExtensions
         }
 
         LazyExpressionCompilation.CompilationFactory = new FluentRuntimeCompilationFactory(LazyExpressionCompilation.CompilationFactory);
+        TableSetExtensions.Visitor = new FluentMergeVisitorAndValidator();
     }
 }

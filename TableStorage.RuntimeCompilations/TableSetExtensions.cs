@@ -28,7 +28,7 @@ public static class TableSetExtensions
 
         public Task UpdateAsync(Expression<Func<T>> exp, CancellationToken cancellationToken = default)
         {
-            TableEntity entity = VisitForMergeAndValidate(table.ModelInfo, exp);
+            TableEntity entity = Visitor.VisitForMergeAndValidate(table.ModelInfo, table.GetModelInfo, exp);
 
             if (entity.ETag == default)
             {
@@ -40,34 +40,20 @@ public static class TableSetExtensions
 
         public Task UpsertAsync(Expression<Func<T>> exp, CancellationToken cancellationToken = default)
         {
-            TableEntity entity = VisitForMergeAndValidate(table.ModelInfo, exp);
+            TableEntity entity = Visitor.VisitForMergeAndValidate(table.ModelInfo, table.GetModelInfo, exp);
             return table.UpsertAsync(entity, cancellationToken);
         }
     }
 
-    internal static TableEntity VisitForMergeAndValidate<T>(ModelInfo modelInfo, Expression<Func<T>> exp)
-        where T : class, ITableEntity, new()
+    internal static IMergeVisitorAndValidator Visitor
     {
-        MergeVisitor visitor = new(modelInfo);
-        _ = visitor.Visit(exp);
+        get;
+        set => field = value ?? throw new ArgumentNullException(nameof(value));
+    } = new MergeVisitorAndValidator();
+}
 
-        TableEntity entity = visitor.Entity;
-
-        if (entity.Count is 0 || visitor.IsComplex)
-        {
-            throw new NotSupportedException("Merge expression is not supported");
-        }
-
-        if (entity.PartitionKey is null)
-        {
-            throw new NotSupportedException("PartitionKey is a required field to be able to merge");
-        }
-
-        if (entity.RowKey is null)
-        {
-            throw new NotSupportedException("RowKey is a required field to be able to merge");
-        }
-
-        return entity;
-    }
+internal interface IMergeVisitorAndValidator
+{
+    public TableEntity VisitForMergeAndValidate<T>(ModelInfo modelInfo, Func<Type, ModelInfo> getModelInfo, Expression<Func<T>> exp)
+        where T : class, ITableEntity, new();
 }

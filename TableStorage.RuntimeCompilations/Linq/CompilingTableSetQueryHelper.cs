@@ -98,7 +98,7 @@ internal sealed class CompilingTableSetQueryHelper<T>
             throw new ArgumentNullException(nameof(update), "update action should not be null");
         }
 
-        MergeVisitor visitor = new(_helper.ModelInfo);
+        MergeVisitor visitor = new(_helper.ModelInfo, _helper.GetModelInfo);
         update = (Expression<Func<T, T>>)visitor.Visit(update);
 
         if (!visitor.HasMerges)

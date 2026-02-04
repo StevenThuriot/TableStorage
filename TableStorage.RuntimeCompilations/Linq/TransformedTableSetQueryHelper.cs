@@ -60,4 +60,5 @@ internal sealed class TransformedTableSetQueryHelper<T, TResult>(ITableSetQueryH
     public Task SubmitTransactionAsync(IEnumerable<TableTransactionAction> transactionActions, TransactionSafety transactionSafety, CancellationToken cancellationToken = default) => _helper.SubmitTransactionAsync(transactionActions, transactionSafety, cancellationToken);
     public ModelInfo ModelInfo => _helper.ModelInfo;
     public ModelInfo GetModelInfo<TType>() => _helper.GetModelInfo<TType>();
+    public ModelInfo GetModelInfo(Type type) => _helper.GetModelInfo(type);
 }

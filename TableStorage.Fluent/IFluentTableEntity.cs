@@ -1,5 +1,4 @@
-﻿
-namespace TableStorage.Fluent;
+﻿namespace TableStorage.Fluent;
 
 internal interface IFluentTableEntity : IDictionary<string, object>, ITableEntity
 {
@@ -8,3 +7,6 @@ internal interface IFluentTableEntity : IDictionary<string, object>, ITableEntit
     public object GetValue();
     public object? GetValueOrDefault();
 }
+
+internal interface IFluentPartitionTableEntity : IFluentTableEntity;
+internal interface IFluentRowTableEntity : IFluentTableEntity;

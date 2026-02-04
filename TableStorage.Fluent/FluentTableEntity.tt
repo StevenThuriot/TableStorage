@@ -148,7 +148,7 @@ namespace TableStorage.Fluent;
         var creationLogicIndented = "    " + creationLogic.Replace("\n", "\n    ");
 #>
 
-public sealed class <#= className #><<#= typeParamList #>> : IFluentTableEntity
+public sealed class <#= className #><<#= typeParamList #>> : I<#= className #>
     <#= constraintList #>
 {
     internal const string Discriminator = "<#= discriminator #>";

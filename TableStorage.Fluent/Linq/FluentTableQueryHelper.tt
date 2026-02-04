@@ -125,6 +125,7 @@ public static class <#= className #><#= genericCount #>QueryHelper
 
         ModelInfo ITableSetQueryHelper.ModelInfo => ModelInfoCache<T>.GetModelInfo(_helper);
         ModelInfo ITableSetQueryHelper.GetModelInfo<TType>() => _helper.Table.GetModelInfo<TType>();
+        ModelInfo ITableSetQueryHelper.GetModelInfo(Type type) => _helper.Table.GetModelInfo(type);
 
         Expression? ITableSetQueryHelper.GetFilter()
         {
