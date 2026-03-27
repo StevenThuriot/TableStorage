@@ -32,11 +32,11 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
-        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA);
+        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -64,13 +64,13 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         string nonExistentRowKey = Guid.NewGuid().ToString("N");
 
         // Act
-        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(nonExistentRowKey);
+        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(nonExistentRowKey, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(retrieved);
@@ -104,14 +104,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var retrieved = await Context.FluentPartitionModels
             .FindFluentTestModelAAsync(modelA1.PrettyRowA!, modelA2.PrettyRowA!, modelB.PrettyRowB!)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, retrieved.Count);
@@ -131,14 +131,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyA = 100
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         string nonExistentRowKey = Guid.NewGuid().ToString("N");
 
         // Act
         var retrieved = await Context.FluentPartitionModels
             .FindFluentTestModelAAsync(modelA.PrettyRowA!, nonExistentRowKey!)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(retrieved);
@@ -177,14 +177,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .WhereFirstType()
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -220,15 +220,15 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .WhereFirstType()
             .Where(x => x.TypeA == "Match")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -271,14 +271,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .WhereSecondType()
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -314,15 +314,15 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .WhereSecondType()
             .Where(x => x.PropertyB == true)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -365,14 +365,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .WhereFluentTestModelA(x => x.PropertyA > 100)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -412,14 +412,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .WhereFluentTestModelB(x => x.PropertyB == false)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -455,13 +455,13 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .SelectFluentTestModelAFields(x => x.TypeA)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -492,13 +492,13 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .SelectFluentTestModelBFields((x) => x.TypeB)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -549,15 +549,15 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .ExistsInFluentTestModelA((x) => x.PropertyA, [100, 200, 400])
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, results.Count);
@@ -602,15 +602,15 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB3);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB3, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .ExistsInFluentTestModelB((x) => x.TypeB, ["Type B1", "Type B3", "Type B4"])
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, results.Count);
@@ -659,15 +659,15 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .NotExistsInFluentTestModelA((x) => x.PropertyA, [100, 400])
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -718,15 +718,15 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB3);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB3, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .NotExistsInFluentTestModelB((x) => x.TypeB, ["Type B1", "Type B4"])
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -773,16 +773,16 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyA = 150
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .WhereFirstType()
             .Where(x => x.TypeA == "Match")
             .Where(x => x.PropertyA > 100)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -827,16 +827,16 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA3, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .ExistsInFluentTestModelA((x) => x.PropertyA, [100, 200, 300])
             .NotExistsIn((x) => x.PropertyA, [300])
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, results.Count);
@@ -873,15 +873,15 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
 
         // Act
         var results = await Context.FluentPartitionModels
             .SelectFluentTestModelBFields((x) => x.PropertyB)
             .Where((x) => x.TypeB == "Type B1")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -924,9 +924,9 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var results = new List<FluentTestModelA>();
@@ -968,9 +968,9 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
 
         // Act
         var results = new List<FluentTestModelB>();
@@ -1008,13 +1008,13 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var result = await Context.FluentPartitionModels
             .WhereFirstType()
-            .FirstAsync();
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1041,14 +1041,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var result = await Context.FluentPartitionModels
             .WhereFirstType()
             .Where(x => x.PropertyA > 500)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -1075,14 +1075,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var result = await Context.FluentPartitionModels
             .WhereSecondType()
             .Where(x => x.TypeB == "Unique Type")
-            .SingleAsync();
+            .SingleAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -1109,14 +1109,14 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = false
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
         var result = await Context.FluentPartitionModels
             .WhereSecondType()
             .Where(x => x.TypeB == "NonExistentType")
-            .SingleOrDefaultAsync();
+            .SingleOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -1154,13 +1154,13 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             PropertyB = true
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
-        var list = await Context.FluentPartitionModels.WhereFirstType().ToListAsync();
-        int count = await Context.FluentPartitionModels.WhereFirstType().CountAsync();
+        var list = await Context.FluentPartitionModels.WhereFirstType().ToListAsync(TestContext.Current.CancellationToken);
+        int count = await Context.FluentPartitionModels.WhereFirstType().CountAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(list.Count, count);
@@ -1182,13 +1182,13 @@ public class FluentPartitionQueryTests(AzuriteFixture azuriteFixture) : AzuriteT
             TypeA = "Delete Test",
             PropertyA = 123
         };
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act
-        await Context.FluentPartitionModels.DeleteFluentTestModelAAsync(modelA.PrettyRowA);
+        await Context.FluentPartitionModels.DeleteFluentTestModelAAsync(modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Assert
-        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA);
+        var retrieved = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA, TestContext.Current.CancellationToken);
         Assert.Null(retrieved);
     }
 

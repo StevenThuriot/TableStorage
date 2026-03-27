@@ -22,7 +22,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -30,12 +30,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == partitionKey)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName == partitionKey, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -53,7 +53,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -61,12 +61,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName != partitionKey)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName != partitionKey, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -84,7 +84,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -92,7 +92,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -100,12 +100,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == partitionKey && x.MyProperty1 == 1)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName == partitionKey && x.MyProperty1 == 1, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -128,7 +128,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = rowKey,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -136,12 +136,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> results = await Context.Models2
-            .QueryAsync(x => x.PrettyRow == rowKey)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyRow == rowKey, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -159,7 +159,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = rowKey,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -167,12 +167,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> results = await Context.Models2
-            .QueryAsync(x => x.PrettyRow != rowKey)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyRow != rowKey, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -190,7 +190,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = rowKey,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -198,7 +198,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -206,12 +206,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 1,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> results = await Context.Models2
-            .QueryAsync(x => x.PrettyRow == rowKey && x.MyProperty1 == 1)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyRow == rowKey && x.MyProperty1 == 1, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -235,7 +235,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = rowKey,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -243,7 +243,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -251,12 +251,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = rowKey,
             MyProperty1 = 3,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == partitionKey && x.PrettyRow == rowKey)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName == partitionKey && x.PrettyRow == rowKey, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -276,7 +276,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = rowKey,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -284,7 +284,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -292,12 +292,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 1,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == partitionKey && x.PrettyRow == rowKey && x.MyProperty1 == 1)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName == partitionKey && x.PrettyRow == rowKey && x.MyProperty1 == 1, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -318,7 +318,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = rowKey,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -326,13 +326,13 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == partitionKey)
+            .QueryAsync(x => x.PrettyName == partitionKey, TestContext.Current.CancellationToken)
             .Where(x => x.PrettyRow == rowKey)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -355,7 +355,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = testItem.PrettyRow,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -363,12 +363,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == testItem.PrettyName && x.PrettyRow == testItem.PrettyRow)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName == testItem.PrettyName && x.PrettyRow == testItem.PrettyRow, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -387,7 +387,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = testItem.PrettyRow,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -395,12 +395,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "other-row-key",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> results = await Context.Models2
-            .QueryAsync(x => x.PrettyRow == testItem.PrettyRow)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyRow == testItem.PrettyRow, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -423,7 +423,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -431,7 +431,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -439,12 +439,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 3,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == partitionKey1 || x.PrettyName == partitionKey2)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName == partitionKey1 || x.PrettyName == partitionKey2, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -463,7 +463,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "row-001",
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -471,7 +471,7 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "row-010",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -479,12 +479,12 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
             PrettyRow = "row-003",
             MyProperty1 = 3,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> results = await Context.Models1
-            .QueryAsync(x => x.PrettyName == partitionKey && x.PrettyRow.CompareTo(rowKey) > 0)
-            .ToListAsync();
+            .QueryAsync(x => x.PrettyName == partitionKey && x.PrettyRow.CompareTo(rowKey) > 0, TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -507,18 +507,18 @@ public class QueryAsyncProxyTests(AzuriteFixture azuriteFixture) : AzuriteTestBa
         {
             PartitionKey = "test-partition",
             RowKey = "test-row-key"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models5.UpsertEntityAsync(new()
         {
             PartitionKey = "other-partition",
             RowKey = "other-row-key"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model3> results = await Context.Models5
-            .QueryAsync(x => x.PartitionKey == "test-partition")
-            .ToListAsync();
+            .QueryAsync(x => x.PartitionKey == "test-partition", TestContext.Current.CancellationToken)
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);

@@ -9,11 +9,11 @@ namespace TableStorage.Tests;
 /// </summary>
 public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azuriteFixture)
 {
-    public override async Task InitializeAsync()
+    public override async ValueTask InitializeAsync()
     {
         await base.InitializeAsync();
-        await Context.Models5Blob.DeleteAllEntitiesAsync("root");
-        await Context.Models5BlobInJson.DeleteAllEntitiesAsync("root");
+        await Context.Models5Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
+        await Context.Models5BlobInJson.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -35,10 +35,10 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
         };
 
         // Act
-        await Context.Models5Blob.UpsertEntityAsync(appendModel);
+        await Context.Models5Blob.UpsertEntityAsync(appendModel, TestContext.Current.CancellationToken);
         var result = await Context.Models5Blob
             .Where(x => x.Id == "root" && x.ContinuationToken == "test")
-            .FirstAsync();
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -57,7 +57,7 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
         // Act & Assert
         await Assert.ThrowsAsync<RequestFailedException>(async () =>
         {
-            await Context.Models5Blob.AppendAsync("root", "nonexistent", stream);
+            await Context.Models5Blob.AppendAsync("root", "nonexistent", stream, TestContext.Current.CancellationToken);
         });
     }
 
@@ -78,15 +78,15 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
                 }
             ]
         };
-        await Context.Models5Blob.UpsertEntityAsync(appendModel);
+        await Context.Models5Blob.UpsertEntityAsync(appendModel, TestContext.Current.CancellationToken);
 
         // Act
         await using Stream stream = BinaryData.FromString($"|{DateTimeOffset.UtcNow.AddSeconds(2).ToUnixTimeSeconds()};{Random.Shared.Next(500, 2000)}").ToStream();
-        await Context.Models5Blob.AppendAsync("root", "test", stream);
+        await Context.Models5Blob.AppendAsync("root", "test", stream, TestContext.Current.CancellationToken);
 
         var appendedBlob = await Context.Models5Blob
             .Where(x => x.Id == "root" && x.ContinuationToken == "test")
-            .FirstAsync();
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(appendedBlob);
@@ -117,10 +117,10 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
         };
 
         // Act
-        await Context.Models5BlobInJson.AddEntityAsync(appendModel);
+        await Context.Models5BlobInJson.AddEntityAsync(appendModel, TestContext.Current.CancellationToken);
         var jsonBlob = await Context.Models5BlobInJson
             .Where(x => x.Id == "root" && x.ContinuationToken == "test")
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(jsonBlob);
@@ -148,7 +148,7 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
                     Duration = Random.Shared.Next(500, 2000)
                 }
             ]
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models5BlobInJson.AddEntityAsync(new()
         {
@@ -162,12 +162,12 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
                     Duration = Random.Shared.Next(500, 2000)
                 }
             ]
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         var findAppendBlobResults = await Context.Models5BlobInJson
             .FindAsync(("root", "test"), ("root", "test2"))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, findAppendBlobResults.Count);
@@ -189,7 +189,7 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
                     Duration = Random.Shared.Next(500, 2000)
                 }
             ]
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models5Blob.UpsertEntityAsync(new()
         {
@@ -203,13 +203,13 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
                     Duration = Random.Shared.Next(500, 2000)
                 }
             ]
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
-        await Context.Models5Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models5Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         var result = await Context.Models5Blob
             .Where(x => x.Id == "root")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);
@@ -232,18 +232,18 @@ public class AppendBlobTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
                 }
             ]
         };
-        await Context.Models5Blob.UpsertEntityAsync(appendModel);
+        await Context.Models5Blob.UpsertEntityAsync(appendModel, TestContext.Current.CancellationToken);
 
         // Act - Append multiple times
         for (int i = 0; i < 3; i++)
         {
             await using Stream stream = BinaryData.FromString($"|{DateTimeOffset.UtcNow.AddSeconds(i + 2).ToUnixTimeSeconds()};{Random.Shared.Next(500, 2000)}").ToStream();
-            await Context.Models5Blob.AppendAsync("root", "test", stream);
+            await Context.Models5Blob.AppendAsync("root", "test", stream, TestContext.Current.CancellationToken);
         }
 
         var result = await Context.Models5Blob
             .Where(x => x.Id == "root" && x.ContinuationToken == "test")
-            .FirstAsync();
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);

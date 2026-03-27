@@ -20,12 +20,12 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         var proxySelectionWorks = await Context.Models1
             .Select(x => new { x.PrettyName, x.PrettyRow })
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(proxySelectionWorks);
@@ -46,14 +46,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         var firstTransformed1 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => new { x.MyProperty2, x.MyProperty1 })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed1);
@@ -71,14 +71,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         int firstTransformed2 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => x.MyProperty1)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEqual(0, firstTransformed2);
@@ -94,14 +94,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed3 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => new TestTransformAndSelect(x.MyProperty1, x.MyProperty2))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed3);
@@ -119,14 +119,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed4 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => new TestTransformAndSelect(x.MyProperty1 + 1, x.MyProperty2 + "_test"))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed4);
@@ -144,14 +144,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         string? firstTransformed5 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => x.MyProperty1 + 1 + x.MyProperty2 + "_test")
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(string.IsNullOrEmpty(firstTransformed5));
@@ -169,14 +169,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed6 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => TestTransformAndSelect.Map(x.MyProperty1, x.MyProperty2))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed6);
@@ -194,14 +194,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed7 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => x.Map())
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed7);
@@ -220,14 +220,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = rowKey,
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelectWithGuid? firstTransformed8 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, x.MyProperty2, Guid.Parse(x.PrettyRow)))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed8);
@@ -246,14 +246,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelectWithGuid? firstTransformed9 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => new TestTransformAndSelectWithGuid(x.MyProperty1, "test", Guid.NewGuid()))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed9);
@@ -273,14 +273,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = rowKey,
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         NestedTestTransformAndSelect? firstTransformed10 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => new NestedTestTransformAndSelect(Guid.Parse(x.PrettyRow), new(x.MyProperty1 + (1 * 4), x.MyProperty2 + "_test")))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed10);
@@ -301,14 +301,14 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = rowKey,
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         StringFormatted? firstTransformed11 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Select(x => new StringFormatted($"{x.PrettyRow} - {x.MyProperty1 + (1 * 4)}, {x.MyProperty2}_test"))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed11);
@@ -328,12 +328,12 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<StringFormatted2> firstTransformed12 = await Context.Models1
             .Select(x => new StringFormatted2($"{x.PrettyRow} - {x.MyProperty1 + (1 * 4)}, {x.MyProperty2}_test", null, x.Timestamp.GetValueOrDefault()))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(firstTransformed12);
@@ -355,12 +355,12 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<StringFormatted2> firstTransformed13 = await Context.Models1
             .Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", new object[] { x.PrettyRow, x.MyProperty1 + (1 * 4), x.MyProperty2, x.Timestamp.GetValueOrDefault() }), null, x.Timestamp.GetValueOrDefault()))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(firstTransformed13);
@@ -383,7 +383,7 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             MyProperty1 = 5,
             MyProperty2 = "test"
         };
-        await Context.Models1.UpsertEntityAsync(mergeTest);
+        await Context.Models1.UpsertEntityAsync(mergeTest, TestContext.Current.CancellationToken);
 
         // Act
         int mergeCount = await Context.Models1
@@ -391,12 +391,12 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             .BatchUpdateAsync(x => new()
             {
                 MyProperty1 = x.MyProperty1 + 1
-            });
+            }, TestContext.Current.CancellationToken);
 
         int result = await Context.Models1
             .Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow)
             .Select(x => x.MyProperty1)
-            .FirstAsync();
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(1, mergeCount);
@@ -415,7 +415,7 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
             MyProperty2 = "test",
             MyProperty3 = ModelEnum.Yes
         };
-        await Context.Models1.UpsertEntityAsync(mergeTest);
+        await Context.Models1.UpsertEntityAsync(mergeTest, TestContext.Current.CancellationToken);
 
         // Act
         int mergeCount = await Context.Models1
@@ -425,11 +425,11 @@ public class RuntimeCompilationTests(AzuriteFixture azuriteFixture) : AzuriteTes
                 MyProperty1 = x.MyProperty1 - 1,
                 MyProperty2 = Randoms.String(),
                 MyProperty9 = Randoms.From(x.MyProperty3.ToString(), Randoms.String())
-            });
+            }, TestContext.Current.CancellationToken);
 
         Model? result = await Context.Models1
             .Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(1, mergeCount);

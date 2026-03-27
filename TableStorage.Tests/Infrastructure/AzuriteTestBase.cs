@@ -15,17 +15,17 @@ public class AzuriteFixture : IAsyncLifetime
 
     public string ConnectionString { get; private set; } = "UseDevelopmentStorage=true";
 
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
 #if TestContainers
         _azuriteContainer = new AzuriteBuilder("mcr.microsoft.com/azure-storage/azurite:latest").Build();
 
-        await _azuriteContainer.StartAsync();
+        await _azuriteContainer.StartAsync(TestContext.Current.CancellationToken);
         ConnectionString = _azuriteContainer.GetConnectionString();
 #endif
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
 #if TestContainers
         if (_azuriteContainer is not null)
@@ -52,7 +52,7 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
     protected MyTableContext Context { get; private set; } = null!;
     private ServiceProvider? _serviceProvider;
 
-    public virtual Task InitializeAsync()
+    public virtual ValueTask InitializeAsync()
     {
         var services = new ServiceCollection();
 
@@ -76,15 +76,15 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
         return CleanupAllTables();
     }
 
-    public virtual async Task DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
-        if (_serviceProvider != null)
+        if (_serviceProvider is not null)
         {
             await _serviceProvider.DisposeAsync();
         }
     }
 
-    protected async Task CleanupAllTables()
+    protected async ValueTask CleanupAllTables()
     {
         await CleanTable(Context.Models1);
         await CleanTable(Context.Models2);
@@ -100,11 +100,11 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
         await CleanAppendBlobs(Context.Models5Blob);
         await CleanAppendBlobs(Context.Models5BlobInJson);
 
-        static async Task CleanTable<T>(TableSet<T> tableSet) where T : class, ITableEntity, new()
+        static async ValueTask CleanTable<T>(TableSet<T> tableSet) where T : class, ITableEntity, new()
         {
             try
             {
-                await tableSet.Where(_ => true).BatchDeleteAsync();
+                await tableSet.Where(_ => true).BatchDeleteAsync(TestContext.Current.CancellationToken);
             }
             catch
             {
@@ -112,12 +112,12 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
             }
         }
 
-        static async Task CleanBlobs<T>(BlobSet<T> tableSet)
+        static async ValueTask CleanBlobs<T>(BlobSet<T> tableSet)
             where T : IBlobEntity
         {
             try
             {
-                await tableSet.Where(_ => true).BatchDeleteAsync();
+                await tableSet.Where(_ => true).BatchDeleteAsync(TestContext.Current.CancellationToken);
             }
             catch
             {
@@ -125,12 +125,12 @@ public abstract class AzuriteTestBase(AzuriteFixture azuriteFixture) : IAsyncLif
             }
         }
 
-        static async Task CleanAppendBlobs<T>(AppendBlobSet<T> tableSet)
+        static async ValueTask CleanAppendBlobs<T>(AppendBlobSet<T> tableSet)
             where T : IBlobEntity
         {
             try
             {
-                await tableSet.Where(_ => true).BatchDeleteAsync();
+                await tableSet.Where(_ => true).BatchDeleteAsync(TestContext.Current.CancellationToken);
             }
             catch
             {

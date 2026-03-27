@@ -22,7 +22,7 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
             MyProperty1 = 1,
             MyProperty2 = "original"
         };
-        await Context.Models1.UpsertEntityAsync(mergeTest);
+        await Context.Models1.UpsertEntityAsync(mergeTest, TestContext.Current.CancellationToken);
 
         // Act
         await Context.Models1.UpdateAsync(() => new()
@@ -30,12 +30,12 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
             PrettyName = "root",
             PrettyRow = mergeTest.PrettyRow,
             MyProperty1 = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         int result = await Context.Models1
             .Where(x => x.PrettyName == "root" && x.PrettyRow == mergeTest.PrettyRow)
             .Select(x => x.MyProperty1)
-            .FirstAsync();
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(5, result);
@@ -54,11 +54,11 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
             PrettyRow = rowKey,
             MyProperty1 = 5,
             MyProperty6 = ModelEnum.No
-        });
+        }, TestContext.Current.CancellationToken);
 
         Model? first = await Context.Models1
             .Where(x => x.PrettyName == "root" && x.PrettyRow == rowKey)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Act - Second upsert (update)
         await Context.Models1.UpsertAsync(() => new()
@@ -67,11 +67,11 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
             PrettyRow = rowKey,
             MyProperty1 = 10,
             MyProperty6 = ModelEnum.Yes
-        });
+        }, TestContext.Current.CancellationToken);
 
         Model? second = await Context.Models1
             .Where(x => x.PrettyName == "root" && x.PrettyRow == rowKey)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(first);
@@ -88,7 +88,7 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
     public async Task Blob_AddEntityAsync_ShouldAddBlobEntity()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         string blobId1 = Guid.NewGuid().ToString("N");
 
         // Act
@@ -98,10 +98,10 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
             PrettyRow = blobId1,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Assert
-        Model4? result = await Context.Models4Blob.GetEntityOrDefaultAsync("root", blobId1);
+        Model4? result = await Context.Models4Blob.GetEntityOrDefaultAsync("root", blobId1, TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Equal(1, result.MyProperty1);
         Assert.Equal("test 1", result.MyProperty2);
@@ -111,14 +111,14 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
     public async Task Blob_DeleteAllEntitiesAsync_ShouldRemoveAllEntities()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         await Context.Models4Blob.AddEntityAsync(new()
         {
             PrettyPartition = "root",
             PrettyRow = "test1",
             MyProperty1 = 1,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -126,13 +126,13 @@ public class MutationTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azur
             PrettyRow = "test2",
             MyProperty1 = 2,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         List<Model4> result = await Context.Models4Blob
             .Where(x => x.PrettyPartition == "root")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(result);

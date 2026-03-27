@@ -19,7 +19,7 @@ public class BatchOperationTests(AzuriteFixture azuriteFixture) : AzuriteTestBas
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -27,12 +27,12 @@ public class BatchOperationTests(AzuriteFixture azuriteFixture) : AzuriteTestBas
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
-        int fiveCount = await Context.Models2.Where(x => x.MyProperty1 == 5).CountAsync();
-        int deleteCount = await Context.Models2.Where(x => x.MyProperty1 == 5).BatchDeleteTransactionAsync();
-        List<Model2> newModels2 = await Context.Models2.ToListAsync();
+        int fiveCount = await Context.Models2.Where(x => x.MyProperty1 == 5).CountAsync(TestContext.Current.CancellationToken);
+        int deleteCount = await Context.Models2.Where(x => x.MyProperty1 == 5).BatchDeleteTransactionAsync(TestContext.Current.CancellationToken);
+        List<Model2> newModels2 = await Context.Models2.ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(fiveCount, deleteCount);
@@ -48,7 +48,7 @@ public class BatchOperationTests(AzuriteFixture azuriteFixture) : AzuriteTestBas
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "original"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -56,15 +56,15 @@ public class BatchOperationTests(AzuriteFixture azuriteFixture) : AzuriteTestBas
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "original2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         int updateCount = await Context.Models2
             .Where(x => x.MyProperty1 == 1)
-            .BatchUpdateTransactionAsync(x => new() { MyProperty2 = "updated" });
+            .BatchUpdateTransactionAsync(x => new() { MyProperty2 = "updated" }, TestContext.Current.CancellationToken);
         List<Model2> updatedModels = await Context.Models2
             .Where(x => x.MyProperty2 == "updated")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(updateCount, updatedModels.Count);

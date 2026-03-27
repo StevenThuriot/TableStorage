@@ -19,12 +19,12 @@ public class ProjectionTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> proxiedList = await Context.Models1
             .SelectFields(x => x.PrettyName == "root" && x.PrettyRow != "")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(proxiedList);
@@ -45,14 +45,14 @@ public class ProjectionTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         Model? first1 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .SelectFields(x => new { x.MyProperty2, x.MyProperty1 })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(first1);
@@ -72,14 +72,14 @@ public class ProjectionTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         Model? first2 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .SelectFields(x => x.MyProperty1)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(first2);
@@ -99,14 +99,14 @@ public class ProjectionTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(az
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         Model? first3 = await Context.Models1
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .SelectFields(x => new TestTransformAndSelect(x.MyProperty1, x.MyProperty2))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(first3);

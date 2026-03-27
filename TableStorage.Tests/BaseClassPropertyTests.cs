@@ -17,12 +17,12 @@ public class BaseClassPropertyTests(AzuriteFixture azuriteFixture) : AzuriteTest
         };
 
         // Act - Should be able to create and save without duplicate property errors
-        await Context.ModelBothKeysInBase.UpsertEntityAsync(model);
+        await Context.ModelBothKeysInBase.UpsertEntityAsync(model, TestContext.Current.CancellationToken);
 
         // Assert - Should be able to retrieve and properties should match
         var retrieved = await Context.ModelBothKeysInBase
             .Where(x => x.PrettyPartition == "partition1" && x.PrettyRow == "row1")
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("partition1", retrieved.PrettyPartition);
@@ -42,13 +42,13 @@ public class BaseClassPropertyTests(AzuriteFixture azuriteFixture) : AzuriteTest
         };
 
         // Act
-        await Context.ModelPartitionKeyInBase.UpsertEntityAsync(model);
+        await Context.ModelPartitionKeyInBase.UpsertEntityAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         var retrieved = await Context.ModelPartitionKeyInBase
             .Where(x => x.PrettyPartition == "partition2" && x.PrettyRow == "row2")
 
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("partition2", retrieved.PrettyPartition);
@@ -68,13 +68,13 @@ public class BaseClassPropertyTests(AzuriteFixture azuriteFixture) : AzuriteTest
         };
 
         // Act
-        await Context.ModelRowKeyInBase.UpsertEntityAsync(model);
+        await Context.ModelRowKeyInBase.UpsertEntityAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         var retrieved = await Context.ModelRowKeyInBase
             .Where(x => x.PrettyPartition == "partition3" && x.PrettyRow == "row3")
 
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("partition3", retrieved.PrettyPartition);
@@ -95,13 +95,13 @@ public class BaseClassPropertyTests(AzuriteFixture azuriteFixture) : AzuriteTest
         };
 
         // Act
-        await Context.ModelNoKeysInBase.UpsertEntityAsync(model);
+        await Context.ModelNoKeysInBase.UpsertEntityAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         var retrieved = await Context.ModelNoKeysInBase
             .Where(x => x.PrettyPartition == "partition4" && x.PrettyRow == "row4")
 
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("partition4", retrieved.PrettyPartition);
@@ -122,13 +122,13 @@ public class BaseClassPropertyTests(AzuriteFixture azuriteFixture) : AzuriteTest
         };
 
         // Act
-        await Context.ModelBothKeysInBaseWithPartial.UpsertEntityAsync(model);
+        await Context.ModelBothKeysInBaseWithPartial.UpsertEntityAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         var retrieved = await Context.ModelBothKeysInBaseWithPartial
             .Where(x => x.PrettyPartition == "partition5" && x.PrettyRow == "row5")
 
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("partition5", retrieved.PrettyPartition);
@@ -183,13 +183,13 @@ public class BaseClassPropertyTests(AzuriteFixture azuriteFixture) : AzuriteTest
         };
 
         // Act
-        await Context.ModelBothKeysInBaseWithOverride.UpsertEntityAsync(model);
+        await Context.ModelBothKeysInBaseWithOverride.UpsertEntityAsync(model, TestContext.Current.CancellationToken);
 
         // Assert
         var retrieved = await Context.ModelBothKeysInBaseWithOverride
             .Where(x => x.PrettyPartition == "partition6" && x.PrettyRow == "row6")
 
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         Assert.Equal("partition6", retrieved.PrettyPartition);

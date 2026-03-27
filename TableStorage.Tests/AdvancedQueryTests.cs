@@ -23,7 +23,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
                 PrettyRow = Guid.NewGuid().ToString("N"),
                 MyProperty1 = 5 + i,
                 MyProperty2 = $"test {i}"
-            });
+            }, TestContext.Current.CancellationToken);
         }
 
         // Act
@@ -31,7 +31,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 > 2)
             .Take(3)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(list1.Count <= 3);
@@ -54,7 +54,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "duplicate"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -62,7 +62,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "duplicate"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> list2 = await Context.Models1
@@ -70,7 +70,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             .Where(x => x.MyProperty1 > 2)
             .Take(3)
             .Distinct(FuncComparer.Create((Model x) => x.MyProperty1))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(list2);
@@ -93,7 +93,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "Duplicate"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -101,7 +101,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "duplicate"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> list3 = await Context.Models1
@@ -109,7 +109,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             .Where(x => x.MyProperty1 > 2)
             .Distinct(FuncComparer.Create((Model x) => x.MyProperty2, StringComparer.OrdinalIgnoreCase))
             .Take(3)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(list3);
@@ -132,7 +132,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -140,14 +140,14 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> exists = await Context.Models1
             .ExistsIn(x => x.MyProperty1, [1, 2, 3, 4])
             .Where(x => x.PrettyName == "root")
             .Where(x => x.MyProperty1 < 3)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(exists);
@@ -162,14 +162,14 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
     public async Task Blob_ExistsIn_ShouldFilterBlobsByKey()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         await Context.Models4Blob.AddEntityAsync(new()
         {
             PrettyPartition = "root",
             PrettyRow = "pretty1",
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -177,7 +177,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = "pretty2",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -185,13 +185,13 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = "pretty3",
             MyProperty1 = 3,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model4> blobSearch = await Context.Models4Blob
             .Where(x => x.PrettyPartition == "root")
             .ExistsIn(x => x.PrettyRow, ["pretty1", "pretty2", "pretty4"])
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(blobSearch);
@@ -205,14 +205,14 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
     public async Task Blob_ExistsIn_WithMultipleConditionsAndNotExistsIn_ShouldFilterCorrectly()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         await Context.Models4Blob.AddEntityAsync(new()
         {
             PrettyPartition = "root",
             PrettyRow = "pretty1",
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -220,7 +220,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = "pretty2",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -228,14 +228,14 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = "pretty3",
             MyProperty1 = 3,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model4> blobSearch = await Context.Models4Blob
             .ExistsIn(x => x.PrettyPartition, ["root", "root2"])
             .ExistsIn(x => x.PrettyRow, ["pretty1", "pretty2", "pretty4"])
             .NotExistsIn(x => x.PrettyRow, ["pretty3"])
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(blobSearch);
@@ -249,14 +249,14 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
     public async Task Blob_ExistsIn_WithPropertyFilter_ShouldCombineFilters()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         await Context.Models4Blob.AddEntityAsync(new()
         {
             PrettyPartition = "root",
             PrettyRow = "pretty1",
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -264,7 +264,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = "pretty2",
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -272,7 +272,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             PrettyRow = "pretty3",
             MyProperty1 = 3,
             MyProperty2 = "test 3"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model4> blobSearch = await Context.Models4Blob
@@ -280,7 +280,7 @@ public class AdvancedQueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase
             .ExistsIn(x => x.PrettyRow, ["pretty1", "pretty2", "pretty4"])
             .NotExistsIn(x => x.PrettyRow, ["pretty3"])
             .Where(x => x.MyProperty1 == 2)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(blobSearch);

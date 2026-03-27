@@ -22,7 +22,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -30,10 +30,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
-        List<Model2> models = await Context.Models2.ToListAsync();
+        List<Model2> models = await Context.Models2.ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(models);
@@ -59,13 +59,13 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             MyProperty2 = "test 2"
         };
 
-        await Context.Models2.UpsertEntityAsync(model1);
-        await Context.Models2.UpsertEntityAsync(model2);
+        await Context.Models2.UpsertEntityAsync(model1, TestContext.Current.CancellationToken);
+        await Context.Models2.UpsertEntityAsync(model2, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> findResults = await Context.Models2
             .FindAsync((model1.PartitionKey, model1.PrettyRow), (model2.PartitionKey, model2.PrettyRow))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, findResults.Count);
@@ -83,7 +83,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             MyProperty2 = "test",
             MyProperty7 = ModelEnum.Yes,
             MyProperty8 = ModelEnum.No
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -93,12 +93,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             MyProperty2 = "test2",
             MyProperty7 = ModelEnum.No,
             MyProperty8 = ModelEnum.Yes
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> enumFilters = await Context.Models2
             .Where(x => x.MyProperty7 == ModelEnum.Yes && x.MyProperty8 == ModelEnum.No)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(enumFilters);
@@ -119,7 +119,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 1,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models1.UpsertEntityAsync(new()
         {
@@ -127,15 +127,15 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 2,
             MyProperty2 = "test2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model> proxiedList = await Context.Models1
             .Where(x => x.PrettyName == "root" && x.PrettyRow != "")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
         int proxyWorksCount = await Context.Models1
             .Where(x => x.PrettyName == "root" && x.PrettyRow != "")
-            .CountAsync();
+            .CountAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(proxiedList.Count, proxyWorksCount);
@@ -152,12 +152,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = prettyItem.PrettyRow,
             MyProperty1 = 1,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> visitorWorks = await Context.Models2
             .Where(x => x.PrettyRow == prettyItem.PrettyRow)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(visitorWorks);
@@ -175,7 +175,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = prettyItem.PrettyRow,
             MyProperty1 = 1,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -183,12 +183,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = "different",
             MyProperty1 = 2,
             MyProperty2 = "test2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model2> visitorWorks = await Context.Models2
             .Where(x => x.PrettyRow != prettyItem.PrettyRow)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(visitorWorks);
@@ -205,7 +205,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models2.UpsertEntityAsync(new()
         {
@@ -213,7 +213,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = Guid.NewGuid().ToString("N"),
             MyProperty1 = 5,
             MyProperty2 = "test2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -222,7 +222,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
                 .Where(x => x.PartitionKey == "root")
                 .Where(x => x.MyProperty1 > 2)
                 .SelectFields(x => x.MyProperty2)
-                .SingleAsync();
+                .SingleAsync(TestContext.Current.CancellationToken);
         });
     }
 
@@ -243,8 +243,8 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentModels.UpsertEntityAsync(modelA);
-        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -266,8 +266,8 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentModels.UpsertEntityAsync(modelB);
-        var retrieved = await Context.FluentModels.FindAsync(modelB.PrettyPartitionB, modelB.PrettyRowB);
+        await Context.FluentModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
+        var retrieved = await Context.FluentModels.FindAsync(modelB.PrettyPartitionB, modelB.PrettyRowB, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -301,11 +301,11 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentModels.UpsertEntityAsync(modelA);
-        await Context.FluentModels.UpsertEntityAsync(modelB);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
-        var retrievedA = await Context.FluentModels.FindAsync(partitionKey, modelAId);
-        var retrievedB = await Context.FluentModels.FindAsync(partitionKey, modelBId);
+        var retrievedA = await Context.FluentModels.FindAsync(partitionKey, modelAId, TestContext.Current.CancellationToken);
+        var retrievedB = await Context.FluentModels.FindAsync(partitionKey, modelBId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrievedA);
@@ -327,8 +327,8 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentModels.UpsertEntityAsync(originalA);
-        var retrieved = await Context.FluentModels.FindAsync(originalA.PrettyPartitionA, originalA.PrettyRowA);
+        await Context.FluentModels.UpsertEntityAsync(originalA, TestContext.Current.CancellationToken);
+        var retrieved = await Context.FluentModels.FindAsync(originalA.PrettyPartitionA, originalA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Cast back to ModelA
         FluentTestModelA castedA = (FluentTestModelA)retrieved;
@@ -351,18 +351,18 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyA = 10
         };
 
-        await Context.FluentModels.UpsertEntityAsync(modelA);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act - Update the entity
-        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
+        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         Assert.NotNull(retrieved);
         retrieved["TypeA"] = "Updated Value";
         retrieved["PropertyA"] = 20;
 
-        await Context.FluentModels.UpsertEntityAsync(retrieved);
+        await Context.FluentModels.UpsertEntityAsync(retrieved, TestContext.Current.CancellationToken);
 
-        var updatedRetrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
+        var updatedRetrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(updatedRetrieved);
@@ -400,11 +400,11 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentModels.UpsertEntityAsync(modelA1);
-        await Context.FluentModels.UpsertEntityAsync(modelA2);
-        await Context.FluentModels.UpsertEntityAsync(modelB);
+        await Context.FluentModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
-        var allEntities = await Context.FluentModels.ToListAsync();
+        var allEntities = await Context.FluentModels.ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(allEntities.Count >= 3);
@@ -431,15 +431,15 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentModels.UpsertEntityAsync(modelA);
-        await Context.FluentModels.UpsertEntityAsync(modelB);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         var findResults = await Context.FluentModels
             .FindAsync(
                 ("fluent-find", modelA.PrettyRowA),
                 ("fluent-find", modelB.PrettyRowB)
             )
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, findResults.Count);
@@ -466,12 +466,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentModels.UpsertEntityAsync(modelA);
-        await Context.FluentModels.UpsertEntityAsync(modelB);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         var filterResults = await Context.FluentModels
             .Where(x => x.PartitionKey == "partition-a")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(filterResults);
@@ -491,8 +491,8 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act - Implicit cast
-        await Context.FluentModels.UpsertEntityAsync(modelA);
-        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -512,10 +512,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyA = 88
         };
 
-        await Context.FluentModels.UpsertEntityAsync(originalA);
+        await Context.FluentModels.UpsertEntityAsync(originalA, TestContext.Current.CancellationToken);
 
         // Act - Retrieve and implicitly cast back
-        var retrieved = await Context.FluentModels.FindAsync(originalA.PrettyPartitionA, originalA.PrettyRowA);
+        var retrieved = await Context.FluentModels.FindAsync(originalA.PrettyPartitionA, originalA.PrettyRowA, TestContext.Current.CancellationToken);
         FluentTestModelA castedBack = retrieved;
 
         // Assert
@@ -538,13 +538,13 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
                 TypeA = $"Item {i}",
                 PropertyA = i
             };
-            await Context.FluentModels.UpsertEntityAsync(modelA);
+            await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
         }
 
         // Act
         int count = await Context.FluentModels
             .Where(x => x.PartitionKey == partitionKey)
-            .CountAsync();
+            .CountAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, count);
@@ -561,11 +561,11 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             TypeA = "To Delete",
             PropertyA = 42
         };
-        await Context.FluentModels.UpsertEntityAsync(modelA);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act
-        await Context.FluentModels.DeleteEntityAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
-        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA);
+        await Context.FluentModels.DeleteEntityAsync(modelA.PrettyPartitionA, modelA.PrettyRowA, TestContext.Current.CancellationToken);
+        var retrieved = await Context.FluentModels.FindAsync(modelA.PrettyPartitionA, modelA.PrettyRowA, TestContext.Current.CancellationToken);
         // Assert
         Assert.Null(retrieved);
     }
@@ -587,10 +587,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Retrieve using Type Name as PartitionKey
-        var retrieved = await Context.FluentPartitionModels.FindAsync("FluentTestModelA", modelA.PrettyRowA);
+        var retrieved = await Context.FluentPartitionModels.FindAsync("FluentTestModelA", modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -623,11 +623,11 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelB);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
-        var retrievedA = await Context.FluentPartitionModels.FindAsync("FluentTestModelA", rowKey);
-        var retrievedB = await Context.FluentPartitionModels.FindAsync("FluentTestModelB", rowKey);
+        var retrievedA = await Context.FluentPartitionModels.FindAsync("FluentTestModelA", rowKey, TestContext.Current.CancellationToken);
+        var retrievedB = await Context.FluentPartitionModels.FindAsync("FluentTestModelB", rowKey, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrievedA);
@@ -653,10 +653,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Retrieve using Type Name as RowKey
-        var retrieved = await Context.FluentRowKeyModels.FindAsync(modelA.PrettyPartitionA, "FluentTestModelA");
+        var retrieved = await Context.FluentRowKeyModels.FindAsync(modelA.PrettyPartitionA, "FluentTestModelA", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrieved);
@@ -689,11 +689,11 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
         };
 
         // Act
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
-        var retrievedA = await Context.FluentRowKeyModels.FindAsync(partitionKey, "FluentTestModelA");
-        var retrievedB = await Context.FluentRowKeyModels.FindAsync(partitionKey, "FluentTestModelB");
+        var retrievedA = await Context.FluentRowKeyModels.FindAsync(partitionKey, "FluentTestModelA", TestContext.Current.CancellationToken);
+        var retrievedB = await Context.FluentRowKeyModels.FindAsync(partitionKey, "FluentTestModelB", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(retrievedA);
@@ -710,7 +710,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
     public async Task Blob_FindAsync_WithMultipleKeys_ShouldReturnAllEntities()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         string blobId1 = Guid.NewGuid().ToString("N");
         string blobId2 = Guid.NewGuid().ToString("N");
 
@@ -720,7 +720,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = blobId1,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -728,12 +728,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = blobId2,
             MyProperty1 = 2,
             MyProperty2 = "test 2"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model4> findBlobResults = await Context.Models4Blob
             .FindAsync(("root", blobId1), ("root", blobId2))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, findBlobResults.Count);
@@ -743,7 +743,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
     public async Task Blob_FindAsync_WithSingleKey_ShouldReturnEntity()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         string blobId1 = Guid.NewGuid().ToString("N");
 
         await Context.Models4Blob.AddEntityAsync(new()
@@ -752,10 +752,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = blobId1,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
-        Model4? findSingleBlobResult = await Context.Models4Blob.FindAsync("root", blobId1);
+        Model4? findSingleBlobResult = await Context.Models4Blob.FindAsync("root", blobId1, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(findSingleBlobResult);
@@ -765,7 +765,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
     public async Task Blob_GetEntityOrDefaultAsync_WithExistingEntity_ShouldReturnEntity()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         string blobId = Guid.NewGuid().ToString("N");
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -773,10 +773,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = blobId,
             MyProperty1 = 1,
             MyProperty2 = "test 1"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
-        Model4? blob = await Context.Models4Blob.GetEntityOrDefaultAsync("root", blobId);
+        Model4? blob = await Context.Models4Blob.GetEntityOrDefaultAsync("root", blobId, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(blob);
@@ -788,10 +788,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
     public async Task Blob_GetEntityOrDefaultAsync_WithNonExistingEntity_ShouldReturnNull()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
 
         // Act
-        Model4? blob = await Context.Models4Blob.GetEntityOrDefaultAsync("root", Guid.NewGuid().ToString("N"));
+        Model4? blob = await Context.Models4Blob.GetEntityOrDefaultAsync("root", Guid.NewGuid().ToString("N"), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(blob);
@@ -801,7 +801,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
     public async Task Blob_Where_WithComplexFilter_ShouldFilterByTagsAndProperties()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         string blobId = Guid.NewGuid().ToString("N");
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -809,7 +809,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = blobId,
             MyProperty1 = 2,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model4> blobResult = await Context.Models4Blob
@@ -817,7 +817,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             .Where(x => x.PrettyRow == blobId)
             .Where(x => x.MyProperty1 == 2)
             .Where(x => x.MyProperty2 == "test value")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(blobResult);
@@ -829,7 +829,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
     public async Task Blob_Where_WithTagsOnly_ShouldFilterByTags()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         string blobId = Guid.NewGuid().ToString("N");
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -837,14 +837,14 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = blobId,
             MyProperty1 = 2,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model4> blobResult = await Context.Models4Blob
             .Where(x => x.PrettyPartition == "root")
             .Where(x => x.PrettyRow == blobId)
             .Where(x => x.MyProperty1 == 2)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(blobResult);
@@ -856,7 +856,7 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
     public async Task Blob_Where_WithPartitionAndRowKey_ShouldReturnEntity()
     {
         // Arrange
-        await Context.Models4Blob.DeleteAllEntitiesAsync("root");
+        await Context.Models4Blob.DeleteAllEntitiesAsync("root", TestContext.Current.CancellationToken);
         string blobId = Guid.NewGuid().ToString("N");
         await Context.Models4Blob.AddEntityAsync(new()
         {
@@ -864,12 +864,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PrettyRow = blobId,
             MyProperty1 = 2,
             MyProperty2 = "test value"
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<Model4> blobResult = await Context.Models4Blob
             .Where(x => x.PrettyPartition == "root" && x.PrettyRow == blobId)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(blobResult);
@@ -910,12 +910,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyB = true
         };
 
-        await Context.FluentModels.UpsertEntityAsync(modelA1);
-        await Context.FluentModels.UpsertEntityAsync(modelA2);
-        await Context.FluentModels.UpsertEntityAsync(modelB);
+        await Context.FluentModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act - Using generated extension method
-        var results = await Context.FluentModels.WhereFluentTestModelA().ToListAsync();
+        var results = await Context.FluentModels.WhereFluentTestModelA().ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -955,12 +955,12 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyB = false
         };
 
-        await Context.FluentModels.UpsertEntityAsync(modelA);
-        await Context.FluentModels.UpsertEntityAsync(modelB1);
-        await Context.FluentModels.UpsertEntityAsync(modelB2);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB1, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB2, TestContext.Current.CancellationToken);
 
         // Act - Using generated extension method
-        var results = await Context.FluentModels.WhereFluentTestModelB().ToListAsync();
+        var results = await Context.FluentModels.WhereFluentTestModelB().ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(results);
@@ -1000,14 +1000,14 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyB = true
         };
 
-        await Context.FluentModels.UpsertEntityAsync(modelA1);
-        await Context.FluentModels.UpsertEntityAsync(modelA2);
-        await Context.FluentModels.UpsertEntityAsync(modelB);
+        await Context.FluentModels.UpsertEntityAsync(modelA1, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelA2, TestContext.Current.CancellationToken);
+        await Context.FluentModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act - Using generated extension method with additional filter
         var results = await Context.FluentModels.WhereFluentTestModelA()
             .Where(x => x.TypeA == "Match")
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         var matchingResults = results.Where(x => x.PrettyPartitionA == partitionKey).ToList();
@@ -1029,13 +1029,13 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyA = 999
         };
 
-        await Context.FluentModels.UpsertEntityAsync(modelA);
+        await Context.FluentModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act - Using generated extension method with SelectFields
         var results = await Context.FluentModels.WhereFluentTestModelA()
             .Where(x => x.PrettyPartitionA == partitionKey && x.PrettyRowA == modelA.PrettyRowA)
             .SelectFields(x => new { x.TypeA })
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -1055,14 +1055,14 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
                 PrettyRowB = Guid.NewGuid().ToString("N"),
                 TypeB = $"Take Test {i}",
                 PropertyB = i % 2 == 0
-            });
+            }, TestContext.Current.CancellationToken);
         }
 
         // Act - Using generated extension method with Take
         var results = await Context.FluentModels.WhereFluentTestModelB()
             .Where(x => x.PrettyPartitionB == partitionKey)
             .Take(3)
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(3, results.Count);
@@ -1081,10 +1081,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyA = 777
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act - Extension method should work with FluentPartitionModels too
-        var results = await Context.FluentPartitionModels.WhereFluentTestModelA().ToListAsync();
+        var results = await Context.FluentPartitionModels.WhereFluentTestModelA().ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert - Should find at least one result (could be from either property)
         Assert.NotEmpty(results);
@@ -1104,10 +1104,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyA = 777
         };
 
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act - FluentPartitionTableEntity FindAsync takes only rowKey parameter
-        var found = await Context.FluentPartitionModels.FindFluentTestModelAAsync(rowKey);
+        var found = await Context.FluentPartitionModels.FindFluentTestModelAAsync(rowKey, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(found);
@@ -1150,11 +1150,11 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyB = true
         };
 
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act
-        var results = await Context.FluentRowKeyModels.WhereFluentTestModelA().ToListAsync();
+        var results = await Context.FluentRowKeyModels.WhereFluentTestModelA().ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(results);
@@ -1176,10 +1176,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyA = 888
         };
 
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act - FluentRowTableEntity FindAsync takes only partitionKey parameter
-        var found = await Context.FluentRowKeyModels.FindFluentTestModelAAsync(partitionKey);
+        var found = await Context.FluentRowKeyModels.FindFluentTestModelAAsync(partitionKey, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(found);
@@ -1201,10 +1201,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyB = false
         };
 
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelB, TestContext.Current.CancellationToken);
 
         // Act - FluentRowTableEntity FindAsync takes only partitionKey parameter
-        var found = await Context.FluentRowKeyModels.FindFluentTestModelBAsync(partitionKey);
+        var found = await Context.FluentRowKeyModels.FindFluentTestModelBAsync(partitionKey, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(found);
@@ -1225,10 +1225,10 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             PropertyA = 123
         };
 
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act
-        var notFound = await Context.FluentRowKeyModels.FindFluentTestModelAAsync("wrong-partition-key");
+        var notFound = await Context.FluentRowKeyModels.FindFluentTestModelAAsync("wrong-partition-key", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(notFound);
@@ -1245,13 +1245,13 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             TypeA = "Delete Extension Test",
             PropertyA = 789
         };
-        await Context.FluentPartitionModels.UpsertEntityAsync(modelA);
+        await Context.FluentPartitionModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act
-        await Context.FluentPartitionModels.DeleteFluentTestModelAAsync(modelA.PrettyRowA);
+        await Context.FluentPartitionModels.DeleteFluentTestModelAAsync(modelA.PrettyRowA, TestContext.Current.CancellationToken);
 
         // Assert
-        var found = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA);
+        var found = await Context.FluentPartitionModels.FindFluentTestModelAAsync(modelA.PrettyRowA, TestContext.Current.CancellationToken);
         Assert.Null(found);
     }
 
@@ -1267,13 +1267,13 @@ public class QueryTests(AzuriteFixture azuriteFixture) : AzuriteTestBase(azurite
             TypeA = "Delete Extension Test RowKey",
             PropertyA = 101
         };
-        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA);
+        await Context.FluentRowKeyModels.UpsertEntityAsync(modelA, TestContext.Current.CancellationToken);
 
         // Act
-        await Context.FluentRowKeyModels.DeleteFluentTestModelAAsync(partitionKey);
+        await Context.FluentRowKeyModels.DeleteFluentTestModelAAsync(partitionKey, TestContext.Current.CancellationToken);
 
         // Assert
-        var found = await Context.FluentRowKeyModels.FindFluentTestModelAAsync(partitionKey);
+        var found = await Context.FluentRowKeyModels.FindFluentTestModelAAsync(partitionKey, TestContext.Current.CancellationToken);
         Assert.Null(found);
     }
 }

@@ -25,13 +25,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         var proxySelectionWorks = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 0)
             .Select(x => new { x.TypeA, x.PropertyA })
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(proxySelectionWorks);
@@ -52,13 +52,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test type",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         var firstTransformed1 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new { x.PropertyA, x.TypeA })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed1);
@@ -76,13 +76,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test type",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         int firstTransformed2 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => x.PropertyA)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEqual(0, firstTransformed2);
@@ -98,13 +98,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test type",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed3 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelect(x.PropertyA, x.TypeA))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed3);
@@ -122,13 +122,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed4 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelect(x.PropertyA + 1, x.TypeA + "_test"))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed4);
@@ -146,13 +146,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         string? firstTransformed5 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => x.PropertyA + 1 + x.TypeA + "_test")
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.False(string.IsNullOrEmpty(firstTransformed5));
@@ -170,13 +170,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test type",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed6 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => TestTransformAndSelect.Map(x.PropertyA, x.TypeA))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed6);
@@ -194,13 +194,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test type",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelect? firstTransformed7 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => x.Map())
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed7);
@@ -219,13 +219,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = rowKey,
             TypeA = "test type",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelectWithGuid? firstTransformed8 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelectWithGuid(x.PropertyA, x.TypeA, Guid.Parse(x.PrettyRowA)))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed8);
@@ -244,13 +244,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test type",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         TestTransformAndSelectWithGuid? firstTransformed9 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new TestTransformAndSelectWithGuid(x.PropertyA, "test", Guid.NewGuid()))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed9);
@@ -270,13 +270,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = rowKey,
             TypeA = "test",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         NestedTestTransformAndSelect? firstTransformed10 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new NestedTestTransformAndSelect(Guid.Parse(x.PrettyRowA), new(x.PropertyA + (1 * 4), x.TypeA + "_test")))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed10);
@@ -297,13 +297,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = rowKey,
             TypeA = "test",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         StringFormatted? firstTransformed11 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 2)
             .Select(x => new StringFormatted($"{x.PrettyRowA} - {x.PropertyA + (1 * 4)}, {x.TypeA}_test"))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(firstTransformed11);
@@ -323,13 +323,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<StringFormatted2> firstTransformed12 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 0)
             .Select(x => new StringFormatted2($"{x.PrettyRowA} - {x.PropertyA + (1 * 4)}, {x.TypeA}_test", null, x.Timestamp.GetValueOrDefault()))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(firstTransformed12);
@@ -351,13 +351,13 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = Guid.NewGuid().ToString("N"),
             TypeA = "test",
             PropertyA = 5
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Act
         List<StringFormatted2> firstTransformed13 = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PropertyA > 0)
             .Select(x => new StringFormatted2(string.Format("{0} - {1}, {2}_test {3}", new object[] { x.PrettyRowA, x.PropertyA + (1 * 4), x.TypeA, x.Timestamp.GetValueOrDefault() }), null, x.Timestamp.GetValueOrDefault()))
-            .ToListAsync();
+            .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(firstTransformed13);
@@ -380,7 +380,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             TypeA = "test",
             PropertyA = 5
         };
-        await Context.FluentPartitionModels.UpsertEntityAsync(fluentModel);
+        await Context.FluentPartitionModels.UpsertEntityAsync(fluentModel, TestContext.Current.CancellationToken);
 
         // Act
         int mergeCount = await Context.FluentPartitionModels
@@ -388,12 +388,12 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             .BatchUpdateAsync(x => new()
             {
                 PropertyA = x.PropertyA + 1
-            });
+            }, TestContext.Current.CancellationToken);
 
         int result = await Context.FluentPartitionModels
             .WhereFluentTestModelA((x) => x.PrettyRowA == fluentModel.PrettyRowA)
             .Select(x => x.PropertyA)
-            .FirstAsync();
+            .FirstAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(1, mergeCount);
@@ -410,7 +410,7 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             TypeA = "before",
             PropertyA = 1
         };
-        await Context.FluentPartitionModels.UpsertEntityAsync(model);
+        await Context.FluentPartitionModels.UpsertEntityAsync(model, TestContext.Current.CancellationToken);
 
         // Act
         await Context.FluentPartitionModels.UpdateAsync(() => new FluentTestModelA
@@ -418,12 +418,12 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = model.PrettyRowA,
             TypeA = "after",
             PropertyA = 2
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Assert
         var updated = await Context.FluentPartitionModels
             .WhereFluentTestModelA(x => x.PrettyRowA == model.PrettyRowA)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
         Assert.NotNull(updated);
         Assert.Equal("after", updated.TypeA);
         Assert.Equal(2, updated.PropertyA);
@@ -446,12 +446,12 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = model.PrettyRowA,
             TypeA = model.TypeA,
             PropertyA = model.PropertyA
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Assert
         var upserted = await Context.FluentPartitionModels
             .WhereFluentTestModelA(x => x.PrettyRowA == model.PrettyRowA)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
         Assert.NotNull(upserted);
         Assert.Equal("inserted", upserted.TypeA);
         Assert.Equal(10, upserted.PropertyA);
@@ -462,12 +462,12 @@ public class FluentPartitionRuntimeCompilationTests(AzuriteFixture azuriteFixtur
             PrettyRowA = model.PrettyRowA,
             TypeA = "updated",
             PropertyA = 20
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Assert update
         var updated = await Context.FluentPartitionModels
             .WhereFluentTestModelA(x => x.PrettyRowA == model.PrettyRowA)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
         Assert.NotNull(updated);
         Assert.Equal("updated", updated.TypeA);
         Assert.Equal(20, updated.PropertyA);
