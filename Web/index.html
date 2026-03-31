@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TableStorage — Azure Data Tables &amp; Blobs, simplified</title>
+    <meta name="description" content="A streamlined, source-generated .NET library for working with Azure Data Tables and Blob Storage. Built for performance, Native AOT compatibility, and developer ergonomics.">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body>
+    <a href="#main-content" class="skip-link sr-only">Skip to main content</a>
+    <!-- Hero -->
+    <header class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>TableStorage</h1>
+                <p class="tagline">Azure Data Tables &amp; Blobs, simplified.</p>
+                <p class="subtitle">A streamlined, source-generated .NET library built for performance, Native&nbsp;AOT compatibility, and developer ergonomics.</p>
+                <div class="hero-actions">
+                    <a href="#quickstart" class="btn btn-primary">Get Started</a>
+                    <a href="https://github.com/LieselThuriot/TableStorage" class="btn btn-secondary" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://www.nuget.org/packages/TableStorage" class="btn btn-secondary" target="_blank" rel="noopener">NuGet</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- Features -->
+        <section id="features" class="features">
+        <div class="container">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Source Generated</h3>
+                    <p>Zero-reflection context and model generation via Roslyn source generators. Fully Native&nbsp;AOT compatible.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔗</div>
+                    <h3>LINQ Queries</h3>
+                    <p>Server-side filtering with <code>Where</code>, <code>SelectFields</code>, <code>Take</code>, <code>ExistsIn</code>, <code>BatchDelete</code>, and more.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📦</div>
+                    <h3>Blob Storage</h3>
+                    <p>Block and Append blob sets with custom serialization, tags, and full CRUD support.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔀</div>
+                    <h3>Fluent Entities</h3>
+                    <p>Store multiple entity types in a single table with type-safe discriminators and pattern matching.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Bulk &amp; Transactions</h3>
+                    <p>Bulk insert, update, upsert, delete — plus safe transactions with auto-chunking and partition grouping.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3>Change Tracking</h3>
+                    <p>Opt-in change tracking sends only modified properties back to the server, reducing bandwidth.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start -->
+    <section id="quickstart" class="quickstart">
+        <div class="container">
+            <h2>Quick Start</h2>
+
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Install</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>Shell</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-bash">dotnet add package TableStorage.Core
+dotnet add package TableStorage</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Define your context and model</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">[TableContext]
+public partial class MyTableContext
+{
+    public TableSet&lt;Product&gt; Products { get; set; }
+}
+
+[TableSet(PartitionKey = "Category", RowKey = "ProductId")]
+public partial class Product
+{
+    public partial string Category { get; set; }
+    public partial string ProductId { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Register and use</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// Registration
+builder.Services.AddMyTableContext(
+    builder.Configuration.GetConnectionString("Storage"));
+
+// Usage
+public class ProductService(MyTableContext db)
+{
+    public Task&lt;Product?&gt; GetAsync(string category, string id, CancellationToken ct)
+        =&gt; db.Products.GetEntityOrDefaultAsync(category, id, ct);
+
+    public IAsyncEnumerable&lt;Product&gt; GetCheapAsync()
+        =&gt; db.Products
+              .Where(p =&gt; p.Price &lt; 10m)
+              .Take(50);
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Packages -->
+    <section id="packages" class="packages">
+        <div class="container">
+            <h2>Packages</h2>
+            <div class="package-grid">
+                <a href="https://www.nuget.org/packages/TableStorage.Core" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage.Core</h3>
+                    <p>Core abstractions and LINQ helpers</p>
+                </a>
+                <a href="https://www.nuget.org/packages/TableStorage" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage</h3>
+                    <p>Table sets, context, and source generators</p>
+                </a>
+                <a href="https://www.nuget.org/packages/TableStorage.Blobs" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage.Blobs</h3>
+                    <p>Block &amp; Append blob support with custom serialization</p>
+                </a>
+                <a href="https://www.nuget.org/packages/TableStorage.Fluent" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage.Fluent</h3>
+                    <p>Polymorphic fluent entities (2–4 types)</p>
+                </a>
+                <a href="https://www.nuget.org/packages/TableStorage.Fluent.Extended" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage.Fluent.Extended</h3>
+                    <p>Extended fluent entities (5–16 types)</p>
+                </a>
+                <a href="https://www.nuget.org/packages/TableStorage.RuntimeCompilations" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage.RuntimeCompilations</h3>
+                    <p>Runtime LINQ compilation for table queries</p>
+                </a>
+                <a href="https://www.nuget.org/packages/TableStorage.Blobs.RuntimeCompilations" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage.Blobs.RuntimeCompilations</h3>
+                    <p>Runtime LINQ compilation for blob queries</p>
+                </a>
+                <a href="https://www.nuget.org/packages/TableStorage.Fluent.RuntimeCompilations" class="package-card" target="_blank" rel="noopener">
+                    <h3>TableStorage.Fluent.RuntimeCompilations</h3>
+                    <p>Runtime LINQ compilation for fluent queries</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Overview -->
+    <section id="api" class="api-overview">
+        <div class="container">
+            <h2>API at a Glance</h2>
+            <div class="api-columns">
+                <div class="api-column">
+                    <h3>Table Operations</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// CRUD
+await set.AddEntityAsync(entity);
+await set.GetEntityOrDefaultAsync(pk, rk);
+await set.UpdateEntityAsync(entity);
+await set.UpsertEntityAsync(entity);
+await set.DeleteEntityAsync(entity);
+
+// Bulk
+await set.BulkInsertAsync(entities);
+await set.BulkUpdateAsync(entities);
+await set.BulkUpsertAsync(entities);
+await set.BulkDeleteAsync(entities);
+
+// LINQ
+var results = set
+    .Where(x =&gt; x.Active)
+    .SelectFields(x =&gt; new { x.Name })
+    .Take(100);
+
+await set.Where(x =&gt; !x.Active).BatchDeleteAsync();</code></pre>
+                    </div>
+                </div>
+                <div class="api-column">
+                    <h3>Blob Operations</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// Block blobs
+await blobs.AddEntityAsync(entity);
+await blobs.GetEntityOrDefaultAsync(pk, rk);
+await blobs.UpdateEntityAsync(entity);
+await blobs.UpsertEntityAsync(entity);
+await blobs.DeleteEntityAsync(entity);
+await blobs.DeleteAllEntitiesAsync(pk);
+bool exists = await blobs.ExistsAsync(pk, rk);
+
+// Append blobs
+await appendBlobs.AppendAsync(pk, rk, stream);
+
+// Custom serialization
+static void ConfigureBlobs(BlobOptions options)
+{
+    options.Serializer = new ProtoBufSerializer();
+    options.UseTags = true;
+}</code></pre>
+                    </div>
+                </div>
+                <div class="api-column">
+                    <h3>Fluent Entities</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// Store multiple types in one table
+public TableSet&lt;FluentTableEntity&lt;Customer, Order&gt;&gt;
+    MixedEntities { get; set; }
+
+// Implicit conversion in &amp; out
+FluentTableEntity&lt;Customer, Order&gt; e = customer;
+Customer back = e;
+
+// Pattern matching
+var result = entity.SwitchCase(
+    case1: c =&gt; $"Customer: {c.Name}",
+    case2: o =&gt; $"Order: {o.OrderNumber}"
+);
+
+// Safe fallback
+var value = entity.SwitchCaseOrDefault(
+    case1: c =&gt; Process(c),
+    case2: o =&gt; Process(o),
+    defaultCase: () =&gt; "Unknown"
+);
+
+// Inspect type
+FluentBackingType type = entity.GetBackingType();
+object? raw = entity.GetValueOrDefault();</code></pre>
+                    </div>
+                </div>
+                <div class="api-column">
+                    <h3>RuntimeCompilations</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// Enable runtime compilation
+options.EnableCompilationAtRuntime();
+
+// Update via expression — no entity needed
+await table.Movies.UpdateAsync(() =&gt; new Movie
+{
+    PartitionKey = "sci-fi",
+    RowKey = "matrix",
+    Rating = 5
+});
+
+// Upsert via expression
+await table.Movies.UpsertAsync(() =&gt; new Movie
+{
+    PartitionKey = "sci-fi",
+    RowKey = "interstellar",
+    Rating = 5
+});
+
+// Batch update with a transform expression
+await table.Movies
+    .Where(m =&gt; m.PartitionKey == "sci-fi")
+    .BatchUpdateAsync(m =&gt; m with { Rating = 5 });
+
+// Select projections
+await foreach (var item in table.Movies
+    .Where(m =&gt; m.Rating &gt; 3)
+    .Select(m =&gt; new { m.RowKey, m.Rating }))
+{
+    Console.WriteLine($"{item.RowKey}: {item.Rating}");
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fluent Entities -->
+    <section id="fluent" class="fluent-section">
+        <div class="container">
+            <h2>Fluent Entities</h2>
+            <p class="section-intro">Store multiple entity types in a single Azure table with type-safe discriminators, implicit conversions, and pattern matching. Supports 2–16 type parameters across two packages.</p>
+
+            <div class="api-columns">
+                <div class="api-column">
+                    <h3>Discriminator Strategies</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// 1. $type column discriminator (default)
+public TableSet&lt;FluentTableEntity&lt;Customer, Order&gt;&gt;
+    ByType { get; set; }
+
+// 2. PartitionKey discriminator
+public TableSet&lt;FluentPartitionTableEntity&lt;Customer, Order&gt;&gt;
+    ByPartition { get; set; }
+
+// 3. RowKey discriminator
+public TableSet&lt;FluentRowTypeTableEntity&lt;Customer, Order&gt;&gt;
+    ByRowKey { get; set; }
+
+// Up to 16 types with Fluent.Extended
+public TableSet&lt;FluentTableEntity&lt;T1, T2, T3, T4, T5&gt;&gt;
+    MultiType { get; set; }</code></pre>
+                    </div>
+                </div>
+                <div class="api-column">
+                    <h3>Working with Fluent Entities</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// Store — implicit conversion
+var customer = new Customer { Name = "Jane" };
+await context.MixedEntities.AddEntityAsync(customer);
+
+// Retrieve
+var entity = await context.MixedEntities
+    .GetEntityOrDefaultAsync(pk, rk);
+
+// Pattern match
+var msg = entity.SwitchCase(
+    case1: c =&gt; $"Customer: {c.Name}",
+    case2: o =&gt; $"Order: {o.OrderNumber}"
+);
+
+// Iterate mixed table
+await foreach (var e in context.MixedEntities)
+{
+    if (e.GetBackingType() == FluentBackingType.First)
+    {
+        Customer c = e; // implicit cast
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fluent-usecases">
+                <h3>Use Cases</h3>
+                <ul>
+                    <li>Store related but different entity types in one table for efficient partitioning</li>
+                    <li>Unified query interface across multiple entity types</li>
+                    <li>Event sourcing or activity streams with multiple event types</li>
+                    <li>Polymorphic storage without separate tables</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Runtime Compilations -->
+    <section id="runtime" class="runtime-section">
+        <div class="container">
+            <h2>Runtime Compilations</h2>
+            <p class="section-intro">By default, all LINQ query visitors are source-generated for full Native AOT support. The RuntimeCompilations packages add an alternative: expressions are compiled at runtime, enabling maximum query flexibility when AOT is not required.</p>
+
+            <div class="api-columns">
+                <div class="api-column">
+                    <h3>Installation</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>Shell</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-bash"># Pick the package(s) matching your usage
+dotnet add package TableStorage.RuntimeCompilations
+dotnet add package TableStorage.Blobs.RuntimeCompilations
+dotnet add package TableStorage.Fluent.RuntimeCompilations</code></pre>
+                    </div>
+                </div>
+                <div class="api-column">
+                    <h3>Enable</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">builder.Services.AddMyTableContext(
+    connectionString,
+    configure: options =&gt;
+    {
+        // Compile LINQ expressions at runtime
+        // instead of using source-generated visitors
+        options.EnableCompilationAtRuntime();
+    }
+);</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-intro" style="margin-top: 2rem;">Beyond enabling runtime compilation, these packages unlock expression-based APIs that let you update and project entities without materializing full objects.</p>
+
+            <div class="api-columns">
+                <div class="api-column">
+                    <h3>Expression Updates &amp; Upserts</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// Update a single entity via expression tree.
+// Only the specified properties are sent — no
+// need to fetch the entity first.
+await table.Movies.UpdateAsync(() =&gt; new Movie
+{
+    PartitionKey = "sci-fi",
+    RowKey = "matrix",
+    Rating = 5
+});
+
+// Upsert works the same way — insert or merge
+await table.Movies.UpsertAsync(() =&gt; new Movie
+{
+    PartitionKey = "sci-fi",
+    RowKey = "interstellar",
+    Rating = 5,
+    Title = "Interstellar"
+});</code></pre>
+                    </div>
+                </div>
+                <div class="api-column">
+                    <h3>Batch Update with Transform</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">// Update all matching entities in bulk
+// using a transform expression
+int updated = await table.Movies
+    .Where(m =&gt; m.PartitionKey == "sci-fi")
+    .BatchUpdateAsync(m =&gt; m with { Rating = 5 });
+
+// Same, but wrapped in transactions
+int updated = await table.Movies
+    .Where(m =&gt; m.PartitionKey == "sci-fi")
+    .BatchUpdateTransactionAsync(
+        m =&gt; m with { Rating = 5 });
+
+// Also available directly on a TableSet
+// (updates all entities in the table)
+int updated = await table.Movies
+    .BatchUpdateAsync(m =&gt; m with { Rating = 0 });</code></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="runtime-methods">
+                <div class="api-columns" style="margin-top: 2rem;">
+                    <div class="api-column">
+                        <h3>Select Projections</h3>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>C#</span>
+                                <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                            </div>
+                            <pre><code class="language-csharp">// Project to anonymous types or DTOs
+await foreach (var item in table.Movies
+    .Where(m =&gt; m.Rating &gt; 3)
+    .Select(m =&gt; new { m.RowKey, m.Rating }))
+{
+    Console.WriteLine($"{item.RowKey}: {item.Rating}");
+}
+
+// Select with Take
+await foreach (var item in table.Movies
+    .Where(m =&gt; m.PartitionKey == "sci-fi")
+    .Take(10)
+    .Select(m =&gt; new { m.Title, m.Rating }))
+{
+    // ...
+}
+
+// Select directly on a TableSet
+await foreach (var item in table.Movies
+    .Select(m =&gt; new MovieSummary(m.Title, m.Rating)))
+{
+    // ...
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Method Reference</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Available on</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>UpdateAsync(Expression)</code></td><td>TableSet</td><td>Merge-update a single entity via expression</td></tr>
+                            <tr><td><code>UpsertAsync(Expression)</code></td><td>TableSet</td><td>Insert-or-merge via expression</td></tr>
+                            <tr><td><code>BatchUpdateAsync(Expression)</code></td><td>TableSet, Where, query chains</td><td>Bulk update all matching entities</td></tr>
+                            <tr><td><code>BatchUpdateTransactionAsync(Expression)</code></td><td>TableSet, Where, query chains</td><td>Same as above, wrapped in transactions</td></tr>
+                            <tr><td><code>Select(Expression)</code></td><td>TableSet, Where, Take</td><td>Project entities to a different shape</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="runtime-note">
+                <p><strong>When to use:</strong> Choose RuntimeCompilations when you need expression-based Updates, Upserts, Select projections, or dynamic queries. Stick with the default source-generated visitors for AOT-compatible, trimmer-safe builds where these APIs are not needed.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Configuration -->
+    <section id="config" class="config">
+        <div class="container">
+            <h2>Configuration</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TableOptions</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>TableMode</code></td><td><code>Merge</code></td><td>Update mode: Merge or Replace</td></tr>
+                        <tr><td><code>PageSize</code></td><td><code>null</code></td><td>Entities per page when querying</td></tr>
+                        <tr><td><code>CreateTableIfNotExists</code></td><td><code>Always</code></td><td>Always, Once (cached), or Disabled</td></tr>
+                        <tr><td><code>BulkOperation</code></td><td><code>Replace</code></td><td>Default bulk operation mode</td></tr>
+                        <tr><td><code>TransactionSafety</code></td><td><code>Enabled</code></td><td>Auto-group by partition key and chunk</td></tr>
+                        <tr><td><code>TransactionChunkSize</code></td><td><code>100</code></td><td>Max operations per transaction batch</td></tr>
+                        <tr><td><code>ChangesOnly</code></td><td><code>false</code></td><td>Send only changed properties</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>BlobOptions</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>CreateContainerIfNotExists</code></td><td><code>Always</code></td><td>Always, Once (cached), or Disabled</td></tr>
+                        <tr><td><code>Serializer</code></td><td>STJ</td><td>Custom IBlobSerializer implementation</td></tr>
+                        <tr><td><code>UseTags</code></td><td><code>true</code></td><td>Store keys and tagged properties as blob tags</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>&copy; Liesel Thuriot &middot; <a href="https://github.com/LieselThuriot/TableStorage/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></p>
+                <div class="footer-links">
+                    <a href="https://github.com/LieselThuriot/TableStorage" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://www.nuget.org/packages/TableStorage" target="_blank" rel="noopener">NuGet</a>
+                    <a href="https://github.com/LieselThuriot/TableStorage/issues" target="_blank" rel="noopener">Issues</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="script.js"></script>
+</body>
+</html>
