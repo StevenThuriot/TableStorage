@@ -12,14 +12,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script>document.documentElement.classList.add('js-enabled');</script>
 </head>
 <body>
     <a href="#main-content" class="skip-link sr-only">Skip to main content</a>
     <!-- Hero -->
     <header class="hero">
         <div class="container">
-            <div class="hero-content">
-                <h1>TableStorage</h1>
+            <div class="hero-content reveal">
+                <div class="hero-title">
+                    <img src="TableStorage.png" alt="" class="hero-logo" aria-hidden="true" />
+                    <h1>TableStorage</h1>
+                </div>
                 <p class="tagline">Azure Data Tables &amp; Blobs, simplified.</p>
                 <p class="subtitle">A streamlined, source-generated .NET library built for performance, Native&nbsp;AOT compatibility, and developer ergonomics.</p>
                 <div class="hero-actions">
@@ -34,36 +38,36 @@
     <main id="main-content">
         <!-- Features -->
         <section id="features" class="features">
-        <div class="container">
+        <div class="container reveal">
             <h2>Features</h2>
             <div class="feature-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon" aria-hidden="true">⚡</div>
                     <h3>Source Generated</h3>
                     <p>Zero-reflection context and model generation via Roslyn source generators. Fully Native&nbsp;AOT compatible.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔗</div>
+                <div class="feature-card reveal" style="transition-delay: 100ms;">
+                    <div class="feature-icon" aria-hidden="true">🔗</div>
                     <h3>LINQ Queries</h3>
                     <p>Server-side filtering with <code>Where</code>, <code>SelectFields</code>, <code>Take</code>, <code>ExistsIn</code>, <code>BatchDelete</code>, and more.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📦</div>
+                <div class="feature-card reveal" style="transition-delay: 200ms;">
+                    <div class="feature-icon" aria-hidden="true">📦</div>
                     <h3>Blob Storage</h3>
                     <p>Block and Append blob sets with custom serialization, tags, and full CRUD support.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔀</div>
+                <div class="feature-card reveal" style="transition-delay: 300ms;">
+                    <div class="feature-icon" aria-hidden="true">🔀</div>
                     <h3>Fluent Entities</h3>
                     <p>Store multiple entity types in a single table with type-safe discriminators and pattern matching.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🚀</div>
+                <div class="feature-card reveal" style="transition-delay: 400ms;">
+                    <div class="feature-icon" aria-hidden="true">🚀</div>
                     <h3>Bulk &amp; Transactions</h3>
                     <p>Bulk insert, update, upsert, delete — plus safe transactions with auto-chunking and partition grouping.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔍</div>
+                <div class="feature-card reveal" style="transition-delay: 500ms;">
+                    <div class="feature-icon" aria-hidden="true">🔍</div>
                     <h3>Change Tracking</h3>
                     <p>Opt-in change tracking sends only modified properties back to the server, reducing bandwidth.</p>
                 </div>
@@ -72,11 +76,11 @@
     </section>
 
     <!-- Quick Start -->
-    <section id="quickstart" class="quickstart">
+    <section id="quickstart" class="quickstart reveal">
         <div class="container">
             <h2>Quick Start</h2>
 
-            <div class="step">
+            <div class="step reveal">
                 <div class="step-number">1</div>
                 <div class="step-content">
                     <h3>Install</h3>
@@ -91,7 +95,7 @@ dotnet add package TableStorage</code></pre>
                 </div>
             </div>
 
-            <div class="step">
+            <div class="step reveal" style="transition-delay: 150ms;">
                 <div class="step-number">2</div>
                 <div class="step-content">
                     <h3>Define your context and model</h3>
@@ -118,7 +122,7 @@ public partial class Product
                 </div>
             </div>
 
-            <div class="step">
+            <div class="step reveal" style="transition-delay: 300ms;">
                 <div class="step-number">3</div>
                 <div class="step-content">
                     <h3>Register and use</h3>
@@ -149,7 +153,7 @@ public class ProductService(MyTableContext db)
     </section>
 
     <!-- Packages -->
-    <section id="packages" class="packages">
+    <section id="packages" class="packages reveal">
         <div class="container">
             <h2>Packages</h2>
             <div class="package-grid">
@@ -190,7 +194,7 @@ public class ProductService(MyTableContext db)
     </section>
 
     <!-- API Overview -->
-    <section id="api" class="api-overview">
+    <section id="api" class="api-overview reveal">
         <div class="container">
             <h2>API at a Glance</h2>
             <div class="api-columns">
@@ -327,8 +331,73 @@ await foreach (var item in table.Movies
         </div>
     </section>
 
+    <!-- Base Class Inheritance -->
+    <section id="inheritance" class="inheritance-section reveal">
+        <div class="container">
+            <h2>Base Class Inheritance</h2>
+            <p class="section-intro">Models can inherit from base classes. The source generator correctly picks up properties defined in parent classes — including partition and row keys.</p>
+
+            <div class="api-columns">
+                <div class="api-column">
+                    <h3>Keys &amp; Properties in Base Class</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">public abstract class BaseEntity
+{
+    public string Category { get; set; }
+    public string CommonProperty { get; set; }
+}
+
+[TableSet(PartitionKey = nameof(Category),
+          RowKey = nameof(ProductId))]
+public partial class Product : BaseEntity
+{
+    public partial string ProductId { get; set; }
+    public partial decimal Price { get; set; }
+}</code></pre>
+                    </div>
+                </div>
+                <div class="api-column">
+                    <h3>Override &amp; Hide</h3>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>C#</span>
+                            <button class="copy-btn" aria-label="Copy to clipboard" aria-live="polite">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">public abstract class BaseEntity
+{
+    public virtual string Category { get; set; }
+    public string Name { get; set; }
+}
+
+// Override — generator uses the overridden property
+[TableSet(PartitionKey = nameof(Category),
+          RowKey = nameof(Id))]
+public partial class Product : BaseEntity
+{
+    public override string Category { get; set; }
+    public partial string Id { get; set; }
+}
+
+// Hide with 'new partial' — enables change tracking
+[TableSet(PartitionKey = nameof(Category),
+          RowKey = nameof(Id))]
+public partial class TrackedProduct : BaseEntity
+{
+    public new partial string Category { get; set; }
+    public partial string Id { get; set; }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Fluent Entities -->
-    <section id="fluent" class="fluent-section">
+    <section id="fluent" class="fluent-section reveal">
         <div class="container">
             <h2>Fluent Entities</h2>
             <p class="section-intro">Store multiple entity types in a single Azure table with type-safe discriminators, implicit conversions, and pattern matching. Supports 2–16 type parameters across two packages.</p>
@@ -404,7 +473,7 @@ await foreach (var e in context.MixedEntities)
     </section>
 
     <!-- Runtime Compilations -->
-    <section id="runtime" class="runtime-section">
+    <section id="runtime" class="runtime-section reveal">
         <div class="container">
             <h2>Runtime Compilations</h2>
             <p class="section-intro">By default, all LINQ query visitors are source-generated for full Native AOT support. The RuntimeCompilations packages add an alternative: expressions are compiled at runtime, enabling maximum query flexibility when AOT is not required.</p>
@@ -563,7 +632,7 @@ await foreach (var item in table.Movies
     </section>
 
     <!-- Configuration -->
-    <section id="config" class="config">
+    <section id="config" class="config reveal">
         <div class="container">
             <h2>Configuration</h2>
             <div class="table-wrapper">
@@ -607,7 +676,7 @@ await foreach (var item in table.Movies
     </main>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer reveal">
         <div class="container">
             <div class="footer-content">
                 <p>&copy; Liesel Thuriot &middot; <a href="https://github.com/LieselThuriot/TableStorage/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></p>
@@ -620,9 +689,9 @@ await foreach (var item in table.Movies
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="script.js" defer></script>
 </body>
 </html>

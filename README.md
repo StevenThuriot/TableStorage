@@ -82,6 +82,51 @@ You can use the `PartitionKey` and `RowKey` properties of `TableSet` to create a
 public partial class Model;
 ```
 
+### Base Class Inheritance
+
+Models can inherit from base classes. The source generator correctly picks up properties defined in parent classes, including partition and row keys:
+
+```csharp
+public abstract class BaseEntity
+{
+    public string Category { get; set; }
+    public string CommonProperty { get; set; }
+}
+
+[TableSet(PartitionKey = nameof(Category), RowKey = nameof(ProductId))]
+public partial class Product : BaseEntity
+{
+    public partial string ProductId { get; set; }
+    public partial decimal Price { get; set; }
+}
+```
+
+You can also override base class properties using `virtual`/`override` or hide them with `new partial`:
+
+```csharp
+public abstract class BaseEntity
+{
+    public virtual string Category { get; set; }
+    public string Name { get; set; }
+}
+
+// Override — the source generator uses the overridden property
+[TableSet(PartitionKey = nameof(Category), RowKey = nameof(Id))]
+public partial class Product : BaseEntity
+{
+    public override string Category { get; set; }
+    public partial string Id { get; set; }
+}
+
+// Hide with 'new partial' — enables change tracking on the key
+[TableSet(PartitionKey = nameof(Category), RowKey = nameof(Id))]
+public partial class TrackedProduct : BaseEntity
+{
+    public new partial string Category { get; set; }
+    public partial string Id { get; set; }
+}
+```
+
 ### Change Tracking
 
 `TableSet` has a `TrackChanges` property (default `false`) that optimizes what is sent back to the server when making changes to an entity.

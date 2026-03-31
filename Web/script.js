@@ -2,7 +2,9 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Copy button handling with debounce/timeout safety
         document.querySelectorAll('.copy-btn').forEach(btn => {
+            let timeoutId;
             btn.addEventListener('click', () => {
                 const codeBlock = btn.closest('.code-block');
                 const code = codeBlock.querySelector('code');
@@ -11,16 +13,18 @@
                 const text = code.textContent;
 
                 navigator.clipboard.writeText(text).then(() => {
+                    clearTimeout(timeoutId);
                     btn.textContent = 'Copied!';
                     btn.classList.add('copied');
-                    setTimeout(() => {
+                    timeoutId = setTimeout(() => {
                         btn.textContent = 'Copy';
                         btn.classList.remove('copied');
                     }, 2000);
                 }).catch(err => {
                     console.error('Failed to copy: ', err);
+                    clearTimeout(timeoutId);
                     btn.textContent = 'Failed';
-                    setTimeout(() => {
+                    timeoutId = setTimeout(() => {
                         btn.textContent = 'Copy';
                     }, 2000);
                 });
@@ -50,6 +54,26 @@
                     target.focus({ preventScroll: true });
                 }
             });
+        });
+
+        // Advanced: Scroll Reveal via IntersectionObserver
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            observer.observe(el);
         });
     });
 })();
