@@ -8,10 +8,9 @@ internal sealed class FluentRuntimeCompilationFactory(ICompilationFactory innerF
 
     public Func<T, TResult> Compile<T, TResult>(Expression<Func<T, TResult>> expression)
     {
-        ParameterExpression parameterExpression = expression.Parameters[0];
-
-        if (typeof(IFluentTableEntity).IsAssignableFrom(parameterExpression.Type))
+        if (FluentEntityInfo<T>.IsFluent)
         {
+            ParameterExpression parameterExpression = expression.Parameters[0];
             FluentVisitor visitor = new(parameterExpression);
             expression = visitor.VisitAndConvert(expression, nameof(Compile));
         }

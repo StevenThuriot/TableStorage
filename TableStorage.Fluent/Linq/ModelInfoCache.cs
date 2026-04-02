@@ -6,7 +6,11 @@ internal static class ModelInfoCache<T>
 
     public static ModelInfo GetModelInfo(ITableSetQueryHelper helper)
     {
-        s_modelInfo ??= helper.GetModelInfo<T>();
+        if (s_modelInfo is null)
+        {
+            Interlocked.CompareExchange(ref s_modelInfo, helper.GetModelInfo<T>(), null);
+        }
+
         return s_modelInfo;
     }
 }

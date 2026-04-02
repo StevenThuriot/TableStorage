@@ -13,9 +13,17 @@ internal sealed class BlobStorageFactory(string connectionString, CreateIfNotExi
         return _creationMode switch
         {
             CreateIfNotExistsMode.Always => Init(client),
-            CreateIfNotExistsMode.Once when s_createdContainers.Add(container) => Init(client),
+            CreateIfNotExistsMode.Once when ShouldInit(container) => Init(client),
             _ => Task.FromResult(client),
         };
+    }
+
+    private static bool ShouldInit(string container)
+    {
+        lock (s_createdContainers)
+        {
+            return s_createdContainers.Add(container);
+        }
     }
 
     private static async Task<BlobContainerClient> Init(BlobContainerClient client)

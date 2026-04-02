@@ -13,9 +13,17 @@ internal sealed class TableStorageFactory(string connectionString, CreateIfNotEx
         return _creationMode switch
         {
             CreateIfNotExistsMode.Always => Init(client),
-            CreateIfNotExistsMode.Once when s_createdTables.Add(tableName) => Init(client),
+            CreateIfNotExistsMode.Once when ShouldInit(tableName) => Init(client),
             _ => Task.FromResult(client),
         };
+    }
+
+    private static bool ShouldInit(string tableName)
+    {
+        lock (s_createdTables)
+        {
+            return s_createdTables.Add(tableName);
+        }
     }
 
     private static async Task<TableClient> Init(TableClient client)

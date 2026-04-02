@@ -10,7 +10,7 @@ public enum FluentBackingType
     Fifth,
     Sixth,
     Seventh,
-    Eight,
+    Eighth,
     Ninth,
     Tenth,
     Eleventh,

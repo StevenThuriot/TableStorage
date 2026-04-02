@@ -18,12 +18,14 @@ internal sealed class FluentMergeVisitorAndValidator : IMergeVisitorAndValidator
             throw new NotSupportedException("Merge expression is not supported");
         }
 
-        entity.PartitionKey ??= visitor.ConstructedType is not null && typeof(IFluentPartitionTableEntity).IsAssignableFrom(typeof(T))
-            ? visitor.ConstructedType.Name
+        string? constructedTypeName = visitor.ConstructedType?.Name;
+
+        entity.PartitionKey ??= constructedTypeName is not null && FluentEntityInfo<T>.IsFluentPartition
+            ? constructedTypeName
             : throw new NotSupportedException("PartitionKey is a required field to be able to merge");
 
-        entity.RowKey ??= visitor.ConstructedType is not null && typeof(IFluentRowTableEntity).IsAssignableFrom(typeof(T))
-            ? visitor.ConstructedType.Name
+        entity.RowKey ??= constructedTypeName is not null && FluentEntityInfo<T>.IsFluentRow
+            ? constructedTypeName
             : throw new NotSupportedException("RowKey is a required field to be able to merge");
 
         return entity;

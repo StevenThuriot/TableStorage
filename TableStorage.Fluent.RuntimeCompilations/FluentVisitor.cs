@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Reflection;
 
 namespace TableStorage.Fluent;
 
@@ -6,17 +7,16 @@ internal sealed class FluentVisitor(ParameterExpression parameter) : ExpressionV
 {
     private readonly ParameterExpression _parameter = parameter;
 
+    private static readonly MethodInfo s_getItemMethod = typeof(IDictionary<string, object>).GetMethod("get_Item")!;
+
     protected override Expression VisitParameter(ParameterExpression node) => _parameter;
 
     protected override Expression VisitMember(MemberExpression node)
     {
         if (node.Expression is ParameterExpression)
         {
-            // Replace property access with indexer access
             var constant = Expression.Constant(node.Member.Name);
-            var indexerAccess = Expression.Call(_parameter, "get_Item", [], constant);
-
-            // Convert the indexer access to the appropriate type
+            var indexerAccess = Expression.Call(_parameter, s_getItemMethod, constant);
             return Expression.Convert(indexerAccess, node.Type);
         }
 

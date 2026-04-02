@@ -116,9 +116,8 @@ public static class <#= className #><#= genericCount #>QueryHelper
 <#= createFilterMethod #>
         private static Expression<Func<<#= className #><<#= typeParamList #>>, TResult>> AlterExpression<TResult>(Expression<Func<T, TResult>> expression)
         {
-            // Fake our input type to be T, regardless if it compiles or not.
-            // For runtime compilation, the expression must be rewritten by using indexers instead of direct property access.
-            // ( That's a TODO for later... )
+            // Swap the parameter type so the expression tree is accepted by the underlying helper.
+            // Runtime compilation rewrites property accesses to indexer calls via FluentVisitor.
             ParameterExpression parameter = Expression.Parameter(typeof(<#= className #><<#= typeParamList #>>));
             return Expression.Lambda<Func<<#= className #><<#= typeParamList #>>, TResult>>(expression.Body, parameter);
         }
