@@ -5,14 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TableStorage — Azure Data Tables &amp; Blobs, simplified</title>
     <meta name="description" content="A streamlined, source-generated .NET library for working with Azure Data Tables and Blob Storage. Built for performance, Native AOT compatibility, and developer ergonomics.">
+
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <script>document.documentElement.classList.add('js-enabled');</script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" integrity="sha512-vswe+cgvic/XBoF1OcM/TeJ2FW0OofqAVdCZiEYkd6dwGXthvkSFWOoGGJgS2CW70VK5dQM5Oh+7ne47s74VTg==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="script.js"></script>
 </head>
 <body>
     <a href="#main-content" class="skip-link sr-only">Skip to main content</a>
@@ -28,8 +34,8 @@
                 <p class="subtitle">A streamlined, source-generated .NET library built for performance, Native&nbsp;AOT compatibility, and developer ergonomics.</p>
                 <div class="hero-actions">
                     <a href="#quickstart" class="btn btn-primary">Get Started</a>
-                    <a href="https://github.com/LieselThuriot/TableStorage" class="btn btn-secondary" target="_blank" rel="noopener">GitHub</a>
-                    <a href="https://www.nuget.org/packages/TableStorage" class="btn btn-secondary" target="_blank" rel="noopener">NuGet</a>
+                    <a href="https://github.com/LieselThuriot/TableStorage" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
+                    <a href="https://www.nuget.org/packages/TableStorage" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">NuGet</a>
                 </div>
             </div>
         </div>
@@ -157,35 +163,35 @@ public class ProductService(MyTableContext db)
         <div class="container">
             <h2>Packages</h2>
             <div class="package-grid">
-                <a href="https://www.nuget.org/packages/TableStorage.Core" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage.Core" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage.Core</h3>
                     <p>Core abstractions and LINQ helpers</p>
                 </a>
-                <a href="https://www.nuget.org/packages/TableStorage" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage</h3>
                     <p>Table sets, context, and source generators</p>
                 </a>
-                <a href="https://www.nuget.org/packages/TableStorage.Blobs" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage.Blobs" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage.Blobs</h3>
                     <p>Block &amp; Append blob support with custom serialization</p>
                 </a>
-                <a href="https://www.nuget.org/packages/TableStorage.Fluent" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage.Fluent" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage.Fluent</h3>
                     <p>Polymorphic fluent entities (2–4 types)</p>
                 </a>
-                <a href="https://www.nuget.org/packages/TableStorage.Fluent.Extended" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage.Fluent.Extended" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage.Fluent.Extended</h3>
                     <p>Extended fluent entities (5–16 types)</p>
                 </a>
-                <a href="https://www.nuget.org/packages/TableStorage.RuntimeCompilations" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage.RuntimeCompilations" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage.RuntimeCompilations</h3>
                     <p>Runtime LINQ compilation for table queries</p>
                 </a>
-                <a href="https://www.nuget.org/packages/TableStorage.Blobs.RuntimeCompilations" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage.Blobs.RuntimeCompilations" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage.Blobs.RuntimeCompilations</h3>
                     <p>Runtime LINQ compilation for blob queries</p>
                 </a>
-                <a href="https://www.nuget.org/packages/TableStorage.Fluent.RuntimeCompilations" class="package-card" target="_blank" rel="noopener">
+                <a href="https://www.nuget.org/packages/TableStorage.Fluent.RuntimeCompilations" class="package-card" target="_blank" rel="noopener noreferrer">
                     <h3>TableStorage.Fluent.RuntimeCompilations</h3>
                     <p>Runtime LINQ compilation for fluent queries</p>
                 </a>
@@ -679,19 +685,19 @@ await foreach (var item in table.Movies
     <footer class="footer reveal">
         <div class="container">
             <div class="footer-content">
-                <p>&copy; Liesel Thuriot &middot; <a href="https://github.com/LieselThuriot/TableStorage/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></p>
+                <p>&copy; Liesel Thuriot &middot; <a href="https://github.com/LieselThuriot/TableStorage/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></p>
                 <div class="footer-links">
-                    <a href="https://github.com/LieselThuriot/TableStorage" target="_blank" rel="noopener">GitHub</a>
-                    <a href="https://www.nuget.org/packages/TableStorage" target="_blank" rel="noopener">NuGet</a>
-                    <a href="https://github.com/LieselThuriot/TableStorage/issues" target="_blank" rel="noopener">Issues</a>
+                    <a href="https://github.com/LieselThuriot/TableStorage" target="_blank" rel="noopener noreferrer">GitHub</a>
+                    <a href="https://www.nuget.org/packages/TableStorage" target="_blank" rel="noopener noreferrer">NuGet</a>
+                    <a href="https://github.com/LieselThuriot/TableStorage/issues" target="_blank" rel="noopener noreferrer">Issues</a>
                 </div>
             </div>
         </div>
     </footer>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-9khQRAUBYEJDCDVP2ez6U2fBZVD5QxT8wuM9bJV+MDBXH+aKLXpbKg8vWnLOweGerQaA/E8qgupNKkSOfoPQfA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js" integrity="sha512-HxjVLc+sGDmqpCzDfHlZG0gXz/qNkVRIvbgNoF2lCn6t3BVKbWLqLAObFi8GEKArAfiMKp9+1kZ5MDMRxzWkKQ==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" integrity="sha512-whYbDilr6xyKqDwAJDE0q5hjRkhQmwPFGNOEHlmhkYmZ2eCCdSpiByJfSzBPT7hko6VrlwgVDi4vcvjYEkDSgA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
     <script src="script.js" defer></script>
 </body>
 </html>

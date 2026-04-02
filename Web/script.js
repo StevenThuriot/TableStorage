@@ -1,3 +1,6 @@
+// Enable JS-dependent styles immediately
+document.documentElement.classList.add('js-enabled');
+
 (() => {
     'use strict';
 
