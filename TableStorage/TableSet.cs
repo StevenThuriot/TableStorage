@@ -145,10 +145,30 @@ public abstract class TableSet<T> : IStorageSet<T>
         return InternalQueryAsync(filter, maxPerPage, select, cancellationToken);
     }
 
-    internal virtual async IAsyncEnumerable<T> InternalQueryAsync(Expression<Func<T, bool>> filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    internal async IAsyncEnumerable<T> InternalQueryAsync(Expression<Func<T, bool>> filter, int? maxPerPage, IEnumerable<string>? select, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         TableClient client = await LazyClient;
-        await foreach (T entity in client.QueryAsync(filter, maxPerPage ?? Options.PageSize, select, cancellationToken))
+        maxPerPage ??= Options.PageSize;
+
+        if (Options.OptimizeQueries)
+        {
+            List<Expression<Func<T, bool>>>? splitFilters = PartitionKeySplitVisitor.TrySplit(filter);
+
+            if (splitFilters is { Count: > 1 })
+            {
+                foreach (Expression<Func<T, bool>> splitFilter in splitFilters)
+                {
+                    await foreach (T entity in client.QueryAsync(splitFilter, maxPerPage, select, cancellationToken))
+                    {
+                        yield return entity;
+                    }
+                }
+
+                yield break;
+            }
+        }
+
+        await foreach (T entity in client.QueryAsync(filter, maxPerPage, select, cancellationToken))
         {
             yield return entity;
         }

@@ -658,6 +658,7 @@ await foreach (var item in table.Movies
                         <tr><td><code>TransactionSafety</code></td><td><code>Enabled</code></td><td>Auto-group by partition key and chunk</td></tr>
                         <tr><td><code>TransactionChunkSize</code></td><td><code>100</code></td><td>Max operations per transaction batch</td></tr>
                         <tr><td><code>ChangesOnly</code></td><td><code>false</code></td><td>Send only changed properties</td></tr>
+                        <tr><td><code>OptimizeQueries</code></td><td><code>true</code></td><td>Split multi-partition-key queries into per-partition sub-queries to avoid full table scans</td></tr>
                     </tbody>
                 </table>
             </div>

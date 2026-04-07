@@ -354,3 +354,6 @@ MigrationBackup/
 
 # Generated FluentTableEntity file
 /TableStorage.Fluent*/**/*.g.cs
+
+# Cache files for language services
+*.lscache

@@ -29,4 +29,5 @@ public sealed class TableOptions
     } = 100;
 
     public bool ChangesOnly { get; set; }
+    public bool OptimizeQueries { get; set; } = true;
 }

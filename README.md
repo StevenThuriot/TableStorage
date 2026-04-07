@@ -227,6 +227,7 @@ static void Configure(TableOptions options)
 | `TransactionSafety` | `TransactionSafety` | `Enabled` | When `Enabled`, transactions are split by partition key and chunked |
 | `TransactionChunkSize` | `int` | `100` | Max operations per transaction batch (must be > 0) |
 | `ChangesOnly` | `bool` | `false` | When `true`, only changed properties are sent during updates |
+| `OptimizeQueries` | `bool` | `true` | When `true`, queries with multiple partition key comparisons are automatically split into per-partition sub-queries to avoid full table scans |
 
 ### Blob Options
 
