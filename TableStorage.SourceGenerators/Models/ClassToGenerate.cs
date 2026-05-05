@@ -6,15 +6,16 @@ namespace TableStorage.SourceGenerators.Models;
 /// <summary>
 /// Represents context information for generating a class in a table context.
 /// </summary>
-public readonly struct ContextClassToGenerate(string name, string @namespace, EquatableArray<ContextMemberToGenerate> members) : IEquatable<ContextClassToGenerate>
+public readonly struct ContextClassToGenerate(string name, string @namespace, EquatableArray<ContextMemberToGenerate> members, string accessibility) : IEquatable<ContextClassToGenerate>
 {
     public readonly string Name = name;
     public readonly string Namespace = @namespace;
     public readonly EquatableArray<ContextMemberToGenerate> Members = members;
+    public readonly string Accessibility = accessibility;
 
     public bool Equals(ContextClassToGenerate other)
     {
-        return Name == other.Name && Namespace == other.Namespace && Members.Equals(other.Members);
+        return Name == other.Name && Namespace == other.Namespace && Members.Equals(other.Members) && Accessibility == other.Accessibility;
     }
 
     public override bool Equals(object? obj)
@@ -23,7 +24,7 @@ public readonly struct ContextClassToGenerate(string name, string @namespace, Eq
     }
     public override int GetHashCode()
     {
-        return HashCode.Combine(Name, Namespace, Members);
+        return HashCode.Combine(Name, Namespace, Members, Accessibility);
     }
 }
 

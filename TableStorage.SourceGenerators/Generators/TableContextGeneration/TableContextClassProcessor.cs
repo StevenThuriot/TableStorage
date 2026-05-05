@@ -51,9 +51,12 @@ internal static class TableContextClassProcessor
             }
         }
 
+        string accessibility = classSymbol.DeclaredAccessibility == Accessibility.Public ? "public" : "internal";
+
         return new ContextClassToGenerate(
             classSymbol.Name,
             classSymbol.ContainingNamespace.ToDisplayString(),
-            new EquatableArray<ContextMemberToGenerate>([.. members]));
+            new EquatableArray<ContextMemberToGenerate>([.. members]),
+            accessibility);
     }
 }

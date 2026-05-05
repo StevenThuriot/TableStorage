@@ -72,7 +72,7 @@ namespace ").Append(classToGenerate.Namespace).Append(@"
     /// <summary>
     /// Extension methods for fluent type properties in ").Append(classToGenerate.Name).Append(@".
     /// </summary>
-    public static partial class ").Append(classToGenerate.Name).Append(@"FluentExtensions
+    ").Append(classToGenerate.Accessibility).Append(@" static partial class ").Append(classToGenerate.Name).Append(@"FluentExtensions
     {");
 
         // Generate extension methods for each fluent member

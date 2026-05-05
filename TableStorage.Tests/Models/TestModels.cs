@@ -236,3 +236,18 @@ public partial class FluentTestModelB
     public partial string TypeB { get; set; }
     public partial bool PropertyB { get; set; }
 }
+
+// Dedicated models for InternalTableContext accessibility tests
+[TableSet(PartitionKey = nameof(PrettyPartition), RowKey = nameof(PrettyRow))]
+internal sealed partial class InternalFluentModelA
+{
+    public partial string PrettyPartition { get; set; }
+    public partial string PrettyRow { get; set; }
+}
+
+[TableSet(PartitionKey = nameof(PrettyPartition), RowKey = nameof(PrettyRow))]
+internal sealed partial class InternalFluentModelB
+{
+    public partial string PrettyPartition { get; set; }
+    public partial string PrettyRow { get; set; }
+}
