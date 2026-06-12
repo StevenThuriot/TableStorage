@@ -141,6 +141,8 @@ public partial class Model
 }
 ```
 
+When `ChangesOnly` is enabled in `TableOptions`, update, upsert, and bulk operations on change-tracked entities automatically default to `Merge` mode — regardless of the configured `TableMode` or `BulkOperation` — to prevent unchanged properties from being overwritten with default values. Passing an explicit `TableUpdateMode` or `BulkOperation` argument to the method always takes precedence.
+
 ### Blob Support
 
 Mark the model for Blob Storage support by setting `SupportBlobs` on the `TableSet` attribute to `true`.
@@ -220,13 +222,13 @@ static void Configure(TableOptions options)
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `TableMode` | `TableUpdateMode` | `Merge` | Update mode: `Merge` or `Replace` |
+| `TableMode` | `TableUpdateMode` | `Replace` | Update mode: `Merge` or `Replace` |
 | `PageSize` | `int?` | `null` | Number of entities per page when querying |
 | `CreateTableIfNotExists` | `CreateIfNotExistsMode` | `Always` | `Always`, `Once` (cached), or `Disabled` |
-| `BulkOperation` | `BulkOperation` | `Replace` | Default bulk operation mode: `Replace` or `Merge` |
+| `BulkOperation` | `BulkOperation` | `Replace` | Default bulk operation mode: `Merge` or `Replace` |
 | `TransactionSafety` | `TransactionSafety` | `Enabled` | When `Enabled`, transactions are split by partition key and chunked |
 | `TransactionChunkSize` | `int` | `100` | Max operations per transaction batch (must be > 0) |
-| `ChangesOnly` | `bool` | `false` | When `true`, only changed properties are sent during updates |
+| `ChangesOnly` | `bool` | `false` | When `true`, only changed properties are sent during updates. Also forces `Merge` mode by default for all update and bulk operations on change-tracked entities, to prevent unchanged properties from being overwritten with default values. Can still be overridden by passing an explicit mode to the method |
 | `OptimizeQueries` | `bool` | `true` | When `true`, queries with multiple partition key comparisons are automatically split into per-partition sub-queries to avoid full table scans |
 
 ### Blob Options
@@ -323,7 +325,7 @@ await context.Models1.BulkUpsertAsync(entities);
 await context.Models1.BulkDeleteAsync(entities);
 ```
 
-`BulkUpdateAsync` and `BulkUpsertAsync` accept an optional `BulkOperation` parameter to choose between `Replace` and `Merge` mode. The default is configured via `TableOptions.BulkOperation`.
+`BulkUpdateAsync` and `BulkUpsertAsync` accept an optional `BulkOperation` parameter to choose between `Replace` and `Merge` mode. The default is configured via `TableOptions.BulkOperation`. When using change-tracked entities with `ChangesOnly` enabled, the default is `Merge` regardless of `TableOptions.BulkOperation`.
 
 ## Transactions
 
@@ -467,7 +469,7 @@ var result = entity.SwitchCase(
 Three discriminator strategies are available:
 - `FluentTableEntity<T1, T2>` — uses a `$type` discriminator column
 - `FluentPartitionTableEntity<T1, T2>` — uses the `PartitionKey` as discriminator
-- `FluentRowTypeTableEntity<T1, T2>` — uses the `RowKey` as discriminator
+- `FluentRowTableEntity<T1, T2>` — uses the `RowKey` as discriminator
 
 See the [TableStorage.Fluent README](TableStorage.Fluent/README.md) for full documentation.
 
@@ -481,13 +483,21 @@ dotnet add package TableStorage.Blobs.RuntimeCompilations
 dotnet add package TableStorage.Fluent.RuntimeCompilations
 ```
 
-Enable runtime compilation when registering your context:
+Each package has a different registration requirement:
+
+- **`TableStorage.RuntimeCompilations`** — no registration needed. Installing the package makes additional extension methods available directly on `TableSet<T>` (e.g. `Select`, `UpdateAsync`, `UpsertAsync`, `BatchUpdateAsync`, `BatchUpdateTransactionAsync`).
+- **`TableStorage.Blobs.RuntimeCompilations`** — call `EnableCompilationAtRuntime()` on `BlobOptions`.
+- **`TableStorage.Fluent.RuntimeCompilations`** — call `EnableFluentCompilationAtRuntime()` on `TableOptions`.
 
 ```csharp
 services.AddMyTableContext(connectionString,
+    configure: x =>
+    {
+        x.EnableFluentCompilationAtRuntime(); // TableStorage.Fluent.RuntimeCompilations
+    },
     configureBlobs: x =>
     {
-        x.EnableCompilationAtRuntime();
+        x.EnableCompilationAtRuntime(); // TableStorage.Blobs.RuntimeCompilations
     });
 ```
 
