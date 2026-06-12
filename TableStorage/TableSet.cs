@@ -185,11 +185,21 @@ public abstract class TableSet<T> : IStorageSet<T>
         return ExecuteInBulkAsync(entities, TableTransactionActionType.Add, cancellationToken);
     }
 
-    public Task BulkUpdateAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpdateAsync(entities, Options.BulkOperation, cancellationToken);
-
-    public Task BulkUpdateAsync(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    protected virtual BulkOperation GetBulkOperation(BulkOperation? bulkOperation)
     {
-        TableTransactionActionType tableTransactionActionType = bulkOperation switch
+        if (bulkOperation.HasValue)
+        {
+            return bulkOperation.GetValueOrDefault();
+        }
+
+        return Options.BulkOperation;
+    }
+
+    public Task BulkUpdateAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpdateAsync(entities, null, cancellationToken);
+
+    public Task BulkUpdateAsync(IEnumerable<T> entities, BulkOperation? bulkOperation, CancellationToken cancellationToken = default)
+    {
+        TableTransactionActionType tableTransactionActionType = GetBulkOperation(bulkOperation) switch
         {
             BulkOperation.Replace => TableTransactionActionType.UpdateReplace,
             BulkOperation.Merge => TableTransactionActionType.UpdateMerge,
@@ -199,11 +209,11 @@ public abstract class TableSet<T> : IStorageSet<T>
         return ExecuteInBulkAsync(entities, tableTransactionActionType, cancellationToken);
     }
 
-    public Task BulkUpsertAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsertAsync(entities, Options.BulkOperation, cancellationToken);
+    public Task BulkUpsertAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default) => BulkUpsertAsync(entities, null, cancellationToken);
 
-    public Task BulkUpsertAsync(IEnumerable<T> entities, BulkOperation bulkOperation, CancellationToken cancellationToken = default)
+    public Task BulkUpsertAsync(IEnumerable<T> entities, BulkOperation? bulkOperation, CancellationToken cancellationToken = default)
     {
-        TableTransactionActionType tableTransactionActionType = bulkOperation switch
+        TableTransactionActionType tableTransactionActionType = GetBulkOperation(bulkOperation) switch
         {
             BulkOperation.Replace => TableTransactionActionType.UpsertReplace,
             BulkOperation.Merge => TableTransactionActionType.UpsertMerge,

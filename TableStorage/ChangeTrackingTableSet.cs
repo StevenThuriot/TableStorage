@@ -16,6 +16,42 @@ internal sealed class ChangeTrackingTableSet<T> : TableSet<T>
         return entity;
     }
 
+    private TableUpdateMode GetUpdateMode(TableUpdateMode? mode)
+    {
+        if (mode.HasValue)
+        {
+            return mode.GetValueOrDefault();
+        }
+
+        TableOptions options = Options;
+
+        if (options.ChangesOnly)
+        {
+            // If we're only tracking changes, we should default to Merge to avoid unchanged properties being overwritten with default values.
+            return TableUpdateMode.Merge;
+        }
+
+        return options.TableMode;
+    }
+
+    protected override BulkOperation GetBulkOperation(BulkOperation? bulkOperation)
+    {
+        if (bulkOperation.HasValue)
+        {
+            return bulkOperation.GetValueOrDefault();
+        }
+
+        TableOptions options = Options;
+
+        if (options.ChangesOnly)
+        {
+            // If we're only tracking changes, we should default to Merge to avoid unchanged properties being overwritten with default values.
+            return BulkOperation.Merge;
+        }
+
+        return options.BulkOperation;
+    }
+
     internal ChangeTrackingTableSet(TableStorageFactory factory, string tableName, TableOptions options, Func<Type, ModelInfo> infoProvider)
         : base(factory, tableName, options, infoProvider)
     {
@@ -39,13 +75,13 @@ internal sealed class ChangeTrackingTableSet<T> : TableSet<T>
     public async override Task UpdateEntityAsync(T entity, ETag ifMatch, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         TableClient client = await LazyClient;
-        await client.UpdateEntityAsync(GetEntity(entity), ifMatch, mode ?? Options.TableMode, cancellationToken);
+        await client.UpdateEntityAsync(GetEntity(entity), ifMatch, GetUpdateMode(mode), cancellationToken);
     }
 
     public async override Task UpsertEntityAsync(T entity, TableUpdateMode? mode, CancellationToken cancellationToken = default)
     {
         TableClient client = await LazyClient;
-        await client.UpsertEntityAsync(GetEntity(entity), mode ?? Options.TableMode, cancellationToken);
+        await client.UpsertEntityAsync(GetEntity(entity), GetUpdateMode(mode), cancellationToken);
     }
 
     public override async Task<T?> GetEntityAsync(string partitionKey, string rowKey, IEnumerable<string>? select, CancellationToken cancellationToken = default)

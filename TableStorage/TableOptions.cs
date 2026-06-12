@@ -4,7 +4,7 @@ public sealed class TableOptions
 {
     internal TableOptions() { }
 
-    public TableUpdateMode TableMode { get; set; } = TableUpdateMode.Merge;
+    public TableUpdateMode TableMode { get; set; } = TableUpdateMode.Replace;
 
     public int? PageSize { get; set; }
 
