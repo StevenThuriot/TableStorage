@@ -334,7 +334,7 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         Assert.All(results, x =>
         {
             Assert.IsType<FluentTestModelA>(x);
-            var typedModel = (FluentTestModelA)x;
+            var typedModel = x;
             Assert.True(typedModel.PropertyA > 100);
         });
     }
@@ -385,7 +385,7 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         Assert.All(results, x =>
         {
             Assert.IsType<FluentTestModelB>(x);
-            var typedModel = (FluentTestModelB)x;
+            var typedModel = x;
             Assert.False(typedModel.PropertyB);
         });
     }
@@ -532,8 +532,8 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         // Assert
         Assert.Equal(2, results.Count);
         Assert.All(results, x => Assert.IsType<FluentTestModelA>(x));
-        Assert.Contains(results, x => ((FluentTestModelA)x).PropertyA == 100);
-        Assert.Contains(results, x => ((FluentTestModelA)x).PropertyA == 200);
+        Assert.Contains(results, x => x.PropertyA == 100);
+        Assert.Contains(results, x => x.PropertyA == 200);
     }
 
     [Fact]
@@ -590,8 +590,8 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         // Assert
         Assert.Equal(2, results.Count);
         Assert.All(results, x => Assert.IsType<FluentTestModelB>(x));
-        Assert.Contains(results, x => ((FluentTestModelB)x).TypeB == "Type B1");
-        Assert.Contains(results, x => ((FluentTestModelB)x).TypeB == "Type B3");
+        Assert.Contains(results, x => x.TypeB == "Type B1");
+        Assert.Contains(results, x => x.TypeB == "Type B3");
     }
 
     #endregion
@@ -654,12 +654,12 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         Assert.All(results, x =>
         {
             Assert.IsType<FluentTestModelA>(x);
-            var typedModel = (FluentTestModelA)x;
+            var typedModel = x;
             Assert.NotEqual(100, typedModel.PropertyA);
             Assert.NotEqual(400, typedModel.PropertyA);
         });
-        Assert.Contains(results, x => ((FluentTestModelA)x).PropertyA == 200);
-        Assert.Contains(results, x => ((FluentTestModelA)x).PropertyA == 300);
+        Assert.Contains(results, x => x.PropertyA == 200);
+        Assert.Contains(results, x => x.PropertyA == 300);
     }
 
     [Fact]
@@ -718,12 +718,12 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         Assert.All(results, x =>
         {
             Assert.IsType<FluentTestModelB>(x);
-            var typedModel = (FluentTestModelB)x;
+            var typedModel = x;
             Assert.NotEqual("Type B1", typedModel.TypeB);
             Assert.NotEqual("Type B4", typedModel.TypeB);
         });
-        Assert.Contains(results, x => ((FluentTestModelB)x).TypeB == "Type B2");
-        Assert.Contains(results, x => ((FluentTestModelB)x).TypeB == "Type B3");
+        Assert.Contains(results, x => x.TypeB == "Type B2");
+        Assert.Contains(results, x => x.TypeB == "Type B3");
     }
 
     #endregion
@@ -828,14 +828,14 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         // Act
         var results = await Context.FluentRowKeyModels
             .ExistsInFluentTestModelA((x) => x.PropertyA, [100, 200, 300])
-            .NotExistsIn((FluentTestModelA x) => x.PropertyA, [300])
+            .NotExistsIn(x => x.PropertyA, [300])
             .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(2, results.Count);
-        Assert.Contains(results, x => ((FluentTestModelA)x).PropertyA == 100);
-        Assert.Contains(results, x => ((FluentTestModelA)x).PropertyA == 200);
-        Assert.DoesNotContain(results, x => ((FluentTestModelA)x).PropertyA == 300);
+        Assert.Contains(results, x => x.PropertyA == 100);
+        Assert.Contains(results, x => x.PropertyA == 200);
+        Assert.DoesNotContain(results, x => x.PropertyA == 300);
     }
 
     [Fact]
@@ -877,7 +877,7 @@ public class FluentRowKeyQueryTests(AzuriteFixture azuriteFixture) : AzuriteTest
         // Act
         var results = await Context.FluentRowKeyModels
             .SelectFluentTestModelBFields((x) => x.PropertyB)
-            .Where((FluentTestModelB x) => x.TypeB == "Type B1")
+            .Where(x => x.TypeB == "Type B1")
             .ToListAsync(TestContext.Current.CancellationToken);
 
         // Assert

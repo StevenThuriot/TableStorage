@@ -9,7 +9,7 @@
 		<IsTestProject>true</IsTestProject>
 		<TableStorageSerializerContext>TableStorage.Tests.Contexts.ModelSerializationContext</TableStorageSerializerContext>
 		<PublishAot>false</PublishAot>
-    <TestContainers>true</TestContainers>
+		<TestContainers>true</TestContainers>
 	</PropertyGroup>
 	
 	<PropertyGroup>

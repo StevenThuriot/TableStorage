@@ -318,6 +318,8 @@ dotnet_diagnostic.RCS1234.severity = warning
 dotnet_diagnostic.RCS1238.severity = error
 dotnet_diagnostic.RCS1249.severity = warning
 dotnet_diagnostic.RCS1261.severity = warning
+csharp_style_prefer_simple_property_accessors = true:warning
+csharp_style_prefer_implicitly_typed_lambda_expression = true:warning
 
 [*.{cs,vb}]
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
