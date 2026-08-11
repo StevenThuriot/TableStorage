@@ -7,6 +7,18 @@ public static class BlobStorageSetup
 {
     public static IBlobCreator BuildCreator(string connectionString, Action<BlobOptions>? configure = null)
     {
+        BlobServiceClient client = new(connectionString ?? throw new ArgumentNullException(nameof(connectionString)));
+        return BuildCreator(client, configure);
+    }
+
+    public static IBlobCreator BuildCreator(IServiceProvider services, Action<BlobOptions>? configure = null)
+    {
+        BlobServiceClient client = ((BlobServiceClient)services.GetService(typeof(BlobServiceClient))) ?? throw new InvalidOperationException("BlobServiceClient not registered");
+        return BuildCreator(client, configure);
+    }
+
+    private static BlobSetCreator BuildCreator(BlobServiceClient client, Action<BlobOptions>? configure)
+    {
         BlobOptions options = new();
 
         if (configure is not null)
@@ -16,8 +28,8 @@ public static class BlobStorageSetup
 
         options.Serializer ??= JsonBlobSerializer.Instance;
 
-        BlobStorageFactory factory = new(connectionString, options.CreateContainerIfNotExists);
-        return new BlobSetCreator(factory, options);
+        BlobStorageFactory factory = new(client, options.CreateContainerIfNotExists);
+        return new(factory, options);
     }
 
     private sealed class BlobSetCreator(BlobStorageFactory factory, BlobOptions options) : IBlobCreator

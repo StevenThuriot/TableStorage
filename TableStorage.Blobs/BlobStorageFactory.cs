@@ -1,8 +1,8 @@
 ﻿namespace TableStorage;
 
-internal sealed class BlobStorageFactory(string connectionString, CreateIfNotExistsMode mode)
+internal sealed class BlobStorageFactory(BlobServiceClient client, CreateIfNotExistsMode mode)
 {
-    private readonly BlobServiceClient _client = new(connectionString ?? throw new ArgumentNullException(nameof(connectionString)));
+    private readonly BlobServiceClient _client = client;
     private readonly CreateIfNotExistsMode _creationMode = mode;
 
     private static readonly HashSet<string> s_createdContainers = new(StringComparer.OrdinalIgnoreCase);

@@ -83,7 +83,7 @@ internal static class TableContextGenerator
         ConstructorGenerator.GenerateConstructor(sb, classToGenerate, hasTables, hasBlobs);
 
         // Generate service registration
-        ServiceRegistrationGenerator.GenerateRegistrationMethod(sb, classToGenerate.Name, hasTables, hasBlobs);
+        ServiceRegistrationGenerator.GenerateRegistrationMethod(sb, classToGenerate, hasTables, hasBlobs);
 
         // Close class
         sb.Append(@"

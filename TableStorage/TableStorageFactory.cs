@@ -1,8 +1,8 @@
 ﻿namespace TableStorage;
 
-internal sealed class TableStorageFactory(string connectionString, CreateIfNotExistsMode mode)
+internal sealed class TableStorageFactory(TableServiceClient client, CreateIfNotExistsMode mode)
 {
-    private readonly TableServiceClient _client = new(connectionString ?? throw new ArgumentNullException(nameof(connectionString)));
+    private readonly TableServiceClient _client = client;
     private readonly CreateIfNotExistsMode _creationMode = mode;
 
     private static readonly HashSet<string> s_createdTables = new(StringComparer.OrdinalIgnoreCase);

@@ -1,8 +1,22 @@
-﻿namespace TableStorage;
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace TableStorage;
 
 public static class TableStorageSetup
 {
     public static ICreator BuildCreator(string connectionString, Action<TableOptions>? configure = null)
+    {
+        TableServiceClient client = new(connectionString ?? throw new ArgumentNullException(nameof(connectionString)));
+        return BuildCreator(client, configure);
+    }
+
+    public static ICreator BuildCreator(IServiceProvider services, Action<TableOptions>? configure = null)
+    {
+        TableServiceClient client = services.GetRequiredService<TableServiceClient>();
+        return BuildCreator(client, configure);
+    }
+
+    private static TableSetCreator BuildCreator(TableServiceClient client, Action<TableOptions>? configure)
     {
         TableOptions options = new();
 
@@ -11,8 +25,8 @@ public static class TableStorageSetup
             configure(options);
         }
 
-        TableStorageFactory factory = new(connectionString, options.CreateTableIfNotExists);
-        return new TableSetCreator(factory, options);
+        TableStorageFactory factory = new(client, options.CreateTableIfNotExists);
+        return new(factory, options);
     }
 
     private sealed class TableSetCreator(TableStorageFactory factory, TableOptions options) : ICreator
