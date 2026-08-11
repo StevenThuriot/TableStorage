@@ -181,6 +181,23 @@ Register your TableContext in your services. An extension method will be availab
 builder.Services.AddMyTableContext(builder.Configuration.GetConnectionString("MyConnectionString"));
 ```
 
+If you create the Azure clients elsewhere, register them with dependency injection and call the
+parameterless context registration overload. The context will use the registered clients rather
+than creating new ones.
+
+```csharp
+builder.Services.AddSingleton(new TableServiceClient(
+    builder.Configuration.GetConnectionString("MyConnectionString")));
+builder.Services.AddSingleton(new BlobServiceClient(
+    builder.Configuration.GetConnectionString("MyConnectionString")));
+
+builder.Services.AddMyTableContext();
+```
+
+The parameterless overload is generated for each context and is named after the context, such as
+`AddMyTableContext`. It supports the same configuration callbacks as the connection-string
+overload.
+
 ### Inject and Use
 
 ```csharp

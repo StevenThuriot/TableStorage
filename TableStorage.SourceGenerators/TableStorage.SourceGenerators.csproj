@@ -3,6 +3,7 @@
 	<PropertyGroup>
 		<!-- 👇 We don't want to reference the source generator dll directly in consuming projects -->
 		<IncludeBuildOutput>false</IncludeBuildOutput>
+		<IsPackable>false</IsPackable>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<VersionPrefix>$(MajorMinorVersion).0</VersionPrefix>
 	</PropertyGroup>

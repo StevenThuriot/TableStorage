@@ -26,6 +26,24 @@ services.AddMyTableContext(connectionString,
     });
 ```
 
+If you create the Azure client elsewhere, register it with dependency injection and call the
+parameterless context registration overload. The context will use the registered client rather
+than creating a new one.
+
+```csharp
+services.AddSingleton(new BlobServiceClient(connectionString));
+services.AddMyTableContext(
+    configureBlobs: x =>
+    {
+        x.CreateContainerIfNotExists = true;
+        x.EnableCompilationAtRuntime();
+    });
+```
+
+The parameterless overload is generated for each context and is named after the context, such as
+`AddMyTableContext`. It supports the same configuration callbacks as the connection-string
+overload.
+
 ## See Also
 
 - [TableStorage.Blobs](https://www.nuget.org/packages/TableStorage.Blobs)
