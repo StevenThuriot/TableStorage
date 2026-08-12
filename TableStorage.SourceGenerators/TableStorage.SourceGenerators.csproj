@@ -5,12 +5,28 @@
 		<IncludeBuildOutput>false</IncludeBuildOutput>
 		<IsPackable>false</IsPackable>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-		<VersionPrefix>$(MajorMinorVersion).0</VersionPrefix>
+		<VersionPrefix>$(MajorMinorVersion).$(BuildVersion)</VersionPrefix>
+		<GeneratedVersionFile>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\GeneratedVersion.g.cs</GeneratedVersionFile>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <AdditionalFiles Include="AnalyzerReleases.*.md" />
+		<Compile Include="$(GeneratedVersionFile)" Visible="false" />
+		<AdditionalFiles Include="AnalyzerReleases.*.md" />
 	</ItemGroup>
+
+	<Target Name="GenerateVersionSource" BeforeTargets="CoreCompile" Inputs="$(MSBuildProjectFullPath);$(MSBuildAllProjects)" Outputs="$(GeneratedVersionFile)">
+		<ItemGroup>
+			<_GeneratedVersionSource Include="// &lt;auto-generated /&gt;" />
+			<_GeneratedVersionSource Include="namespace TableStorage.SourceGenerators" />
+			<_GeneratedVersionSource Include="{" />
+			<_GeneratedVersionSource Include="internal static partial class Header" />
+			<_GeneratedVersionSource Include="{" />
+			<_GeneratedVersionSource Include="    public const string Version = &quot;$(VersionPrefix)&quot;%3B" />
+			<_GeneratedVersionSource Include="}" />
+			<_GeneratedVersionSource Include="}" />
+		</ItemGroup>
+		<WriteLinesToFile File="$(GeneratedVersionFile)" Lines="@(_GeneratedVersionSource)" Overwrite="true" />
+	</Target>
 
 	<!-- This ensures the library will be packaged as a source generator when we use `dotnet pack` -->
 	<ItemGroup>

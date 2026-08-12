@@ -33,6 +33,7 @@
 	
 	<PropertyGroup>
 		<MajorMinorVersion>6.1</MajorMinorVersion>
+		<BuildVersion>1</BuildVersion>
 		<NextMajorVersion>$([MSBuild]::Add($([System.String]::new('$(MajorMinorVersion)').Split('.')[0]), 1)).0</NextMajorVersion>
 		<NextMajorMinorVersion>$([System.String]::new('$(MajorMinorVersion)').Split('.')[0]).$([MSBuild]::Add($([System.String]::new('$(MajorMinorVersion)').Split('.')[1]), 1))</NextMajorMinorVersion>
 		<VersionSuffix></VersionSuffix>

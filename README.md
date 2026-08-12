@@ -437,7 +437,7 @@ Since this is not supported when publishing with Native AOT, you can use the `Ta
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<PublishAot>true</PublishAot>
 		<TableStorageSerializerContext>TableStorage.Tests.Contexts.ModelSerializationContext</TableStorageSerializerContext>
 	</PropertyGroup>
